@@ -39,10 +39,10 @@ int analyze()
   plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "2jet_alphat",    "mumet", 20, 0, 1000);
   plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "3jet_alphat",    "mumet", 20, 0, 1000);
 
-  plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "alljets_apcjetmax", "mumet", 20, 0, 1000);
-  plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "1jet_apcjetmax",    "mumet", 20, 0, 1000);
-  plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "2jet_apcjetmax",    "mumet", 20, 0, 1000);
-  plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "3jet_apcjetmax",    "mumet", 20, 0, 1000);
+  plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "alljets_apcjetmetmax", "mumet", 20, 0, 1000);
+  plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "1jet_apcjetmetmax",    "mumet", 20, 0, 1000);
+  plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "2jet_apcjetmetmax",    "mumet", 20, 0, 1000);
+  plot(outfile, 19.7, 1.0, "/user/ndaci/Data/XMET/MonoJetTrees/V2/", "3jet_apcjetmetmax",    "mumet", 20, 0, 1000);
 
   outfile->Close();
 
@@ -150,34 +150,38 @@ TCut defineCut(TString select)
   TCut jetID;
   TCut jetBin;
   TCut dphi;
-  TCut alphat="alphat>0.55";
-  TCut apcjetmax="apcjetmax>0.8";
+  TCut alphat;
+  TCut apcjetmetmax="apcjetmetmax>0.55";
 
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
     jetID  = jetID1*jetIDMult;
     dphi   = "njets==1 || abs(jetjetdphi) < 2.5";
+    alphat = "njets==1 || alphat>0.55";
   }
   else if(select.Contains("1jet")) { 
     jetBin = "njets==1"; 
-    jetID = jetID1; 
-    dphi = "1";
+    jetID  = jetID1; 
+    dphi   = "1";
+    alphat = "1";
   }
   else if(select.Contains("2jet")) { 
     jetBin = "njets==2"; 
-    jetID = jetID1*jetID2; 
-    dphi = "abs(jetjetdphi) < 2.5";
+    jetID  = jetID1*jetID2; 
+    dphi   = "abs(jetjetdphi) < 2.5";
+    alphat = "alphat>0.55";
   }
   else if(select.Contains("3jet")) {
     jetBin = "njets==3";
-    jetID = jetID1*jetID2*jetID3;
-    dphi = "abs(jetjetdphi) < 2.5";
+    jetID  = jetID1*jetID2*jetID3;
+    dphi   = "abs(jetjetdphi) < 2.5";
+    alphat = "alphat>0.55";
   }
 
   TCut noqcd="1";
   if(     select.Contains("dphi"))      noqcd = dphi;
   else if(select.Contains("alphat"))    noqcd = alphat;
-  else if(select.Contains("apcjetmax")) noqcd = apcjetmax;
+  else if(select.Contains("apcjetmetmax")) noqcd = apcjetmetmax;
 
   cout << trig*veto*metID*noqcd*jetID*jetKine1*jetBin << endl;
 
