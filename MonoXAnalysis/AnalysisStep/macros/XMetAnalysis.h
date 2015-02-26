@@ -13,6 +13,7 @@
 #include "TLegend.h"
 #include "TStyle.h"
 #include "TROOT.h"
+#include "TEntryList.h"
 //
 #include "tdrstyle.h"
 
@@ -30,12 +31,11 @@ class XMetAnalysis {
   Int_t StudyQCDKiller();
   Int_t DefineChains();
 
-  Int_t plot(TString select, TString variable, 
-	     Int_t nBins, Int_t xFirst, Int_t xLast, 
+  Int_t plot(TString select, const UInt_t nV, TString* var, 
+	     UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
 	     Bool_t stack, Bool_t dolog, Bool_t unity,
 	     vector<TString> locProcesses, vector<TString> labelProc);
 
-  Int_t drawHistogram(TTree* tree, TH1F* h, TString variable, TCut cut);
   Int_t setStyle(TH1F* h, Int_t color);
   
   TCut  defineCut(TString select);

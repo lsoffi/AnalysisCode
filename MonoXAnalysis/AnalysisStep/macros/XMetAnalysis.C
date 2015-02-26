@@ -56,20 +56,19 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
-    if(verbose>1) cout << "- selection : " << select[iS] << endl;
-    for(UInt_t iV=0 ; iV<nV ; iV++) {
-      if(verbose>1) cout << "-- variable : " << var[iV] << endl;
-      //
-      plot(select[iS], var[iV], nBins[iV], xFirst[iV], xLast[iV], false, false, true, locProcesses, labelProc);
-    }
-  }
-  _outfile->Close();
 
+    if(verbose>1) cout << "- selection : " << select[iS] << endl;
+
+    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, true, locProcesses, labelProc);
+
+  }
+
+  _outfile->Close();
   return 0;
 }
 
-Int_t XMetAnalysis::plot(TString select, TString variable, 
-			 Int_t nBins, Int_t xFirst, Int_t xLast, 
+Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
+			 UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
 			 Bool_t stack, Bool_t dolog, Bool_t unity, 
 			 vector<TString> locProcesses, vector<TString> labelProc)
 {
@@ -79,17 +78,18 @@ Int_t XMetAnalysis::plot(TString select, TString variable,
   TCut cut = defineCut(select);
 
   // Declare histograms //
-  map<TString, TH1F*> mapHistos;
+  map<TString, map<TString,TH1F*> > mapVarHistos;
   Float_t minPlot = 9999999.;
   Float_t maxPlot = -9999999.;
   Float_t locMin, locMax, integral;
 
   // Loop over chains and generate histograms //
-  TString nameDir, locVar;
+  //
+  TString nameDir, locVar, variable;
   Int_t color;
   TChain* chain;
-  // loop
-  //for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++) {
+  TH1F* hTemp;
+  //
   for(UInt_t iP=0 ; iP<locProcesses.size() ; iP++) {
 
     // check if current requested process is available
@@ -104,99 +104,119 @@ Int_t XMetAnalysis::plot(TString select, TString variable,
     color   = _mapProcess[nameDir].second.second;
     if(verbose>1) cout << "--- process : " << nameDir << endl;
 
-    // Define histogram and set style
-    mapHistos[nameDir] = new TH1F("h_"+variable+"_"+nameDir+"_"+select, 
-				  variable+" "+nameDir+" "+select,
-				  nBins, xFirst, xLast);
-    setStyle( mapHistos[nameDir] , color );
-    
     // Define reweighting
     if( nameDir.Contains("met") ) weight = "1";
     else weight = "puwgt*wgt";
 
-    locVar = variable;
-    if(variable.Contains("phi")) locVar = "abs("+variable+")";
-    drawHistogram( chain, mapHistos[nameDir], locVar, cut*weight);
+    // Define skim for current process and requested selection
+    //chain->Draw(">>+skim_"+nameDir, cut,"entrylist",100);
+    chain->Draw(">>+skim_"+nameDir, cut,"entrylist");
+    TEntryList *skim = (TEntryList*)gDirectory->Get("skim_"+nameDir);
+    int nEntries = skim->GetN();
+    chain->SetEntryList(skim);
+    if(verbose>1) cout << "--- produced skim : " << nEntries << " entries" << endl;
 
-    // Normalize
-    if( !nameDir.Contains("met") ) mapHistos[nameDir]->Scale(_lumi*_rescale);
-    integral = mapHistos[nameDir]->Integral();
-    if(unity && integral!=0) mapHistos[nameDir]->Scale(1/integral);
+    // Loop over requested variables
+    for(UInt_t iV=0 ; iV<nV ; iV++) {
 
-    // Determine extrema
-    locMin = mapHistos[nameDir]->GetMinimum();
-    locMax = mapHistos[nameDir]->GetMaximum();
-    if(locMin<minPlot) minPlot = locMin;
-    if(locMax>maxPlot) maxPlot = locMax;
+      // Define histogram and set style
+      mapVarHistos[nameDir][var[iV]] = new TH1F("h_"+var[iV]+"_"+nameDir+"_"+select, 
+						var[iV]+" "+nameDir+" "+select,
+						nBins[iV], xFirst[iV], xLast[iV]);
+      hTemp = mapVarHistos[nameDir][var[iV]];
+      setStyle( hTemp , color );
+
+      // Draw the variable
+      locVar = var[iV];
+      if(var[iV].Contains("phi")) locVar = "abs("+var[iV]+")";
+      //chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight);
+      chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight, "", 100);
+
+      // Normalize
+      if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
+      integral = hTemp->Integral();
+      if(unity && integral!=0) hTemp->Scale(1/integral);
+
+      // Determine extrema
+      locMin = hTemp->GetMinimum();
+      locMax = hTemp->GetMaximum();
+      if(locMin<minPlot) minPlot = locMin;
+      if(locMax>maxPlot) maxPlot = locMax;
+    }
   }
-
-
+  
   // Save histograms //
   _outfile->cd();
+  map<TString, map<TString,TH1F*> >::iterator itVarHistos;
   map<TString,TH1F*>::iterator itHistos;
-  for( itHistos=mapHistos.begin() ; itHistos!=mapHistos.end() ; itHistos++) {
-    itHistos->second->Write();
-  }
-
-  // Prepare TCanvas /////
-  TCanvas c("c","c",20,20,600,600);
-  c.SetFillColor(0);
-  c.SetBorderMode(0);
-  c.SetBorderSize(2);
-  c.SetFrameBorderMode(0);
-  c.SetFrameBorderMode(0);
-  //
-  if(dolog) gPad->SetLogy();
-  //
-  // Add legend
-  TLegend* leg = new TLegend(0.88,0.65,0.98,0.76,"","brNDC");
-  leg->SetLineColor(1);
-  leg->SetTextColor(1);
-  leg->SetTextFont(42);
-  leg->SetTextSize(0.0244755);
-  leg->SetShadowColor(kWhite);
-  leg->SetFillColor(kWhite);  
-  
-  // LOOP OVER PROCESSES' HISTO //
-  Bool_t first=true;
-  TH1F* hTemp;
-
-  for(UInt_t iP=0 ; iP<locProcesses.size() ; iP++) {
-
-    hTemp = mapHistos[locProcesses[iP]];
-
-    if(hTemp) {
-      if(first) {
-	first=false;
-
-	if(!stack) {
-	  hTemp->SetMinimum(minPlot);
-	  hTemp->SetMaximum(maxPlot);
-	  if(!dolog) hTemp->SetMinimum(0.);
-	  if(unity) hTemp->SetMaximum(1.1);
-	}
-	else {
-
-	}
-
-	hTemp->Draw("HISTE1");
-      }
-
-      hTemp->Draw("HISTE1SAME");
+  for( itVarHistos=mapVarHistos.begin() ; itVarHistos!=mapVarHistos.end() ; itVarHistos++) {
+    for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
+      itHistos->second->Write();
     }
-
-    leg->AddEntry(hTemp,labelProc[iP],"L");
   }
+
+  // Produce the plot for each variable //
+  for(UInt_t iV=0 ; iV<nV ; iV++) {
+
+    // Prepare TCanvas /////
+    TCanvas c("c","c",20,20,600,600);
+    c.SetFillColor(0);
+    c.SetBorderMode(0);
+    c.SetBorderSize(2);
+    c.SetFrameBorderMode(0);
+    c.SetFrameBorderMode(0);
+    //
+    if(dolog) gPad->SetLogy();
+    //
+    // Add legend
+    TLegend* leg = new TLegend(0.88,0.65,0.98,0.76,"","brNDC");
+    leg->SetLineColor(1);
+    leg->SetTextColor(1);
+    leg->SetTextFont(42);
+    leg->SetTextSize(0.0244755);
+    leg->SetShadowColor(kWhite);
+    leg->SetFillColor(kWhite);  
   
-  // Compute shape compatibility
+    // LOOP OVER PROCESSES' HISTO //
+    Bool_t first=true;
+    
+    for(UInt_t iP=0 ; iP<locProcesses.size() ; iP++) {
+
+      hTemp = mapVarHistos[locProcesses[iP]][var[iV]];
+
+      if(hTemp) {
+	if(first) {
+	  first=false;
+	  
+	  if(!stack) {
+	    hTemp->SetMinimum(minPlot);
+	    hTemp->SetMaximum(maxPlot);
+	    if(!dolog) hTemp->SetMinimum(0.);
+	    if(unity) hTemp->SetMaximum(1.1);
+	  }
+	  else {
+	    
+	  }
+
+	  hTemp->Draw("HISTE1");
+	}
+	
+	hTemp->Draw("HISTE1SAME");
+      }
+      
+      leg->AddEntry(hTemp,labelProc[iP],"L");
+    }
+  
+    // Compute shape compatibility
   
 
-  // Draw and Print
-  leg->Draw();
-  //
-  c.Print("plots/"+_tag+"/plot_"+select+"_"+variable+".png","png");
-  c.Print("plots/"+_tag+"/plot_"+select+"_"+variable+".pdf","pdf");
-  c.Print("plots/"+_tag+"/plot_"+select+"_"+variable+".eps","eps");
+    // Draw and Print
+    leg->Draw();
+    //
+    c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".png","png");
+    c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".pdf","pdf");
+    c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".eps","eps");
+  }
   //////////////////////////
 
   return 1;
@@ -265,13 +285,6 @@ TCut XMetAnalysis::defineCut(TString select)
   //cout << trig*veto*metID*noqcd*jetID*jetKine1*jetBin << endl;
 
   return (trig*veto*metID*noqcd*jetID*jetKine1*jetBin);
-}
-
-int XMetAnalysis::drawHistogram(TTree* tree, TH1F* h, TString variable, TCut cut) 
-{
-  //tree->Draw(variable+">>"+TString(h->GetName()), cut, "", 1000);
-  tree->Draw(variable+">>"+TString(h->GetName()), cut);
-  return 0;
 }
 
 int XMetAnalysis::setStyle(TH1F* h, Int_t color)
