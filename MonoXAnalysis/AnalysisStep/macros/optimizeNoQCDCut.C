@@ -184,6 +184,9 @@ int plot(TString tag, TFile* outfile, double lumi, double rescale, bool unity,
   }
   if(mapHistos["qcd"]) mapHistos["qcd"]->Draw("HISTE1SAME");
   //
+  // Compute shape compatibility
+  
+  //
   // Add legend
   //TLegend* leg = new TLegend(0.78,0.65,0.98,0.76,"","brNDC");
   TLegend* leg = new TLegend(0.88,0.65,0.98,0.76,"","brNDC");
