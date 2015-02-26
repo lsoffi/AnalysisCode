@@ -46,9 +46,9 @@ Int_t XMetAnalysis::StudyQCDKiller()
   locProcesses.push_back("qcd"); labelProc.push_back("QCD");
 
   // Selections and variables
-  const UInt_t nS=4;
+  const UInt_t nS=5;
   const UInt_t nV=5;
-  TString select[nS] = {"alljets","1jet","2jet","3jet"};
+  TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
   UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
   Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
@@ -94,14 +94,14 @@ Int_t XMetAnalysis::plot(TString select, TString variable,
 
     // check if current requested process is available
     nameDir = locProcesses[iP];
-    if(_mapProcess[nameDir]==_mapProcess.end()) { // FIXME ND
+    if(_mapProcess.find(nameDir)==_mapProcess.end()) { // FIXME ND
       if(verbose>1) cout << "-- ERROR: requested process '" << locProcesses[iP] << "' unavailable." << endl;
       continue;
     }
 
     // Process and corresponding chain
-    chain   = mapProcess[nameDir].first;
-    color   = mapProcess[nameDir].second.second;
+    chain   = _mapProcess[nameDir].first;
+    color   = _mapProcess[nameDir].second.second;
     if(verbose>1) cout << "--- process : " << nameDir << endl;
 
     // Define histogram and set style
@@ -159,28 +159,33 @@ Int_t XMetAnalysis::plot(TString select, TString variable,
   
   // LOOP OVER PROCESSES' HISTO //
   Bool_t first=true;
+  TH1F* hTemp;
+
   for(UInt_t iP=0 ; iP<locProcesses.size() ; iP++) {
-    if(mapHistos[locProcesses[iP]]) {
+
+    hTemp = mapHistos[locProcesses[iP]];
+
+    if(hTemp) {
       if(first) {
 	first=false;
 
 	if(!stack) {
-	  mapHistos[locProcesses[iP]]->SetMinimum(minPlot);
-	  mapHistos[locProcesses[iP]]->SetMaximum(maxPlot);
-	  if(!dolog) mapHistos[locProcesses[iP]]->SetMinimum(0.);
-	  if(unity) mapHistos[locProcesses[iP]]->SetMaximum(1.1);
+	  hTemp->SetMinimum(minPlot);
+	  hTemp->SetMaximum(maxPlot);
+	  if(!dolog) hTemp->SetMinimum(0.);
+	  if(unity) hTemp->SetMaximum(1.1);
 	}
 	else {
 
 	}
 
-	mapHistos[locProcesses[iP]]->Draw("HISTE1");
+	hTemp->Draw("HISTE1");
       }
 
-      mapHistos[locProcesses[iP]]->Draw("HISTE1SAME");
+      hTemp->Draw("HISTE1SAME");
     }
 
-    leg->AddEntry(locProcesses[iP],labelProc[iP],"P");
+    leg->AddEntry(hTemp,labelProc[iP],"L");
   }
   
   // Compute shape compatibility
@@ -211,6 +216,7 @@ TCut XMetAnalysis::defineCut(TString select)
   //TCut jetID3 = "(thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
   //TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9)&&(njets==2 || (njets==3 && thirdjetNHfrac<0.7 && thirdjetEMfrac<0.9) ) ) )" ;
   TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5) ) ) )" ;
+  TCut jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5) )" ;
 
   TCut jetKine1 = "signaljetpt > 110 && abs(signaljeteta) < 2.4";
 
@@ -223,6 +229,12 @@ TCut XMetAnalysis::defineCut(TString select)
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
     jetID  = jetID1*jetIDMult;
+    dphi   = "njets==1 || abs(jetjetdphi) < 2.5";
+    alphat = "njets==1 || alphat>0.55";
+  }
+  else if(select.Contains("monojet")) {
+    jetBin = "njets>=1 && njets<=2";
+    jetID  = jetID1*jetIDMono;
     dphi   = "njets==1 || abs(jetjetdphi) < 2.5";
     alphat = "njets==1 || alphat>0.55";
   }
@@ -257,8 +269,8 @@ TCut XMetAnalysis::defineCut(TString select)
 
 int XMetAnalysis::drawHistogram(TTree* tree, TH1F* h, TString variable, TCut cut) 
 {
-  tree->Draw(variable+">>"+TString(h->GetName()), cut, "", 1000);
-  //tree->Draw(variable+">>"+TString(h->GetName()), cut);
+  //tree->Draw(variable+">>"+TString(h->GetName()), cut, "", 1000);
+  tree->Draw(variable+">>"+TString(h->GetName()), cut);
   return 0;
 }
 
@@ -266,8 +278,8 @@ int XMetAnalysis::setStyle(TH1F* h, Int_t color)
 {
   h->Sumw2();
 
-  //h->SetMarkerSize(0.5);
-  //h->SetMarkerStyle(kPlus);
+  h->SetMarkerSize(0.5);
+  h->SetMarkerStyle(kPlus);
 
   h->SetLineColor(color);
   h->SetMarkerColor(color);
@@ -288,8 +300,8 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["znn"].second.second       = kBlue;
   _mapProcess["wln"].second.second       = kGreen;
   _mapProcess["ttbar"].second.second     = kViolet;
-  _mapProcess["singletop"].second.second = kOrange;
-  _mapProcess["qcd"].second.second       = kYellow;
+  _mapProcess["singletop"].second.second = kYellow;
+  _mapProcess["qcd"].second.second       = kOrange+2;
   _mapProcess["dibosons"].second.second  = kRed;
   _mapProcess["zll"].second.second       = kMagenta+8;
   //
