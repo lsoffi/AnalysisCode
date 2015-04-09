@@ -54,6 +54,15 @@ Int_t XMetAnalysis::StudyQCDKiller()
   Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
+  /*
+  const UInt_t nS=1;
+  const UInt_t nV=2;
+  TString select[nS] = {"3jet"};
+  TString var[nV]    = {"alphat","apcjetmetmin"};
+  UInt_t  nBins[nV]  = {40,50};
+  Float_t xFirst[nV] = {0,0};
+  Float_t xLast[nV]  = {2,1};
+  */
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
 
@@ -94,7 +103,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
     // check if current requested process is available
     nameDir = locProcesses[iP];
-    if(_mapProcess.find(nameDir)==_mapProcess.end()) { // FIXME ND
+    if(_mapProcess.find(nameDir)==_mapProcess.end()) { 
       if(verbose>1) cout << "-- ERROR: requested process '" << locProcesses[iP] << "' unavailable." << endl;
       continue;
     }
@@ -129,8 +138,8 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       // Draw the variable
       locVar = var[iV];
       if(var[iV].Contains("phi")) locVar = "abs("+var[iV]+")";
-      //chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight);
-      chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight, "", 100);
+      chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight);
+      //chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight, "", 100); // FIXME ND
 
       // Normalize
       if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
@@ -143,6 +152,9 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       if(locMin<minPlot) minPlot = locMin;
       if(locMax>maxPlot) maxPlot = locMax;
     }
+
+    chain->SetEntryList(0);
+    skim->Reset();
   }
   
   // Save histograms //
@@ -229,10 +241,11 @@ TCut XMetAnalysis::defineCut(TString select)
   TCut veto   = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
 
   TCut metID  = "(abs(pfmet - calomet) < 2*calomet)" ;
+  TCut metCut = "" ;
 
   TCut jetID1 = "(signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
   TCut jetID2 = "(secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)";
-  TCut jetID3 = "thirdjetpt>30 && abs(thirdjeteta)<2.5";
+  TCut jetID3 = "thirdjetpt>30 && abs(thirdjeteta)<4.5"; // FIXME ND
   //TCut jetID3 = "(thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
   //TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9)&&(njets==2 || (njets==3 && thirdjetNHfrac<0.7 && thirdjetEMfrac<0.9) ) ) )" ;
   TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5) ) ) )" ;
