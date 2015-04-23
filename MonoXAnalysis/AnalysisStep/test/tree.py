@@ -32,7 +32,7 @@ isMC = True
 filterHighMETEvents = True
 
 # Is this a dielectron control sample?
-isElectronSample = False
+isPhotonSample = False
 
 # Define the global tag depending on the sample type
 if isMC:
@@ -42,7 +42,8 @@ else:
 
 # Define the input source
 process.source = cms.Source("PoolSource", 
-    fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/TTJets_MassiveBinDECAY_TuneZ2star_8TeV-madgraph-tauola/AODSIM/PU_S10_START53_V7A-v1/0000/ACCEC445-28E2-E111-8950-003048C692CA.root')
+    #fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/G_Pt-120to170_TuneZ2star_8TeV_pythia6/AODSIM/PU_S10_START53_V7A-v1/00000/007CC955-3C17-E211-B882-003048C69272.root')
+    fileNames = cms.untracked.vstring('/store/mc/Summer12_DR53X/W1JetsToLNu_TuneZ2Star_8TeV-madgraph/AODSIM/PU_S10_START53_V7A-v1/0000/0012AB48-AA02-E211-ACF7-001E67398043.root')
 )
 
 # Define the output -- Needed for some of the PAT sequences
@@ -114,10 +115,10 @@ process.particleFlowClean = cms.EDProducer("PFCleaner",
     beamspot = cms.InputTag("offlineBeamSpot"),
     vertices = cms.InputTag("goodVertices"),
     pfpileup = cms.InputTag("pfPileUp"),
-    rho = cms.InputTag("kt6PFJets25", "rho"),
+    rho = cms.InputTag("kt6PFJets", "rho"),
     conversions = cms.InputTag("allConversions"),
     electrons = cms.InputTag("gsfElectrons"),
-    photons = cms.InputTag("pfPhotonTranslator", "pfphot"),
+    photons = cms.InputTag("photons"),
     electronPFIsoCH = cms.InputTag("elPFIsoValueCharged03"),
     electronPFIsoNH = cms.InputTag("elPFIsoValueNeutral03"),
     electronPFIsoPH = cms.InputTag("elPFIsoValueGamma03"),
@@ -231,21 +232,31 @@ switchToPFTauHPS(process)
 process.selectedPatTaus.cut = "pt > 20 && abs(eta) < 2.3 && tauID('decayModeFinding') > 0.5 && tauID('byLooseCombinedIsolationDeltaBetaCorr') > 0.5 && tauID('againstMuonTight2') > 0.5 && tauID('againstElectronLoose') > 0.5"
 
 # Define all the METs corrected for lepton/photon momenta
-process.mumet = cms.EDProducer("CandCorrectedMETProducer",
-    met = cms.InputTag("pfType1CorrectedMet"),
-    cands = cms.VInputTag(cms.InputTag("particleFlowClean", "muons")) 
-)
-
-process.elmet = cms.EDProducer("CandCorrectedMETProducer",
-    met = cms.InputTag("pfType1CorrectedMet"),
-    cands = cms.VInputTag(cms.InputTag("particleFlowClean", "electrons")) 
+process.mumet = cms.EDProducer("MuonCorrectedMETProducer",
+    met = cms.InputTag("pfMet"),
+    muons = cms.InputTag("particleFlowClean", "muons")
 )
 
 process.phmet = cms.EDProducer("CandCorrectedMETProducer",
-    met = cms.InputTag("pfType1CorrectedMet"),
-    cands = cms.VInputTag(cms.InputTag("particleFlowClean", "photons")) 
+    met = cms.InputTag("pfMet"),
+    cands = cms.VInputTag(cms.InputTag("particleFlowClean", "leadingphoton")) 
 )
 
+process.t1mumet = cms.EDProducer("MuonCorrectedMETProducer",
+    met = cms.InputTag("pfType1CorrectedMet"),
+    muons = cms.InputTag("particleFlowClean", "muons")
+)
+
+process.t1phmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("pfType1CorrectedMet"),
+    cands = cms.VInputTag(cms.InputTag("particleFlowClean", "leadingphoton"))
+)
+
+process.pfmupt = cms.EDProducer("MuonCorrectedMETProducer",
+    met = cms.InputTag("pfMet"),
+    muons = cms.InputTag("particleFlowClean", "muons"),
+    muptonly = cms.bool(True)
+)
 
 # Remove MC matching when running on data
 if not isMC:
@@ -259,11 +270,12 @@ process.TFileService = cms.Service("TFileService", fileName = cms.string("tree.r
 process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     pileup = cms.InputTag("addPileupInfo"),
     vertices = cms.InputTag("goodVertices"),
-    photons = cms.InputTag("particleFlowClean", "photons"),
     muons = cms.InputTag("particleFlowClean", "muons"),
     electrons = cms.InputTag("particleFlowClean", "electrons"),
+    photons = cms.InputTag("particleFlowClean", "photons"),
     tightmuons = cms.InputTag("particleFlowClean", "tightmuons"),
     tightelectrons = cms.InputTag("particleFlowClean", "tightelectrons"),
+    tightphotons = cms.InputTag("particleFlowClean", "tightphotons"),
     taus = cms.InputTag("selectedPatTaus"),
     jets = cms.InputTag("patJets"),
     nochsjets = cms.InputTag("patJetsAK5PF"),
@@ -273,44 +285,46 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     pfmet = cms.InputTag("pfMet"),
     t1pfmet = cms.InputTag("pfType1CorrectedMet"),
     calomet = cms.InputTag("met"),
+    pfmupt = cms.InputTag("pfmupt"),
     mumet = cms.InputTag("mumet"),
-    elmet = cms.InputTag("elmet"),
     phmet = cms.InputTag("phmet"),
+    t1mumet = cms.InputTag("t1mumet"),
+    t1phmet = cms.InputTag("t1phmet"),
     triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
-    jesCode = cms.int32(0),
     weight = cms.double(1000.0*225.2/6923750.0),
-    isWorZMCSample = cms.bool(False)
+    isWorZMCSample = cms.bool(False),
+    cleanPhotonJet = cms.bool(False)
 )
 
 # Select events passing the monojet triggers and having MET > 200 GeV
-if isElectronSample :
+if isPhotonSample :
     process.triggerfilter = cms.EDFilter("HLTCheckFilter",
         triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
-        triggerPaths   = cms.vstring('HLT_Ele17_CaloIdL_CaloIsoVL_Ele8_CaloIdL_CaloIsoVL', 'HLT_Ele17_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL_Ele8_CaloIdT_TrkIdVL_CaloIsoVL_TrkIsoVL')   
+        triggerPaths   = cms.vstring('HLT_Photon135', 'HLT_Photon150')   
     )
 
     process.metfilter = cms.EDFilter("CandViewSelector",
-        src = cms.InputTag("elmet"),
+        src = cms.InputTag("phmet"),
         cut = cms.string("et > 200"),
         filter = cms.bool(True)
     )
 else :
     process.triggerfilter = cms.EDFilter("HLTCheckFilter",
         triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
-        triggerPaths   = cms.vstring('HLT_MET120_HBHENoiseCleaned', 'HLT_MonoCentralPFJet80_PFMETnoMu95_NHEF0p95', 'HLT_MonoCentralPFJet80_PFMETnoMu105_NHEF0p95')   
+        triggerPaths   = cms.vstring('HLT_MET120_HBHENoiseCleaned', 'HLT_MonoCentralPFJet80_PFMETnoMu95_NHEF0p95', 'HLT_MonoCentralPFJet80_PFMETnoMu105_NHEF0p95', 'HLT_Mu17_Mu8', 'HLT_Mu17_TkMu8')   
+        #triggerPaths   = cms.vstring('HLT_Mu17_Mu8', 'HLT_Mu17_TkMu8')   
     )
 
     process.metfilter = cms.EDFilter("CandViewSelector",
         src = cms.InputTag("mumet"),
-        #cut = cms.string("et > 200"),
-        cut = cms.string("et > 0"),
+        cut = cms.string("et > 200"),
         filter = cms.bool(True)
     )
 
 
 if filterHighMETEvents: 
     #process.treePath = cms.Path(process.goodVertices + process.triggerfilter + process.metfilter + process.tree)
-    process.treePath = cms.Path(process.goodVertices + process.metfilter + process.tree)
+    process.treePath = cms.Path(process.goodVertices + process.triggerfilter + process.tree)
 else :
     process.treePath = cms.Path(process.goodVertices + process.tree)
 
