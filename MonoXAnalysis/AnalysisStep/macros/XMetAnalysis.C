@@ -68,7 +68,7 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, true, locProcesses, labelProc);
+    plot(select[iS], nV, var, nBins, xFirst, xLast, false, true, true, locProcesses, labelProc);
 
   }
 
