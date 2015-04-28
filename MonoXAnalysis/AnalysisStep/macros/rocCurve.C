@@ -18,7 +18,7 @@
 //
 #include "tdrstyle.h"
 
-Int_t rocCurve(TString _tag="v10_XMA_QCD_ROC", bool dolog=false)
+Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
 {
 
   // Input file
@@ -38,6 +38,8 @@ Int_t rocCurve(TString _tag="v10_XMA_QCD_ROC", bool dolog=false)
   const UInt_t nWd=2; // forward/backward cumulative distribution
   const UInt_t nS=5;
   const UInt_t nV=5;
+
+  TGraph* gRoc[nS][nV][nWd];
 
   TString wd[nWd]    = {"upcut","lowcut"};
   TString wdT[nWd]   = {"(upper cut)","(lower cut)"};
@@ -84,19 +86,26 @@ Int_t rocCurve(TString _tag="v10_XMA_QCD_ROC", bool dolog=false)
 	  
 	}
       
-	TGraph gRoc(nB, yCum_znn, yCum_qcd);
-	gRoc.SetMarkerStyle(kOpenSquare);
-	gRoc.SetMarkerColor(kRed);
-	//gRoc.SetMarkerSize();
-	gRoc.SetFillColor(kWhite);
-	gRoc.GetXaxis()->Set(nB, 0, 1);
-	gRoc.GetYaxis()->Set(nB, 0, 1);
-	gRoc.GetXaxis()->SetTitle("Z(#nu#nu) efficiency");
-	gRoc.GetYaxis()->SetTitle("QCD efficiency");
-	gRoc.SetTitle("ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd]);
-	gRoc.Draw("AL");
+	gRoc[iS][iV][iWd] = new TGraph(nB, yCum_znn, yCum_qcd);
+	gRoc[iS][iV][iWd]->SetMarkerStyle(kOpenSquare);
+	gRoc[iS][iV][iWd]->SetMarkerColor(kRed);
+	//gRoc[iS][iV][iWd]->SetMarkerSize();
+	gRoc[iS][iV][iWd]->SetFillColor(kWhite);
+	gRoc[iS][iV][iWd]->GetXaxis()->Set(nB, 0, 1);
+	gRoc[iS][iV][iWd]->GetYaxis()->Set(nB, 0, 1);
+	gRoc[iS][iV][iWd]->GetXaxis()->SetTitle("Z(#nu#nu) efficiency");
+	gRoc[iS][iV][iWd]->GetYaxis()->SetTitle("QCD efficiency");
+	gRoc[iS][iV][iWd]->SetTitle("ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd]);
+	gRoc[iS][iV][iWd]->Draw("AL");
 
-	cRoc.Print("plots/"+_tag+"/roc_"+select[iS]+"_"+var[iV]+"_"+wd[iWd]+".pdf","pdf");
+	//cRoc.Print("plots/"+_tag+"/roc_"+select[iS]+"_"+var[iV]+"_"+wd[iWd]+".pdf","pdf");
+
+	if(iS==0 && iV==0 && iWd==0) 
+	  cRoc.Print("plots/"+_tag+"/roc.pdf(","Title:"+select[iS]+" "+var[iV]+" "+wd[iWd]);
+	else if(iS==nS-1 && iV==nV-1 && iWd==nWd-1)
+	  cRoc.Print("plots/"+_tag+"/roc.pdf)","Title:"+select[iS]+" "+var[iV]+" "+wd[iWd]);
+	else
+	  cRoc.Print("plots/"+_tag+"/roc.pdf","Title:"+select[iS]+" "+var[iV]+" "+wd[iWd]);
 
       } // end loop over nWd
     }   // end loop over nV
