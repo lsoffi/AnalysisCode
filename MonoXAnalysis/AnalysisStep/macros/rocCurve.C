@@ -43,7 +43,9 @@ Int_t rocCurve(TString _tag="v10_XMA_QCD_ROC", bool dolog=false)
   TString wdT[nWd]   = {"(upper cut)","(lower cut)"};
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
-  UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
+  //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
+  //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
+  UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
   //Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   //Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
@@ -92,7 +94,7 @@ Int_t rocCurve(TString _tag="v10_XMA_QCD_ROC", bool dolog=false)
 	gRoc.GetXaxis()->SetTitle("Z(#nu#nu) efficiency");
 	gRoc.GetYaxis()->SetTitle("QCD efficiency");
 	gRoc.SetTitle("ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd]);
-	gRoc.Draw("AP");
+	gRoc.Draw("AL");
 
 	cRoc.Print("plots/"+_tag+"/roc_"+select[iS]+"_"+var[iV]+"_"+wd[iWd]+".pdf","pdf");
 
