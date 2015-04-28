@@ -227,9 +227,12 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     // Draw and Print
     leg->Draw();
     //
-    //c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".png","png");
-    c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".pdf","pdf");
-    //c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".eps","eps");
+    if(iV==0)
+      c.Print("plots/"+_tag+"/plots_"+select+".pdf(" , "Title:"+var[iV]);
+    else if(iV==nV-1)
+      c.Print("plots/"+_tag+"/plots_"+select+".pdf)" , "Title:"+var[iV]);
+    else
+      c.Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
 
   }
   //////////////////////////
