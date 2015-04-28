@@ -50,7 +50,8 @@ Int_t XMetAnalysis::StudyQCDKiller()
   const UInt_t nV=5;
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
-  UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
+  //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
+  UInt_t  nBins[nV]  = {400, 500, 500, 500,  500};
   Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
@@ -68,7 +69,7 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    plot(select[iS], nV, var, nBins, xFirst, xLast, false, true, true, locProcesses, labelProc);
+    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, true, locProcesses, labelProc);
 
   }
 
@@ -78,7 +79,7 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
 Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 			 UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
-			 Bool_t stack, Bool_t dolog, Bool_t unity, 
+			 Bool_t stack, Bool_t dolog, Bool_t unity,
 			 vector<TString> locProcesses, vector<TString> labelProc)
 {
 
@@ -225,9 +226,10 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     // Draw and Print
     leg->Draw();
     //
-    c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".png","png");
+    //c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".png","png");
     c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".pdf","pdf");
-    c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".eps","eps");
+    //c.Print("plots/"+_tag+"/plot_"+select+"_"+var[iV]+".eps","eps");
+
   }
   //////////////////////////
 
