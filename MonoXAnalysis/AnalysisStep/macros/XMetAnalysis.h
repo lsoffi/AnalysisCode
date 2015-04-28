@@ -6,6 +6,7 @@
 #include "TChain.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include "TGraph.h"
 #include "TString.h"
 #include "TCut.h"
 #include "TCanvas.h"
