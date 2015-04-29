@@ -119,7 +119,7 @@ MonoJetTreeMaker::MonoJetTreeMaker(const edm::ParameterSet& iConfig):
     photonsTag(iConfig.getParameter<edm::InputTag>("photons")),
     tightmuonsTag(iConfig.getParameter<edm::InputTag>("tightmuons")),
     tightelectronsTag(iConfig.getParameter<edm::InputTag>("tightelectrons")),
-    tightphotonsTag(iConfig.getParameter<edm::InputTag>("photons")),
+    tightphotonsTag(iConfig.getParameter<edm::InputTag>("tightphotons")),
     tausTag(iConfig.getParameter<edm::InputTag>("taus")),
     jetsTag(iConfig.getParameter<edm::InputTag>("jets")),
     fatjetsTag(iConfig.getParameter<edm::InputTag>("fatjets")),
