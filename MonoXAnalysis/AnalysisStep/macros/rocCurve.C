@@ -46,7 +46,7 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
 
-  Int_t colors[nV]   = {kBlack, kBlue, kIndigo, kRed, kOrange};
+  Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kMagenta};
 
   //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
   //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
@@ -93,8 +93,8 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
       
 	gRoc[iS][iV][iWd] = new TGraph(nB, yCum_znn, yCum_qcd);
 	gRoc[iS][iV][iWd]->SetMarkerStyle(kOpenSquare);
-	gRoc[iS][iV][iWd]->SetMarkerColor(kRed);
-	gRoc[iS][iV][iWd]->SetLineColor(kRed);
+	gRoc[iS][iV][iWd]->SetMarkerColor(colors[iV]);
+	gRoc[iS][iV][iWd]->SetLineColor(colors[iV]);
 	//gRoc[iS][iV][iWd]->SetMarkerSize();
 	gRoc[iS][iV][iWd]->SetFillColor(kWhite);
 	gRoc[iS][iV][iWd]->GetXaxis()->Set(nB, 0, 1);
@@ -117,18 +117,38 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
     }   // end loop over nV
   }     // end loop over nS
 
-  /*
   // Put several killers per plot
   for(UInt_t iS=0 ; iS<nS ; iS++) {
 
-    gRoc[iS][0][0]->Draw("AL");
-    gRoc[iS][1][0]->Draw("ALSAME");
-    gRoc[iS][2][0]->Draw("ALSAME");
-    gRoc[iS][3][0]->Draw("ALSAME");
-    gRoc[iS][4][0]->Draw("ALSAME");
+    gRoc[iS][0][1]->SetTitle("Selection: "+select[iS]);
+
+    gRoc[iS][0][1]->Draw("AL"); // alphat
+    gRoc[iS][1][1]->Draw("L");  // apcjetmetmax
+    gRoc[iS][2][1]->Draw("L");  // apcjetmetmin
+    gRoc[iS][3][0]->Draw("L");  // jetjetdphi
+    gRoc[iS][4][1]->Draw("L");  // jetmetdphimin
+
+    TLegend* leg = new TLegend(0.38,0.6,0.58,0.8,"","brNDC");
+    leg->SetLineColor(1);
+    leg->SetTextColor(1);
+    leg->SetTextFont(42);
+    leg->SetTextSize(0.0244755);
+    leg->SetShadowColor(kWhite);
+    leg->SetFillColor(kWhite);
+
+    for(UInt_t iV=0 ; iV<nV ; iV++)
+      leg->AddEntry(gRoc[iS][iV][1], var[iV], "L");
+
+    leg->Draw();
+
+    if(iS==0) 
+      cRoc.Print("plots/"+_tag+"/allroc.pdf(","Title:"+select[iS]);
+    else if(iS==nS-1)
+      cRoc.Print("plots/"+_tag+"/allroc.pdf)","Title:"+select[iS]);
+    else
+      cRoc.Print("plots/"+_tag+"/allroc.pdf","Title:"+select[iS]);
 
   }
-  */
 
   return 0;
 }
