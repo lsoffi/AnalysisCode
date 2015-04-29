@@ -45,9 +45,14 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
   TString wdT[nWd]   = {"(upper cut)","(lower cut)"};
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
+
+  Int_t colors[nV]   = {kBlack, kBlue, kIndigo, kRed, kOrange};
+
   //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
   //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
-  UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
+  //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
+  UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
+  
   //Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   //Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
@@ -89,6 +94,7 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
 	gRoc[iS][iV][iWd] = new TGraph(nB, yCum_znn, yCum_qcd);
 	gRoc[iS][iV][iWd]->SetMarkerStyle(kOpenSquare);
 	gRoc[iS][iV][iWd]->SetMarkerColor(kRed);
+	gRoc[iS][iV][iWd]->SetLineColor(kRed);
 	//gRoc[iS][iV][iWd]->SetMarkerSize();
 	gRoc[iS][iV][iWd]->SetFillColor(kWhite);
 	gRoc[iS][iV][iWd]->GetXaxis()->Set(nB, 0, 1);
@@ -110,6 +116,19 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
       } // end loop over nWd
     }   // end loop over nV
   }     // end loop over nS
+
+  /*
+  // Put several killers per plot
+  for(UInt_t iS=0 ; iS<nS ; iS++) {
+
+    gRoc[iS][0][0]->Draw("AL");
+    gRoc[iS][1][0]->Draw("ALSAME");
+    gRoc[iS][2][0]->Draw("ALSAME");
+    gRoc[iS][3][0]->Draw("ALSAME");
+    gRoc[iS][4][0]->Draw("ALSAME");
+
+  }
+  */
 
   return 0;
 }
