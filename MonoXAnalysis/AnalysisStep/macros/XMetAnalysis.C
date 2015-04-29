@@ -122,7 +122,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     else weight = "puwgt*wgt";
 
     // Define skim for current process and requested selection
-    //chain->Draw(">>+skim_"+nameDir, cut,"entrylist",100);
+    //chain->Draw(">>+skim_"+nameDir, cut,"entrylist",100); // FIXME ND
     chain->Draw(">>+skim_"+nameDir, cut,"entrylist");
     TEntryList *skim = (TEntryList*)gDirectory->Get("skim_"+nameDir);
     int nEntries = skim->GetN();
@@ -245,16 +245,19 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 TCut XMetAnalysis::defineCut(TString select)
 {
 
-  TCut trig   = "(hltmet120 > 0 || hltmet95jet80 > 0 || hltmet105jet80 > 0)";
+  //TCut trig   = "(hltjet140met100mht140 > 0)";
+  TCut trig   = "(mumet>200)";
   TCut veto   = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
 
-  TCut metID  = "(abs(pfmet - calomet) < 2*calomet)" ;
+  //TCut metID  = "(abs(pfmet - calomet) < 2*calomet)" ;
+  TCut metID  = "" ;
   TCut metCut = "" ;
 
   TCut jetID1 = "(signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
   TCut jetID2 = "(secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)";
-  TCut jetID3 = "thirdjetpt>30 && abs(thirdjeteta)<4.5"; // FIXME ND
+  TCut jetID3 = "(thirdjetpt>30 && abs(thirdjeteta)<4.5)"; // FIXME ND
   //TCut jetID3 = "(thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
+
   //TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9)&&(njets==2 || (njets==3 && thirdjetNHfrac<0.7 && thirdjetEMfrac<0.9) ) ) )" ;
   TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5) ) ) )" ;
   TCut jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5) )" ;
@@ -304,8 +307,9 @@ TCut XMetAnalysis::defineCut(TString select)
   else if(select.Contains("apcjetmetmax")) noqcd = apcjetmetmax;
 
   //cout << trig*veto*metID*noqcd*jetID*jetKine1*jetBin << endl;
+  //return (trig*veto*metID*noqcd*jetID*jetKine1*jetBin);
+  return (trig*veto*noqcd*jetID*jetKine1*jetBin);
 
-  return (trig*veto*metID*noqcd*jetID*jetKine1*jetBin);
 }
 
 int XMetAnalysis::setStyle(TH1F* h, Int_t color)
@@ -367,7 +371,7 @@ Int_t XMetAnalysis::DefineChains()
     vector<TString> theDirs = _itProcess->second.second.first;
 
     for(UInt_t iD=0 ; iD<theDirs.size() ; iD++) {
-      _itProcess->second.first->Add(_path+"/"+theDirs[iD]+"/tree_*.root");
+      _itProcess->second.first->Add(_path+"/"+theDirs[iD]+"/tree*.root");
     }
     //if(verbose>1) cout << "number of entries : " << _itProcess->second.first->GetEntries() << endl;
   }
