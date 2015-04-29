@@ -7,7 +7,8 @@ XMetAnalysis::XMetAnalysis(TString tag)
 {
   _tag = tag;
 
-  _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
+  //_path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
+  _path    = "/user/ndaci/Data/XMET/Phys14/MonoJet7XTrees/";
   _lumi    = 19.7;
   _rescale = 1.0;
   _outfile = new TFile("plots/"+_tag+"/plots_"+_tag+".root","recreate");
@@ -338,39 +339,21 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["dibosons"].second.second  = kRed;
   _mapProcess["zll"].second.second       = kMagenta+8;
   //
-  _mapProcess["znn"].second.first.push_back("znn100to200");
-  _mapProcess["znn"].second.first.push_back("znn200to400");
-  _mapProcess["znn"].second.first.push_back("znn400toinf");
-  _mapProcess["znn"].second.first.push_back("znn50to100");
+  _mapProcess["znn"].second.first.push_back("znunu");
   //
-  _mapProcess["wln"].second.first.push_back("wln");
-  //_mapProcess["wln"].second.first.push_back("w4jets");
+  _mapProcess["wln"].second.first.push_back("wjets");
   // 
   _mapProcess["ttbar"].second.first.push_back("ttbar"); 
   //
-  _mapProcess["singletop"].second.first.push_back("singletbars");
-  _mapProcess["singletop"].second.first.push_back("singletbart");
-  _mapProcess["singletop"].second.first.push_back("singletbarw");
-  _mapProcess["singletop"].second.first.push_back("singlets");
-  _mapProcess["singletop"].second.first.push_back("singlett");
-  _mapProcess["singletop"].second.first.push_back("singletw");
+  //_mapProcess["singletop"].second.first.push_back("");
   //
-  _mapProcess["qcd"].second.first.push_back("qcd1000to1400");
-  _mapProcess["qcd"].second.first.push_back("qcd120to170");
-  _mapProcess["qcd"].second.first.push_back("qcd1400to1800");
-  _mapProcess["qcd"].second.first.push_back("qcd170to300");
-  _mapProcess["qcd"].second.first.push_back("qcd1800toinf");
-  _mapProcess["qcd"].second.first.push_back("qcd300to470");
-  _mapProcess["qcd"].second.first.push_back("qcd470to600");
-  _mapProcess["qcd"].second.first.push_back("qcd600to800");
-  _mapProcess["qcd"].second.first.push_back("qcd800to1000");
-  _mapProcess["qcd"].second.first.push_back("qcd80to120");
+  _mapProcess["qcd"].second.first.push_back("qcd");
   //
-  _mapProcess["dibosons"].second.first.push_back("ww"); 
-  _mapProcess["dibosons"].second.first.push_back("zz"); 
-  _mapProcess["dibosons"].second.first.push_back("wz"); 
+  //_mapProcess["dibosons"].second.first.push_back("ww"); 
+  //_mapProcess["dibosons"].second.first.push_back("zz"); 
+  //_mapProcess["dibosons"].second.first.push_back("wz"); 
   //
-  _mapProcess["zll"].second.first.push_back("zll");
+  _mapProcess["zll"].second.first.push_back("zjets");
   //
 
   if(verbose>1) cout << "#entries in mapProcess : " << _mapProcess.size() << endl;
