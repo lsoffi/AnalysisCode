@@ -49,9 +49,9 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
   Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kMagenta};
 
   //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
-  //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
+  UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
   //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
-  UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
+  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
   
   //Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   //Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
