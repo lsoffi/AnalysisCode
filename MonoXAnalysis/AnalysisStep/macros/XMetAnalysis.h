@@ -28,7 +28,8 @@ class XMetAnalysis {
 
   XMetAnalysis(TString tag);
   ~XMetAnalysis();
-  
+
+  Int_t Analysis();
   Int_t StudyQCDKiller();
   Int_t DefineChains();
 
