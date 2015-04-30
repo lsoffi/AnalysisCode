@@ -8,7 +8,7 @@ XMetAnalysis::XMetAnalysis(TString tag)
   _tag = tag;
 
   //_path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
-  _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/";
+  _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/skim/";
   _lumi    = 19.7;
   _rescale = 1.0;
   _outfile = new TFile("plots/"+_tag+"/plots_"+_tag+".root","recreate");
@@ -381,13 +381,13 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["zll"].second.second       = kPink+9;
   //
 
-  _mapProcess["znn"].second.first.push_back("skim");
-  _mapProcess["wln"].second.first.push_back("skim");
-  _mapProcess["ttbar"].second.first.push_back("skim");
-  _mapProcess["singletop"].second.first.push_back("skim");
-  _mapProcess["qcd"].second.first.push_back("skim");
-  _mapProcess["dibosons"].second.first.push_back("skim");
-  _mapProcess["zll"].second.first.push_back("skim");
+  _mapProcess["znn"].second.first.push_back("znn");
+  _mapProcess["wln"].second.first.push_back("wln");
+  _mapProcess["ttbar"].second.first.push_back("ttbar");
+  _mapProcess["singletop"].second.first.push_back("singlet");
+  _mapProcess["qcd"].second.first.push_back("qcd");
+  _mapProcess["dibosons"].second.first.push_back("vv");
+  _mapProcess["zll"].second.first.push_back("zll");
 
   /*
   _mapProcess["znn"].second.first.push_back("znn100to200");
@@ -438,7 +438,7 @@ Int_t XMetAnalysis::DefineChains()
     vector<TString> theDirs = _itProcess->second.second.first;
 
     for(UInt_t iD=0 ; iD<theDirs.size() ; iD++) {
-      _itProcess->second.first->Add(_path+"/"+theDirs[iD]+"/*.root");
+      _itProcess->second.first->Add(_path+"/skim_"+theDirs[iD]+".root");
     }
     //if(verbose>1) cout << "number of entries : " << _itProcess->second.first->GetEntries() << endl;
   }
