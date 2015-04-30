@@ -7,7 +7,8 @@ XMetAnalysis::XMetAnalysis(TString tag)
 {
   _tag = tag;
 
-  _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
+  //_path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
+  _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/";
   _lumi    = 19.7;
   _rescale = 1.0;
   _outfile = new TFile("plots/"+_tag+"/plots_"+_tag+".root","recreate");
@@ -288,10 +289,10 @@ TCut XMetAnalysis::defineCut(TString select)
   TCut veto   = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
 
   TCut metID  = "(abs(pfmet - calomet) < 2*calomet)" ;
-  TCut metCut = "" ;
+  TCut metCut = "mumet>200" ;
 
   TCut jetID1 = "(signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
-  TCut jetID2 = "(secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)";
+  TCut jetID2 = "(secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9 && secondjetpt>30 && abs(secondjeteta)<2.4)";
   TCut jetID3 = "thirdjetpt>30 && abs(thirdjeteta)<4.5"; // FIXME ND
   //TCut jetID3 = "(thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
   //TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9)&&(njets==2 || (njets==3 && thirdjetNHfrac<0.7 && thirdjetEMfrac<0.9) ) ) )" ;
@@ -379,6 +380,16 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["dibosons"].second.second  = kBlue+1;
   _mapProcess["zll"].second.second       = kPink+9;
   //
+
+  _mapProcess["znn"].second.first.push_back("skim");
+  _mapProcess["wln"].second.first.push_back("skim");
+  _mapProcess["ttbar"].second.first.push_back("skim");
+  _mapProcess["singletop"].second.first.push_back("skim");
+  _mapProcess["qcd"].second.first.push_back("skim");
+  _mapProcess["dibosons"].second.first.push_back("skim");
+  _mapProcess["zll"].second.first.push_back("skim");
+
+  /*
   _mapProcess["znn"].second.first.push_back("znn100to200");
   _mapProcess["znn"].second.first.push_back("znn200to400");
   _mapProcess["znn"].second.first.push_back("znn400toinf");
@@ -413,6 +424,7 @@ Int_t XMetAnalysis::DefineChains()
   //
   _mapProcess["zll"].second.first.push_back("zll");
   //
+  */
 
   if(verbose>1) cout << "#entries in mapProcess : " << _mapProcess.size() << endl;
   
@@ -421,11 +433,12 @@ Int_t XMetAnalysis::DefineChains()
   //
   for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++ ) {
 
-    _itProcess->second.first = new TChain("tree/tree");
+    //_itProcess->second.first = new TChain("tree/tree");
+    _itProcess->second.first = new TChain("tree");
     vector<TString> theDirs = _itProcess->second.second.first;
 
     for(UInt_t iD=0 ; iD<theDirs.size() ; iD++) {
-      _itProcess->second.first->Add(_path+"/"+theDirs[iD]+"/tree_*.root");
+      _itProcess->second.first->Add(_path+"/"+theDirs[iD]+"/*.root");
     }
     //if(verbose>1) cout << "number of entries : " << _itProcess->second.first->GetEntries() << endl;
   }
