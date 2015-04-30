@@ -18,6 +18,9 @@ XMetAnalysis::XMetAnalysis(TString tag)
 
 XMetAnalysis::~XMetAnalysis()
 {
+
+  _outfile->Close();
+
   // End job //
   //delete _outfile;
   /*
@@ -30,6 +33,39 @@ XMetAnalysis::~XMetAnalysis()
     //delete mapHistos[nameDir];
   }
   */
+}
+
+Int_t XMetAnalysis::Analysis()
+{
+
+  // Processes to use
+  vector<TString> locProcesses;
+  vector<TString> labelProc;
+  locProcesses.push_back("znn"); labelProc.push_back("Z(#nu#nu)");
+  locProcesses.push_back("wln"); labelProc.push_back("W(l#nu)");
+  locProcesses.push_back("ttbar"); labelProc.push_back("t#bar{t}");
+  locProcesses.push_back("zll"); labelProc.push_back("Z(ll)");
+  locProcesses.push_back("qcd"); labelProc.push_back("QCD");
+
+  // Selections and variables
+  const UInt_t nS=5;
+  const UInt_t nV=1;
+  TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
+  TString var[nV]    = {"mumet"};
+
+  UInt_t  nBins[nV]  = {50};
+  Float_t xFirst[nV] = {0};
+  Float_t xLast[nV]  = {1000};
+
+  for(UInt_t iS=0 ; iS<nS ; iS++) {
+
+    if(verbose>1) cout << "- selection : " << select[iS] << endl;
+
+    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, false, locProcesses, labelProc);
+
+  }
+
+  return 0;
 }
 
 Int_t XMetAnalysis::StudyQCDKiller()
@@ -51,10 +87,10 @@ Int_t XMetAnalysis::StudyQCDKiller()
   const UInt_t nV=5;
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
-  //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
+  UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
   //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
   //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
-  UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
+  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
   Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
@@ -76,7 +112,6 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
   }
 
-  _outfile->Close();
   return 0;
 }
 
@@ -128,7 +163,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     int nEntries = skim->GetN();
     chain->SetEntryList(skim);
     if(verbose>1) cout << "--- produced skim : " << nEntries << " entries" << endl;
-
+    
     // Loop over requested variables
     for(UInt_t iV=0 ; iV<nV ; iV++) {
 
@@ -208,6 +243,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 	    hTemp->SetMinimum(minPlot);
 	    hTemp->SetMaximum(maxPlot);
 	    if(!dolog) hTemp->SetMinimum(0.);
+	    else       hTemp->SetMinimum(minPlot!=0 ? minPlot : 0.0001);
 	    if(unity) hTemp->SetMaximum(1.1);
 	  }
 	  else {
@@ -229,12 +265,17 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     // Draw and Print
     leg->Draw();
     //
-    if(iV==0)
-      c.Print("plots/"+_tag+"/plots_"+select+".pdf(" , "Title:"+var[iV]);
-    else if(iV==nV-1)
-      c.Print("plots/"+_tag+"/plots_"+select+".pdf)" , "Title:"+var[iV]);
-    else
+    if(nV>1) {
+      if(iV==0)
+	c.Print("plots/"+_tag+"/plots_"+select+".pdf(" , "Title:"+var[iV]);
+      else if(iV==nV-1)
+	c.Print("plots/"+_tag+"/plots_"+select+".pdf)" , "Title:"+var[iV]);
+      else
+	c.Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
+    }
+    else {
       c.Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
+    }
 
   }
   //////////////////////////
@@ -335,13 +376,14 @@ Int_t XMetAnalysis::DefineChains()
   // {"bkgnowz","bkgw","bkgz","dibosons","met","qcd","singletop","ttbar","wjets","zjets","znn"};
   // {kGreen, kGreen, kBlue, kRed, kBlack, kYellow, kOrange, kViolet, kGreen, kMagenta-10, kBlue};
   //
-  _mapProcess["znn"].second.second       = kBlue;
-  _mapProcess["wln"].second.second       = kGreen;
-  _mapProcess["ttbar"].second.second     = kViolet;
-  _mapProcess["singletop"].second.second = kYellow;
-  _mapProcess["qcd"].second.second       = kOrange+2;
-  _mapProcess["dibosons"].second.second  = kRed;
-  _mapProcess["zll"].second.second       = kMagenta+8;
+  _mapProcess["znn"].second.second       = kAzure+7;
+  //_mapProcess["wln"].second.second       = kSpring-9;
+  _mapProcess["wln"].second.second       = kGreen+2;
+  _mapProcess["ttbar"].second.second     = kMagenta+3;
+  _mapProcess["singletop"].second.second = kOrange-3;
+  _mapProcess["qcd"].second.second       = kRed;
+  _mapProcess["dibosons"].second.second  = kBlue+1;
+  _mapProcess["zll"].second.second       = kPink+9;
   //
   _mapProcess["znn"].second.first.push_back("znunu");
   //

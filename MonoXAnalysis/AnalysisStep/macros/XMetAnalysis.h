@@ -30,6 +30,8 @@ class XMetAnalysis {
   ~XMetAnalysis();
   
   Int_t StudyQCDKiller();
+  Int_t Analysis();
+
   Int_t DefineChains();
 
   Int_t plot(TString select, const UInt_t nV, TString* var, 
