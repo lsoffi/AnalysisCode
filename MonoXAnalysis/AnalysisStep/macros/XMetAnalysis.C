@@ -289,7 +289,7 @@ TCut XMetAnalysis::defineCut(TString select)
   TCut veto   = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
 
   TCut metID  = "(abs(pfmet - calomet) < 2*calomet)" ;
-  TCut metCut = "mumet>200" ;
+  TCut metCut = "mumet>200";
 
   TCut jetID1 = "(signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
   TCut jetID2 = "(secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9 && secondjetpt>30 && abs(secondjeteta)<2.4)";
