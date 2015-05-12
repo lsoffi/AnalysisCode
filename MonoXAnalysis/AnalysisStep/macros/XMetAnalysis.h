@@ -1,5 +1,7 @@
 #include <iostream>
+#include <iomanip>
 #include <sstream>
+#include <fstream>
 #include <map>
 #include <utility>
 //
@@ -44,7 +46,8 @@ class XMetAnalysis {
 
  private:
 
-  TFile*  _outfile;
+  TFile*   _outfile;
+  ofstream* _outlog;
   //
   MAP_PROCESS _mapProcess;
   MAP_PROCESS::iterator _itProcess;
