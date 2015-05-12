@@ -7,11 +7,20 @@ XMetAnalysis::XMetAnalysis(TString tag)
 {
   _tag = tag;
 
-  //_path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
-  _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/skim/";
+  if(_tag.Contains("skim")) {
+    if(tag.Contains("looserskim")) 
+      _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/looserskim/";
+    else 
+      _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/skim/";
+  }
+  else {
+    _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
+  }
+
   _lumi    = 19.7;
   _rescale = 1.0;
   _outfile = new TFile("plots/"+_tag+"/plots_"+_tag+".root","recreate");
+  _outlog  = new ofstream("plots/"+_tag+"/yields_"+_tag+".txt",ios::out);
 
   DefineChains();
 }
@@ -89,7 +98,8 @@ Int_t XMetAnalysis::StudyQCDKiller()
   //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
   //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
   //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
-  UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
+  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
+  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000,  10000};
   Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
@@ -121,6 +131,8 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 			 vector<TString> locProcesses, vector<TString> labelProc)
 {
 
+  (*_outlog) << "Selection: " << select << endl;
+
   // Define selections //
   TCut weight;
   TCut cut = defineCut(select);
@@ -129,7 +141,10 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   map<TString, map<TString,TH1F*> > mapVarHistos;
   Float_t minPlot = 9999999.;
   Float_t maxPlot = -9999999.;
-  Float_t locMin, locMax, integral;
+  Float_t locMin, locMax;
+
+  const UInt_t nP = locProcesses.size();
+  Float_t integral[nP][nV];
 
   // Loop over chains and generate histograms //
   //
@@ -138,7 +153,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   TChain* chain;
   TH1F* hTemp;
   //
-  for(UInt_t iP=0 ; iP<locProcesses.size() ; iP++) {
+  for(UInt_t iP=0 ; iP<nP ; iP++) {
 
     // check if current requested process is available
     nameDir = locProcesses[iP];
@@ -167,6 +182,9 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     // Loop over requested variables
     for(UInt_t iV=0 ; iV<nV ; iV++) {
 
+      // initialize integrals
+      integral[iP][iV] = 0;
+      
       // Define histogram and set style
       mapVarHistos[nameDir][var[iV]] = new TH1F("h_"+var[iV]+"_"+nameDir+"_"+select, 
 						var[iV]+" "+nameDir+" "+select,
@@ -182,8 +200,8 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
       // Normalize
       if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
-      integral = hTemp->Integral();
-      if(unity && integral!=0) hTemp->Scale(1/integral);
+      integral[iP][iV] = hTemp->Integral();
+      if(unity && integral[iP][iV]!=0) hTemp->Scale(1/integral[iP][iV]);
 
       // Determine extrema
       locMin = hTemp->GetMinimum();
@@ -209,6 +227,12 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   // Produce the plot for each variable //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
 
+    (*_outlog) << "Var: " << var[iV] << endl;
+    for(UInt_t iP=0 ; iP<nP ; iP++) {
+      (*_outlog) << setw(10) << locProcesses[iP];
+    }
+    (*_outlog) << endl;
+
     // Prepare TCanvas /////
     TCanvas c("c","c",20,20,600,600);
     c.SetFillColor(0);
@@ -231,9 +255,11 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     // LOOP OVER PROCESSES' HISTO //
     Bool_t first=true;
     
-    for(UInt_t iP=0 ; iP<locProcesses.size() ; iP++) {
+    for(UInt_t iP=0 ; iP<nP ; iP++) {
 
       hTemp = mapVarHistos[locProcesses[iP]][var[iV]];
+
+      (*_outlog) << setw(14) << integral[iP][iV];
 
       if(hTemp) {
 	if(first) {
@@ -257,7 +283,9 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       
       leg->AddEntry(hTemp,labelProc[iP],"L");
     }
-  
+
+    (*_outlog) << endl;
+
     // Compute shape compatibility
   
 
@@ -277,6 +305,9 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     }
 
   }
+  
+  (*_outlog) << endl;
+
   //////////////////////////
 
   return 1;
@@ -289,7 +320,15 @@ TCut XMetAnalysis::defineCut(TString select)
   TCut veto   = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
 
   TCut metID  = "(abs(pfmet - calomet) < 2*calomet)" ;
-  TCut metCut = "mumet>200";
+
+  // MET cut
+  TCut metCut="";
+  if(_tag.Contains("NoMetCut"))    metCut = "";
+  else if(_tag.Contains("Met200")) metCut = "mumet>200";
+  else if(_tag.Contains("Met350")) metCut = "mumet>350";
+  else if(_tag.Contains("MetFrom0to200"))   metCut = "mumet<=200";
+  else if(_tag.Contains("MetFrom200to250")) metCut = "mumet>200 && mumet<=250";
+  else if(_tag.Contains("MetFrom250to350")) metCut = "mumet>250 && mumet<=350";
 
   TCut jetID1 = "(signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
   TCut jetID2 = "(secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9 && secondjetpt>30 && abs(secondjeteta)<2.4)";
@@ -345,7 +384,7 @@ TCut XMetAnalysis::defineCut(TString select)
 
   //cout << trig*veto*metID*noqcd*jetID*jetKine1*jetBin << endl;
 
-  return (trig*veto*metID*noqcd*jetID*jetKine1*jetBin);
+  return (trig*veto*metID*metCut*noqcd*jetID*jetKine1*jetBin);
 }
 
 int XMetAnalysis::setStyle(TH1F* h, Int_t color)
@@ -381,50 +420,52 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["zll"].second.second       = kPink+9;
   //
 
-  _mapProcess["znn"].second.first.push_back("znn");
-  _mapProcess["wln"].second.first.push_back("wln");
-  _mapProcess["ttbar"].second.first.push_back("ttbar");
-  _mapProcess["singletop"].second.first.push_back("singlet");
-  _mapProcess["qcd"].second.first.push_back("qcd");
-  _mapProcess["dibosons"].second.first.push_back("vv");
-  _mapProcess["zll"].second.first.push_back("zll");
-
-  /*
-  _mapProcess["znn"].second.first.push_back("znn100to200");
-  _mapProcess["znn"].second.first.push_back("znn200to400");
-  _mapProcess["znn"].second.first.push_back("znn400toinf");
-  _mapProcess["znn"].second.first.push_back("znn50to100");
-  //
-  _mapProcess["wln"].second.first.push_back("wln");
-  //_mapProcess["wln"].second.first.push_back("w4jets");
-  // 
-  _mapProcess["ttbar"].second.first.push_back("ttbar"); 
-  //
-  _mapProcess["singletop"].second.first.push_back("singletbars");
-  _mapProcess["singletop"].second.first.push_back("singletbart");
-  _mapProcess["singletop"].second.first.push_back("singletbarw");
-  _mapProcess["singletop"].second.first.push_back("singlets");
-  _mapProcess["singletop"].second.first.push_back("singlett");
-  _mapProcess["singletop"].second.first.push_back("singletw");
-  //
-  _mapProcess["qcd"].second.first.push_back("qcd1000to1400");
-  _mapProcess["qcd"].second.first.push_back("qcd120to170");
-  _mapProcess["qcd"].second.first.push_back("qcd1400to1800");
-  _mapProcess["qcd"].second.first.push_back("qcd170to300");
-  _mapProcess["qcd"].second.first.push_back("qcd1800toinf");
-  _mapProcess["qcd"].second.first.push_back("qcd300to470");
-  _mapProcess["qcd"].second.first.push_back("qcd470to600");
-  _mapProcess["qcd"].second.first.push_back("qcd600to800");
-  _mapProcess["qcd"].second.first.push_back("qcd800to1000");
-  _mapProcess["qcd"].second.first.push_back("qcd80to120");
-  //
-  _mapProcess["dibosons"].second.first.push_back("ww"); 
-  _mapProcess["dibosons"].second.first.push_back("zz"); 
-  _mapProcess["dibosons"].second.first.push_back("wz"); 
-  //
-  _mapProcess["zll"].second.first.push_back("zll");
-  //
-  */
+  if(_tag.Contains("skim")) {
+    _mapProcess["znn"].second.first.push_back("znn");
+    _mapProcess["wln"].second.first.push_back("wln");
+    _mapProcess["ttbar"].second.first.push_back("ttbar");
+    _mapProcess["singletop"].second.first.push_back("singlet");
+    _mapProcess["qcd"].second.first.push_back("qcd");
+    _mapProcess["dibosons"].second.first.push_back("vv");
+    _mapProcess["zll"].second.first.push_back("zll");
+  }
+  
+  else {
+    _mapProcess["znn"].second.first.push_back("znn100to200");
+    _mapProcess["znn"].second.first.push_back("znn200to400");
+    _mapProcess["znn"].second.first.push_back("znn400toinf");
+    _mapProcess["znn"].second.first.push_back("znn50to100");
+    //
+    _mapProcess["wln"].second.first.push_back("wln");
+    //_mapProcess["wln"].second.first.push_back("w4jets");
+    // 
+    _mapProcess["ttbar"].second.first.push_back("ttbar"); 
+    //
+    _mapProcess["singletop"].second.first.push_back("singletbars");
+    _mapProcess["singletop"].second.first.push_back("singletbart");
+    _mapProcess["singletop"].second.first.push_back("singletbarw");
+    _mapProcess["singletop"].second.first.push_back("singlets");
+    _mapProcess["singletop"].second.first.push_back("singlett");
+    _mapProcess["singletop"].second.first.push_back("singletw");
+    //
+    _mapProcess["qcd"].second.first.push_back("qcd1000to1400");
+    _mapProcess["qcd"].second.first.push_back("qcd120to170");
+    _mapProcess["qcd"].second.first.push_back("qcd1400to1800");
+    _mapProcess["qcd"].second.first.push_back("qcd170to300");
+    _mapProcess["qcd"].second.first.push_back("qcd1800toinf");
+    _mapProcess["qcd"].second.first.push_back("qcd300to470");
+    _mapProcess["qcd"].second.first.push_back("qcd470to600");
+    _mapProcess["qcd"].second.first.push_back("qcd600to800");
+    _mapProcess["qcd"].second.first.push_back("qcd800to1000");
+    _mapProcess["qcd"].second.first.push_back("qcd80to120");
+    //
+    _mapProcess["dibosons"].second.first.push_back("ww"); 
+    _mapProcess["dibosons"].second.first.push_back("zz"); 
+    _mapProcess["dibosons"].second.first.push_back("wz"); 
+    //
+    _mapProcess["zll"].second.first.push_back("zll");
+    //
+  }
 
   if(verbose>1) cout << "#entries in mapProcess : " << _mapProcess.size() << endl;
   
@@ -433,12 +474,21 @@ Int_t XMetAnalysis::DefineChains()
   //
   for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++ ) {
 
-    //_itProcess->second.first = new TChain("tree/tree");
-    _itProcess->second.first = new TChain("tree");
+    
+    if(_tag.Contains("skim")) 
+      _itProcess->second.first = new TChain("tree");
+    else
+      _itProcess->second.first = new TChain("tree/tree");
+
     vector<TString> theDirs = _itProcess->second.second.first;
 
     for(UInt_t iD=0 ; iD<theDirs.size() ; iD++) {
-      _itProcess->second.first->Add(_path+"/skim_"+theDirs[iD]+".root");
+
+      if(_tag.Contains("skim")) 
+	_itProcess->second.first->Add(_path+"/skim_"+theDirs[iD]+".root");
+      else
+	_itProcess->second.first->Add(_path+"/"+theDirs[iD]+"/*.root");
+
     }
     //if(verbose>1) cout << "number of entries : " << _itProcess->second.first->GetEntries() << endl;
   }
