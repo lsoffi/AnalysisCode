@@ -50,8 +50,9 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
 
   //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
   //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
-  //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
-  UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
+  UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
+  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
+  //UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000,  10000};
   
   //Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   //Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
@@ -62,17 +63,27 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
       TH1F* h_qcd = (TH1F*) file->Get("h_"+var[iV]+"_qcd_"+select[iS]);
       TH1F* h_znn = (TH1F*) file->Get("h_"+var[iV]+"_znn_"+select[iS]);
 
+      if(!h_qcd) {
+	cout << "ERROR: missing histogram" << endl
+	     << "h_"+var[iV]+"_qcd_"+select[iS] << endl;
+      }
+      if(!h_znn) {
+	cout << "ERROR: missing histogram" << endl
+	     << "h_"+var[iV]+"_znn_"+select[iS] << endl;
+      }
+      if(!h_qcd || !h_znn) return -1;
+
       cout << "-- "+var[iV]+" "+select[iS]+" : Integrals : "
 	   << "qcd=" << h_qcd->Integral() << " "
 	   << "znn=" << h_znn->Integral() << " " << endl;
-      
+
       const UInt_t nB = nBins[iV];
 
       for(UInt_t iWd=0 ; iWd<nWd ; iWd++) {
 	Double_t cum_qcd=0, cum_znn=0;
 	Double_t yCum_qcd[nB];
 	Double_t yCum_znn[nB];
-      
+
 	for(UInt_t iB=0 ; iB<nB ; iB++) {
 
 	  cum_qcd += h_qcd->GetBinContent(iB+1);
@@ -90,7 +101,7 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
 	  }
 	  
 	}
-      
+
 	gRoc[iS][iV][iWd] = new TGraph(nB, yCum_znn, yCum_qcd);
 	gRoc[iS][iV][iWd]->SetMarkerStyle(kOpenSquare);
 	gRoc[iS][iV][iWd]->SetMarkerColor(colors[iV]);
@@ -99,6 +110,8 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
 	gRoc[iS][iV][iWd]->SetFillColor(kWhite);
 	gRoc[iS][iV][iWd]->GetXaxis()->Set(nB, 0, 1);
 	gRoc[iS][iV][iWd]->GetYaxis()->Set(nB, 0, 1);
+	gRoc[iS][iV][iWd]->SetMinimum(0);
+	gRoc[iS][iV][iWd]->SetMaximum(1.05);
 	gRoc[iS][iV][iWd]->GetXaxis()->SetTitle("Z(#nu#nu) efficiency");
 	gRoc[iS][iV][iWd]->GetYaxis()->SetTitle("QCD efficiency");
 	gRoc[iS][iV][iWd]->SetTitle("ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd]);
@@ -141,12 +154,21 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
 
     leg->Draw();
 
+    TString metCut;
+    if(_tag.Contains("NoMetCut"))    metCut = "NoMetCut";
+    else if(_tag.Contains("Met200")) metCut = "Met200";
+    else if(_tag.Contains("Met350")) metCut = "Met350";
+    else if(_tag.Contains("MetFrom0to200"))   metCut = "MetFrom0to200";
+    else if(_tag.Contains("MetFrom200to250")) metCut = "MetFrom200to250";
+    else if(_tag.Contains("MetFrom250to350")) metCut = "MetFrom250to350";
+    TString mysel = select[iS]+"_"+metCut;
+
     if(iS==0) 
-      cRoc.Print("plots/"+_tag+"/allroc.pdf(","Title:"+select[iS]);
+      cRoc.Print("plots/"+_tag+"/allroc.pdf(","Title:"+mysel);
     else if(iS==nS-1)
-      cRoc.Print("plots/"+_tag+"/allroc.pdf)","Title:"+select[iS]);
+      cRoc.Print("plots/"+_tag+"/allroc.pdf)","Title:"+mysel);
     else
-      cRoc.Print("plots/"+_tag+"/allroc.pdf","Title:"+select[iS]);
+      cRoc.Print("plots/"+_tag+"/allroc.pdf","Title:"+mysel);
 
   }
 
