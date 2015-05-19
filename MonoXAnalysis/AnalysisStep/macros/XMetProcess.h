@@ -30,7 +30,7 @@ class XMetProcess {
   Int_t Draw(TH1F* h, TString var, TCut cut, TCut weight);
     
  private:
-  TChain _chain;
+  TChain* _chain;
   vector<TString> _dir;
   Int_t _col;
 
@@ -39,10 +39,17 @@ class XMetProcess {
   TString _nameProcess;
 
   map<TString, TEntryList*> _mapSkim;
+  map<TString, TEntryList*>::iterator _itmapSkim;
 };
 
 XMetProcess::~XMetProcess()
 {
+  /*
+  delete _chain;
+  for(_itmapSkim=_mapSkim.begin();_itmapSkim!=_mapSkim.end();_itmapSkim++) {
+    delete (_itmapSkim->second);
+  }
+  */
 }
 
 XMetProcess::XMetProcess()
@@ -51,12 +58,14 @@ XMetProcess::XMetProcess()
   _path = "";
   _nameFile = "";
   _col = kBlack;
+  _chain = new TChain();
 }
 
 XMetProcess::XMetProcess(TString nameProcess, Int_t col)
 {
   _nameProcess = nameProcess;
   _col = col;
+  _chain = new TChain();
 }
 
 XMetProcess::XMetProcess(TString nameProcess, Int_t col, TString nameFile)
@@ -64,6 +73,7 @@ XMetProcess::XMetProcess(TString nameProcess, Int_t col, TString nameFile)
   _nameProcess = nameProcess;
   _nameFile = nameFile;
   _col = col;
+  _chain = new TChain();
 }
 
 
@@ -80,7 +90,7 @@ Int_t XMetProcess::GetColor()
 
 Int_t XMetProcess::SetNameTree(TString nameTree)
 {
-  _chain.SetName(nameTree);
+  _chain->SetName(nameTree);
   return 0;
 }
 
@@ -99,21 +109,29 @@ Int_t XMetProcess::SetNameFile(TString nameFile)
 Int_t XMetProcess::AddTrees()
 {
   for(UInt_t iD=0 ; iD<_dir.size() ; iD++) {
-    _chain.Add(_path+"/"+_dir[iD]+"/"+_nameFile);
+    _chain->Add(_path+"/"+_dir[iD]+"/"+_nameFile);
   }
+
+  if(_chain->IsZombie()) {
+    cout << "ERROR: IsZombie() "
+	 << _nameProcess << endl;
+    return -1;
+  }
+
   return 0;
 }
 
 Int_t XMetProcess::Skim(TString select, TCut cut)
 {
-  _chain.SetEntryList(0);
+  _chain->SetEntryList(0);
 
   TString tskim="skim_"+_nameProcess+"_"+select;
-  _chain.Draw(">>+"+tskim, cut, "entrylist");
+  //_chain->Draw(">>+"+tskim, cut, "entrylist");
+  _chain->Draw(">>+"+tskim, cut, "entrylist",1000);
   TEntryList* skim = (TEntryList*)gDirectory->Get(tskim);
 
   _mapSkim[select] = skim;
-  _chain.SetEntryList(skim);
+  _chain->SetEntryList(skim);
 
   cout << "--- produced skim : " << tskim 
        << " : " << skim->GetN() << " entries" 
@@ -124,7 +142,8 @@ Int_t XMetProcess::Skim(TString select, TCut cut)
 
 Int_t XMetProcess::Draw(TH1F* h, TString var, TCut cut, TCut weight)
 {
-  _chain.Draw(var+">>"+TString(h->GetName()), cut*weight);
+  //_chain->Draw(var+">>"+TString(h->GetName()), cut*weight);
+  _chain->Draw(var+">>"+TString(h->GetName()), cut*weight, "", 1000);
   return 0;
 }
 

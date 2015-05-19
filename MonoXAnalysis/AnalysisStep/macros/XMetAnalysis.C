@@ -7,15 +7,7 @@ XMetAnalysis::XMetAnalysis(TString tag)
 {
   _tag = tag;
 
-  if(_tag.Contains("skim")) {
-    if(tag.Contains("looserskim")) 
-      _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/looserskim/";
-    else 
-      _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/skim/";
-  }
-  else {
-    _path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
-  }
+  _path    = "/user/ndaci/Data/XMET/5Xtrees/";
 
   _lumi    = 19.7;
   _rescale = 1.0;
@@ -27,18 +19,8 @@ XMetAnalysis::XMetAnalysis(TString tag)
 
 XMetAnalysis::~XMetAnalysis()
 {
-  // End job //
-  //delete _outfile;
-  /*
-  for(UInt_t iP=0 ; iP<nP ; iP++) {
-    delete trees[iP];
-    delete mapHistos[nameDir];
-    files[iP]->Close();
-    //delete files[iP];
-    //delete trees[iP];
-    //delete mapHistos[nameDir];
-  }
-  */
+  _outfile->Close();
+  delete _outfile;
 }
 
 Int_t XMetAnalysis::Analysis()
@@ -48,7 +30,7 @@ Int_t XMetAnalysis::Analysis()
   vector<TString> locProcesses;
   vector<TString> labelProc;
   locProcesses.push_back("znn"); labelProc.push_back("Z(#nu#nu)");
-  locProcesses.push_back("wln"); labelProc.push_back("W(l#nu)");
+  locProcesses.push_back("wjets"); labelProc.push_back("W(l#nu)");
   locProcesses.push_back("ttbar"); labelProc.push_back("t#bar{t}");
   locProcesses.push_back("singletop"); labelProc.push_back("t");
   locProcesses.push_back("dibosons"); labelProc.push_back("VV");
@@ -57,8 +39,10 @@ Int_t XMetAnalysis::Analysis()
 
   // Selections and variables
   const UInt_t nS=5;
+  //const UInt_t nS=1;
   const UInt_t nV=1;
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
+  //TString select[nS] = {"1jet"};
   TString var[nV]    = {"mumet"};
 
   UInt_t  nBins[nV]  = {50};
@@ -164,7 +148,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       continue;
     }
     //
-    if(verbose>1) cout << "--- process : " << nameDir << endl;
+    if(verbose>1) cout << "-- process : " << nameDir << endl;
 
     // Define reweighting
     if( nameDir.Contains("met") ) weight = "1";
@@ -175,6 +159,8 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
     // Loop over requested variables
     for(UInt_t iV=0 ; iV<nV ; iV++) {
+
+      if(verbose>1) cout << "--- variable: " << var[iV] << endl;
 
       // initialize integrals
       integral[iP][iV] = 0;
@@ -191,11 +177,13 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       locVar = var[iV];
       if(var[iV].Contains("phi")) locVar = "abs("+var[iV]+")";
       _mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
+      cout << "--- drew variable: " << locVar << endl;
 
       // Normalize
       if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
       integral[iP][iV] = hTemp->Integral();
       if(unity && integral[iP][iV]!=0) hTemp->Scale(1/integral[iP][iV]);
+      cout << "--- normalized" << endl;
 
       // Determine extrema
       locMin = hTemp->GetMinimum();
@@ -204,14 +192,19 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       if(locMax>maxPlot) maxPlot = locMax;
     } // end loop:variables
   } // end loop:processes 
+  cout << "-- end loop over processes" << endl;
   
   // Save histograms //
   _outfile->cd();
+  cout << "-- _outfile->cd()... done" << endl;
   map<TString, map<TString,TH1F*> >::iterator itVarHistos;
   map<TString,TH1F*>::iterator itHistos;
   for( itVarHistos=mapVarHistos.begin() ; itVarHistos!=mapVarHistos.end() ; itVarHistos++) {
     for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
       itHistos->second->Write();
+      cout << "---- histo written: " 
+	   << itHistos->second->GetName() 
+	   << endl;
     }
   }
 
@@ -292,6 +285,15 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
   //////////////////////////
 
+  // Delete histo pointers
+  for( itVarHistos=mapVarHistos.begin() ; itVarHistos!=mapVarHistos.end() ; itVarHistos++) {
+    for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
+      delete (itHistos->second);
+      cout << "---- histo deleted" << endl;
+    }
+  }
+
+  // END
   return 1;
 }
 
@@ -375,28 +377,28 @@ Int_t XMetAnalysis::DefineChains()
 
   // Processes
   //
-  // {"bkgnowz","bkgw","bkgz","dibosons","met","qcd","singletop","ttbar","wjets","zjets","znn"};
+  // {"bkgnowz","bkgw","bkgz","dibosons","met","qcd","singletop","ttbar","wjets","zll","znn"};
   // {kGreen, kGreen, kBlue, kRed, kBlack, kYellow, kOrange, kViolet, kGreen, kMagenta-10, kBlue};
-  //
 
-  /* FIXME
+  //XMetProcess xmp_znn("znn",   kAzure+7, "reducedtree.root");
+  //xmp_znn.AddDir("znn");
+  //_mapProcess.insert( make_pair("znn" ,xmp_znn) );
+  //_mapProcess.insert( make_pair("znn",XMetProcess("znn",kAzure+7,"reducedtree.root")) );
   _mapProcess["znn"]   = XMetProcess("znn",   kAzure+7, "reducedtree.root");
-  _mapProcess["zll"]   = XMetProcess("zll",   kPink+9, "reducedtree.root");
-  _mapProcess["wln"]   = XMetProcess("wln",   kGreen+2, "reducedtree.root");
+  _mapProcess["zll"] = XMetProcess("zll", kPink+9, "reducedtree.root");
+  _mapProcess["wjets"] = XMetProcess("wjets", kGreen+2, "reducedtree.root");
   _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3, "reducedtree.root");
   _mapProcess["qcd"]   = XMetProcess("qcd",   kRed, "reducedtree.root");
   _mapProcess["dibosons"]  = XMetProcess("dibosons", kBlue+1, "reducedtree.root");
   _mapProcess["singletop"] = XMetProcess("singletop",kOrange-3, "reducedtree.root");
-  */
 
-  //
   _mapProcess["znn"].AddDir("znn");
-  _mapProcess["wln"].AddDir("wln");
-  _mapProcess["ttbar"].AddDir("ttbar");
-  _mapProcess["singletop"].AddDir("singlet");
-  _mapProcess["qcd"].AddDir("qcd");
-  _mapProcess["dibosons"].AddDir("vv");
   _mapProcess["zll"].AddDir("zll");
+  _mapProcess["wjets"].AddDir("wjets");
+  _mapProcess["ttbar"].AddDir("ttbar");
+  _mapProcess["singletop"].AddDir("singletop");
+  _mapProcess["qcd"].AddDir("qcd");
+  _mapProcess["dibosons"].AddDir("dibosons");
 
   if(verbose>1) cout << "#entries in mapProcess : " << _mapProcess.size() << endl;
   
