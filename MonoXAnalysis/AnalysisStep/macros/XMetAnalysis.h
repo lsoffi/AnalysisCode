@@ -1,28 +1,13 @@
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <fstream>
-#include <map>
-#include <utility>
-//
-#include "TChain.h"
-#include "TFile.h"
-#include "TH1F.h"
-#include "TGraph.h"
-#include "TString.h"
-#include "TCut.h"
-#include "TCanvas.h"
-#include "THStack.h"
-#include "TLegend.h"
-#include "TStyle.h"
-#include "TROOT.h"
-#include "TEntryList.h"
-//
-#include "tdrstyle.h"
+#ifndef XMETANALYSIS
+#define XMETANALYSIS
+
+#include "myIncludes.h"
+#include "XMetProcess.h"
 
 using namespace std;
 
-typedef map< TString , pair< TChain* , pair< vector<TString> , Int_t > > > MAP_PROCESS;
+//typedef map< TString , pair< TChain* , pair< vector<TString> , Int_t > > > MAP_PROCESS;
+typedef map< TString , XMetProcess > MAP_PROCESS;
 
 class XMetAnalysis {
 
@@ -40,8 +25,6 @@ class XMetAnalysis {
 	     Bool_t stack, Bool_t dolog, Bool_t unity,
 	     vector<TString> locProcesses, vector<TString> labelProc);
 
-  Int_t setStyle(TH1F* h, Int_t color);
-  
   TCut  defineCut(TString select);
 
  private:
@@ -58,3 +41,5 @@ class XMetAnalysis {
   Double_t _rescale;
   
 };
+
+#endif

@@ -150,7 +150,6 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   //
   TString nameDir, locVar, variable;
   Int_t color;
-  TChain* chain;
   TH1F* hTemp;
   //
   for(UInt_t iP=0 ; iP<nP ; iP++) {
@@ -158,26 +157,21 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     // check if current requested process is available
     nameDir = locProcesses[iP];
     if(_mapProcess.find(nameDir)==_mapProcess.end()) { 
-      if(verbose>1) cout << "-- ERROR: requested process '" << locProcesses[iP] << "' unavailable." << endl;
+      if(verbose>1) {
+	cout << "-- ERROR: requested process '" 
+	     << locProcesses[iP] << "' unavailable." << endl;
+      }
       continue;
     }
-
-    // Process and corresponding chain
-    chain   = _mapProcess[nameDir].first;
-    color   = _mapProcess[nameDir].second.second;
+    //
     if(verbose>1) cout << "--- process : " << nameDir << endl;
 
     // Define reweighting
     if( nameDir.Contains("met") ) weight = "1";
     else weight = "puwgt*wgt";
 
-    // Define skim for current process and requested selection
-    //chain->Draw(">>+skim_"+nameDir, cut,"entrylist",100);
-    chain->Draw(">>+skim_"+nameDir, cut,"entrylist");
-    TEntryList *skim = (TEntryList*)gDirectory->Get("skim_"+nameDir);
-    int nEntries = skim->GetN();
-    chain->SetEntryList(skim);
-    if(verbose>1) cout << "--- produced skim : " << nEntries << " entries" << endl;
+    // Skim the chain
+    _mapProcess[nameDir].Skim(select, cut);
 
     // Loop over requested variables
     for(UInt_t iV=0 ; iV<nV ; iV++) {
@@ -190,13 +184,13 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 						var[iV]+" "+nameDir+" "+select,
 						nBins[iV], xFirst[iV], xLast[iV]);
       hTemp = mapVarHistos[nameDir][var[iV]];
+      color   = _mapProcess[nameDir].GetColor();
       setStyle( hTemp , color );
 
       // Draw the variable
       locVar = var[iV];
       if(var[iV].Contains("phi")) locVar = "abs("+var[iV]+")";
-      chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight);
-      //chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight, "", 100); // FIXME ND
+      _mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
 
       // Normalize
       if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
@@ -208,11 +202,8 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       locMax = hTemp->GetMaximum();
       if(locMin<minPlot) minPlot = locMin;
       if(locMax>maxPlot) maxPlot = locMax;
-    }
-
-    chain->SetEntryList(0);
-    skim->Reset();
-  }
+    } // end loop:variables
+  } // end loop:processes 
   
   // Save histograms //
   _outfile->cd();
@@ -227,44 +218,35 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   // Produce the plot for each variable //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
 
+    // Yields outlog
     (*_outlog) << "Var: " << var[iV] << endl;
     for(UInt_t iP=0 ; iP<nP ; iP++) {
       (*_outlog) << setw(10) << locProcesses[iP];
     }
     (*_outlog) << endl;
 
-    // Prepare TCanvas /////
-    TCanvas c("c","c",20,20,600,600);
-    c.SetFillColor(0);
-    c.SetBorderMode(0);
-    c.SetBorderSize(2);
-    c.SetFrameBorderMode(0);
-    c.SetFrameBorderMode(0);
-    //
-    if(dolog) gPad->SetLogy();
-    //
-    // Add legend
+    // Prepare TCanvas and TLegend
+    TCanvas* c = new TCanvas("c","c",20,20,600,600);
     TLegend* leg = new TLegend(0.88,0.65,0.98,0.76,"","brNDC");
-    leg->SetLineColor(1);
-    leg->SetTextColor(1);
-    leg->SetTextFont(42);
-    leg->SetTextSize(0.0244755);
-    leg->SetShadowColor(kWhite);
-    leg->SetFillColor(kWhite);  
+    setStyle(c);
+    setStyle(leg);
+    if(dolog) gPad->SetLogy();
   
     // LOOP OVER PROCESSES' HISTO //
     Bool_t first=true;
-    
+    //
     for(UInt_t iP=0 ; iP<nP ; iP++) {
-
+      //
+      // Get histogram
       hTemp = mapVarHistos[locProcesses[iP]][var[iV]];
-
+      //      
+      // Yields outlog
       (*_outlog) << setw(14) << integral[iP][iV];
-
+      //
       if(hTemp) {
 	if(first) {
 	  first=false;
-	  
+	  //
 	  if(!stack) {
 	    hTemp->SetMinimum(minPlot);
 	    hTemp->SetMaximum(maxPlot);
@@ -274,16 +256,16 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 	  else {
 	    
 	  }
-
+	  //
 	  hTemp->Draw("HISTE1");
 	}
-	
+	//	
 	hTemp->Draw("HISTE1SAME");
       }
-      
+      //      
       leg->AddEntry(hTemp,labelProc[iP],"L");
     }
-
+    //
     (*_outlog) << endl;
 
     // Compute shape compatibility
@@ -294,14 +276,14 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     //
     if(nV>1) {
       if(iV==0)
-	c.Print("plots/"+_tag+"/plots_"+select+".pdf(" , "Title:"+var[iV]);
+	c->Print("plots/"+_tag+"/plots_"+select+".pdf(" , "Title:"+var[iV]);
       else if(iV==nV-1)
-	c.Print("plots/"+_tag+"/plots_"+select+".pdf)" , "Title:"+var[iV]);
+	c->Print("plots/"+_tag+"/plots_"+select+".pdf)" , "Title:"+var[iV]);
       else
-	c.Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
+	c->Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
     }
     else {
-      c.Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
+      c->Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
     }
 
   }
@@ -387,20 +369,6 @@ TCut XMetAnalysis::defineCut(TString select)
   return (trig*veto*metID*metCut*noqcd*jetID*jetKine1*jetBin);
 }
 
-int XMetAnalysis::setStyle(TH1F* h, Int_t color)
-{
-  h->Sumw2();
-
-  h->SetMarkerSize(0.5);
-  h->SetMarkerStyle(kPlus);
-
-  h->SetLineColor(color);
-  h->SetMarkerColor(color);
-  //h->SetFillColor(color);
-
-  return 0;
-}
-
 Int_t XMetAnalysis::DefineChains()
 {
   if(verbose>1) cout << "- begin DefineChains()" << endl;
@@ -410,87 +378,34 @@ Int_t XMetAnalysis::DefineChains()
   // {"bkgnowz","bkgw","bkgz","dibosons","met","qcd","singletop","ttbar","wjets","zjets","znn"};
   // {kGreen, kGreen, kBlue, kRed, kBlack, kYellow, kOrange, kViolet, kGreen, kMagenta-10, kBlue};
   //
-  _mapProcess["znn"].second.second       = kAzure+7;
-  //_mapProcess["wln"].second.second       = kSpring-9;
-  _mapProcess["wln"].second.second       = kGreen+2;
-  _mapProcess["ttbar"].second.second     = kMagenta+3;
-  _mapProcess["singletop"].second.second = kOrange-3;
-  _mapProcess["qcd"].second.second       = kRed;
-  _mapProcess["dibosons"].second.second  = kBlue+1;
-  _mapProcess["zll"].second.second       = kPink+9;
-  //
 
-  if(_tag.Contains("skim")) {
-    _mapProcess["znn"].second.first.push_back("znn");
-    _mapProcess["wln"].second.first.push_back("wln");
-    _mapProcess["ttbar"].second.first.push_back("ttbar");
-    _mapProcess["singletop"].second.first.push_back("singlet");
-    _mapProcess["qcd"].second.first.push_back("qcd");
-    _mapProcess["dibosons"].second.first.push_back("vv");
-    _mapProcess["zll"].second.first.push_back("zll");
-  }
-  
-  else {
-    _mapProcess["znn"].second.first.push_back("znn100to200");
-    _mapProcess["znn"].second.first.push_back("znn200to400");
-    _mapProcess["znn"].second.first.push_back("znn400toinf");
-    _mapProcess["znn"].second.first.push_back("znn50to100");
-    //
-    _mapProcess["wln"].second.first.push_back("wln");
-    //_mapProcess["wln"].second.first.push_back("w4jets");
-    // 
-    _mapProcess["ttbar"].second.first.push_back("ttbar"); 
-    //
-    _mapProcess["singletop"].second.first.push_back("singletbars");
-    _mapProcess["singletop"].second.first.push_back("singletbart");
-    _mapProcess["singletop"].second.first.push_back("singletbarw");
-    _mapProcess["singletop"].second.first.push_back("singlets");
-    _mapProcess["singletop"].second.first.push_back("singlett");
-    _mapProcess["singletop"].second.first.push_back("singletw");
-    //
-    _mapProcess["qcd"].second.first.push_back("qcd1000to1400");
-    _mapProcess["qcd"].second.first.push_back("qcd120to170");
-    _mapProcess["qcd"].second.first.push_back("qcd1400to1800");
-    _mapProcess["qcd"].second.first.push_back("qcd170to300");
-    _mapProcess["qcd"].second.first.push_back("qcd1800toinf");
-    _mapProcess["qcd"].second.first.push_back("qcd300to470");
-    _mapProcess["qcd"].second.first.push_back("qcd470to600");
-    _mapProcess["qcd"].second.first.push_back("qcd600to800");
-    _mapProcess["qcd"].second.first.push_back("qcd800to1000");
-    _mapProcess["qcd"].second.first.push_back("qcd80to120");
-    //
-    _mapProcess["dibosons"].second.first.push_back("ww"); 
-    _mapProcess["dibosons"].second.first.push_back("zz"); 
-    _mapProcess["dibosons"].second.first.push_back("wz"); 
-    //
-    _mapProcess["zll"].second.first.push_back("zll");
-    //
-  }
+  /* FIXME
+  _mapProcess["znn"]   = XMetProcess("znn",   kAzure+7, "reducedtree.root");
+  _mapProcess["zll"]   = XMetProcess("zll",   kPink+9, "reducedtree.root");
+  _mapProcess["wln"]   = XMetProcess("wln",   kGreen+2, "reducedtree.root");
+  _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3, "reducedtree.root");
+  _mapProcess["qcd"]   = XMetProcess("qcd",   kRed, "reducedtree.root");
+  _mapProcess["dibosons"]  = XMetProcess("dibosons", kBlue+1, "reducedtree.root");
+  _mapProcess["singletop"] = XMetProcess("singletop",kOrange-3, "reducedtree.root");
+  */
+
+  //
+  _mapProcess["znn"].AddDir("znn");
+  _mapProcess["wln"].AddDir("wln");
+  _mapProcess["ttbar"].AddDir("ttbar");
+  _mapProcess["singletop"].AddDir("singlet");
+  _mapProcess["qcd"].AddDir("qcd");
+  _mapProcess["dibosons"].AddDir("vv");
+  _mapProcess["zll"].AddDir("zll");
 
   if(verbose>1) cout << "#entries in mapProcess : " << _mapProcess.size() << endl;
   
-  //
   // Add the files to the chains
-  //
   for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++ ) {
-
-    
-    if(_tag.Contains("skim")) 
-      _itProcess->second.first = new TChain("tree");
-    else
-      _itProcess->second.first = new TChain("tree/tree");
-
-    vector<TString> theDirs = _itProcess->second.second.first;
-
-    for(UInt_t iD=0 ; iD<theDirs.size() ; iD++) {
-
-      if(_tag.Contains("skim")) 
-	_itProcess->second.first->Add(_path+"/skim_"+theDirs[iD]+".root");
-      else
-	_itProcess->second.first->Add(_path+"/"+theDirs[iD]+"/*.root");
-
-    }
-    //if(verbose>1) cout << "number of entries : " << _itProcess->second.first->GetEntries() << endl;
+    _itProcess->second.SetNameTree("tree/tree");
+    //_itProcess->second.SetNameFile("reducedtree.root");
+    _itProcess->second.SetPath(_path);
+    _itProcess->second.AddTrees();
   }
 
   if(verbose>1) cout << "- end DefineChains()" << endl;
