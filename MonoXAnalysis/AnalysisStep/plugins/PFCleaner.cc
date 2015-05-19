@@ -62,7 +62,7 @@ class PFCleaner : public edm::EDProducer {
         edm::InputTag rhoTag;
         edm::InputTag conversions;
         edm::InputTag electrons;
-        edm::InputTag photons;
+        edm::InputTag photonsTag;
         edm::InputTag elCHPFIso;
         edm::InputTag elNHPFIso;
         edm::InputTag elPHPFIso;
@@ -84,7 +84,7 @@ PFCleaner::PFCleaner(const edm::ParameterSet& iConfig):
     rhoTag(iConfig.getParameter<edm::InputTag>("rho")),
     conversions(iConfig.getParameter<edm::InputTag>("conversions")),
     electrons(iConfig.getParameter<edm::InputTag>("electrons")),
-    photons(iConfig.getParameter<edm::InputTag>("photons")),
+    photonsTag(iConfig.getParameter<edm::InputTag>("photons")),
     elCHPFIso(iConfig.getParameter<edm::InputTag>("electronPFIsoCH")),
     elNHPFIso(iConfig.getParameter<edm::InputTag>("electronPFIsoNH")),
     elPHPFIso(iConfig.getParameter<edm::InputTag>("electronPFIsoPH")),
@@ -99,9 +99,11 @@ PFCleaner::PFCleaner(const edm::ParameterSet& iConfig):
     produces<reco::PFCandidateCollection>("pfcands");
     produces<reco::MuonRefVector>("muons");
     produces<reco::GsfElectronRefVector>("electrons");
+    produces<reco::PhotonRefVector>("photons");
     produces<reco::MuonRefVector>("tightmuons");
     produces<reco::GsfElectronRefVector>("tightelectrons");
-    produces<reco::PhotonRefVector>("photons");
+    produces<reco::PhotonRefVector>("tightphotons");
+    produces<reco::PhotonRefVector>("leadingphoton");
 }
 
 
@@ -132,8 +134,9 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     Handle<vector<GsfElectron> > electronsH;
     iEvent.getByLabel(electrons, electronsH);
 
-    Handle<vector<Photon> > photonsH;
-    iEvent.getByLabel(photons, photonsH);
+    Handle<PhotonCollection> photonsH;
+    iEvent.getByLabel(photonsTag, photonsH);
+    PhotonCollection photons = *photonsH;
 
     Handle<ValueMap<double> > elCHPFIsoH;
     iEvent.getByLabel(elCHPFIso, elCHPFIsoH);
@@ -163,10 +166,14 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     std::auto_ptr<PFCandidateCollection> output(new PFCandidateCollection);
     std::auto_ptr<MuonRefVector> outputmuons(new MuonRefVector);
     std::auto_ptr<GsfElectronRefVector> outputelectrons(new GsfElectronRefVector);
+    std::auto_ptr<PhotonRefVector> outputphotons(new PhotonRefVector);
     std::auto_ptr<MuonRefVector> outputtightmuons(new MuonRefVector);
     std::auto_ptr<GsfElectronRefVector> outputtightelectrons(new GsfElectronRefVector);
-    std::auto_ptr<PhotonRefVector> outputphotons(new PhotonRefVector);
+    std::auto_ptr<PhotonRefVector> outputtightphotons(new PhotonRefVector);
+    std::auto_ptr<PhotonRefVector> outputleadingphoton(new PhotonRefVector);
 
+    int leadingphotonindex = -1;
+    double leadingphotonpt = 0.0;
     for (size_t i = 0; i  < input.size(); i++) {
         bool veto = false;
 
@@ -186,9 +193,8 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
             isoval -= 0.5*input[i].muonRef()->pfIsolationR04().sumPUPt;
             if (isoval < 0.) isoval = 0.;
             isoval += input[i].muonRef()->pfIsolationR04().sumChargedHadronPt;
-            isoval /= input[i].pt();
+            isoval /= input[i].muonRef()->pt();
             bool passesselection = (muon::isLooseMuon(*(input[i].muonRef())) && isoval < 0.2);
-            //bool passesselection = ((input[i].muonRef()->isTrackerMuon() || input[i].muonRef()->isGlobalMuon()) && isoval < 0.2);
             if (passeskincuts && passestipcut && passeslipcut && passesselection) {
                 veto = true;
                 outputmuons->push_back(input[i].muonRef());
@@ -207,27 +213,7 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
             double chiso = (*elCHPFIsoH)[input[i].gsfElectronRef()];
             double nhiso = (*elNHPFIsoH)[input[i].gsfElectronRef()];
             double phiso = (*elPHPFIsoH)[input[i].gsfElectronRef()];
-            //double puiso = (*elPUPFIsoH)[input[i].gsfElectronRef()];
             bool passesselection = EgammaCutBasedEleId::PassWP(EgammaCutBasedEleId::VETO, input[i].gsfElectronRef(), conversionsH, *(beamspotH.product()), verticesH, chiso, phiso, nhiso, rho);
-
-            /*
-            double hoe    = input[i].gsfElectronRef()->hadronicOverEm();
-            double sieie  = input[i].gsfElectronRef()->sigmaIetaIeta();
-            double dphi   = fabs(input[i].gsfElectronRef()->deltaPhiSuperClusterTrackAtVtx());
-            double deta   = fabs(input[i].gsfElectronRef()->deltaEtaSuperClusterTrackAtVtx());
-            int    nmhits = input[i].gsfElectronRef()->gsfTrack()->trackerExpectedHitsInner().numberOfHits();
-
-            bool passesselection = false;
-            if (nmhits <= 1 && ((input[i].gsfElectronRef()->isEB() && sieie < 0.01 && dphi < 0.8 && deta < 0.007 && hoe < 0.15) || (input[i].gsfElectronRef()->isEE() && sieie < 0.03 && dphi < 0.7 && deta < 0.01 && hoe < 0.07))) {
-                passesselection = true;
-            }
-
-            double iso = nhiso + phiso - 0.5*puiso;
-            if (iso < 0.) iso = 0.;
-            iso += chiso;
-            iso /= input[i].gsfElectronRef()->pt();
-            if (iso > 0.2) passesselection = false;
-            */
 
             if (passeskincuts && passestipcut && passeslipcut && passesselection) {
                 veto = true;
@@ -239,21 +225,29 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
             }
         }
 
-        bool isPh = (abs(input[i].pdgId()) == 22 && input[i].photonRef().isAvailable());
+        bool isPh = (input[i].pdgId() == 22 && input[i].photonRef().isAvailable());
         if (isPh) {
-            bool passeskincuts = (input[i].photonRef()->pt() > 30 && fabs(input[i].photonRef()->eta()) < 2.5);
+            bool passeskincuts = (input[i].photonRef()->pt() > 10 && fabs(input[i].photonRef()->eta()) < 3.0);
             bool isconversionssafe = !ConversionTools::hasMatchedPromptElectron(input[i].photonRef()->superCluster(), electronsH, conversionsH, beamspotH->position());
             double chiso = (*phCHPFIsoH)[input[i].photonRef()];
             double nhiso = (*phNHPFIsoH)[input[i].photonRef()];
             double phiso = (*phPHPFIsoH)[input[i].photonRef()];
-            bool passesiso = testPhotonIsolation(input[i].photonRef(), chiso, nhiso, phiso, rho);
-            bool passesselection = (passesiso && input[i].photonRef()->hadTowOverEm() < 0.05 && input[i].photonRef()->r9() > 0.9 &&  
+            bool passesiso = testPhotonIsolation(input[i].photonRef(), chiso, nhiso, phiso, *rhoH);
+            bool passesselection = (passesiso && input[i].photonRef()->hadTowOverEm() < 0.05 &&
                                    ((input[i].photonRef()->isEB() && input[i].photonRef()->sigmaIetaIeta() < 0.011) || (input[i].photonRef()->isEE() && input[i].photonRef()->sigmaIetaIeta() < 0.033)));
             if (passeskincuts && isconversionssafe && passesselection) {
                 if (vetophotons) veto = true;
                 outputphotons->push_back(input[i].photonRef());
+                if (input[i].photonRef()->pt() > 160 && fabs(input[i].photonRef()->eta()) < 2.5) {
+                    if (input[i].photonRef()->pt() > leadingphotonpt) {
+                        leadingphotonpt = input[i].photonRef()->pt();
+                        leadingphotonindex = i;
+                    }
+                    outputtightphotons->push_back(input[i].photonRef());
+                }
             }
         }
+
         if (!veto) {
             PFCandidatePtr ptrToMother(inputH, i);
             output->push_back(input[i]);
@@ -261,12 +255,16 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
         }
     }
 
+    if (leadingphotonindex >= 0) outputleadingphoton->push_back(input[leadingphotonindex].photonRef());
+
     iEvent.put(output, "pfcands");
     iEvent.put(outputmuons, "muons");
     iEvent.put(outputelectrons, "electrons");
+    iEvent.put(outputphotons, "photons");
     iEvent.put(outputtightmuons, "tightmuons");
     iEvent.put(outputtightelectrons, "tightelectrons");
-    iEvent.put(outputphotons, "photons");
+    iEvent.put(outputtightphotons, "tightphotons");
+    iEvent.put(outputleadingphoton, "leadingphoton");
 }
 
 void PFCleaner::beginJob() {
@@ -299,7 +297,7 @@ double PFCleaner::getChargedHadronEAForPhotonIso(double eta) {
     else if (fabs(eta) >= 1.479 && fabs(eta) < 2.0  ) return 0.014;
     else if (fabs(eta) >= 2.0   && fabs(eta) < 2.2  ) return 0.012;
     else if (fabs(eta) >= 2.2   && fabs(eta) < 2.3  ) return 0.016;
-    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.3  ) return 0.020;
+    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.4  ) return 0.020;
     else if (fabs(eta) >= 2.4) return 0.012;
     else return 0.;
 }
@@ -310,7 +308,7 @@ double PFCleaner::getNeutralHadronEAForPhotonIso(double eta) {
     else if (fabs(eta) >= 1.479 && fabs(eta) < 2.0  ) return 0.039;
     else if (fabs(eta) >= 2.0   && fabs(eta) < 2.2  ) return 0.015;
     else if (fabs(eta) >= 2.2   && fabs(eta) < 2.3  ) return 0.024;
-    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.3  ) return 0.039;
+    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.4  ) return 0.039;
     else if (fabs(eta) >= 2.4) return 0.072;
     else return 0.;
 }
@@ -321,7 +319,7 @@ double PFCleaner::getGammaEAForPhotonIso(double eta) {
     else if (fabs(eta) >= 1.479 && fabs(eta) < 2.0  ) return 0.112;
     else if (fabs(eta) >= 2.0   && fabs(eta) < 2.2  ) return 0.216;
     else if (fabs(eta) >= 2.2   && fabs(eta) < 2.3  ) return 0.262;
-    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.3  ) return 0.260;
+    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.4  ) return 0.260;
     else if (fabs(eta) >= 2.4) return 0.266;
     else return 0.;
 }
@@ -339,11 +337,10 @@ bool PFCleaner::testPhotonIsolation(reco::PhotonRef photon, double chargedHadron
         if (corrCHIso < 1.5 && corrNHIso < 1.0 + 0.04*photon->pt() && corrPHIso < 0.7 + 0.005*photon->pt()) return true;
         else return false;
     }
-    else if (photon->isEE()) {
+    else {
         if (corrCHIso < 1.2 && corrNHIso < 1.5 + 0.04*photon->pt() && corrPHIso < 1.0 + 0.005*photon->pt()) return true;
         else return false;
     }
-    else return false;
 }
 
 DEFINE_FWK_MODULE(PFCleaner);
