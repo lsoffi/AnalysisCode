@@ -23,7 +23,8 @@ class XMetProcess {
   Int_t AddTrees();
 
   // Getters
-  Int_t GetColor();
+  Int_t   GetColor();
+  TString GetNameFile();
 
   // Analysis tools
   Int_t Skim(TString select, TCut cut);
@@ -88,6 +89,11 @@ Int_t XMetProcess::GetColor()
   return _col;
 }
 
+TString XMetProcess::GetNameFile()
+{
+  return _nameFile;
+}
+
 Int_t XMetProcess::SetNameTree(TString nameTree)
 {
   _chain->SetName(nameTree);
@@ -127,7 +133,7 @@ Int_t XMetProcess::Skim(TString select, TCut cut)
 
   TString tskim="skim_"+_nameProcess+"_"+select;
   //_chain->Draw(">>+"+tskim, cut, "entrylist");
-  _chain->Draw(">>+"+tskim, cut, "entrylist",1000);
+  _chain->Draw(">>+"+tskim, cut, "entrylist",10000);
   TEntryList* skim = (TEntryList*)gDirectory->Get(tskim);
 
   _mapSkim[select] = skim;
@@ -142,8 +148,8 @@ Int_t XMetProcess::Skim(TString select, TCut cut)
 
 Int_t XMetProcess::Draw(TH1F* h, TString var, TCut cut, TCut weight)
 {
-  //_chain->Draw(var+">>"+TString(h->GetName()), cut*weight);
-  _chain->Draw(var+">>"+TString(h->GetName()), cut*weight, "", 1000);
+  _chain->Draw(var+">>"+TString(h->GetName()), cut*weight);
+  //_chain->Draw(var+">>"+TString(h->GetName()), cut*weight, "", 1000); // FIXME
   return 0;
 }
 
