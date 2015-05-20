@@ -176,7 +176,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     }
 
     // Skim the chain
-    //_mapProcess[nameDir].Skim(select, cut);
+    _mapProcess[nameDir].Skim(select, cut);
 
     // Loop over requested variables
     for(UInt_t iV=0 ; iV<nV ; iV++) {
