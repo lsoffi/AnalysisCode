@@ -25,7 +25,7 @@ class XMetAnalysis {
 	     Bool_t stack, Bool_t dolog, Bool_t unity,
 	     vector<TString> locProcesses, vector<TString> labelProc);
 
-  TCut  defineCut(TString select);
+  TCut  defineCut(TString select, TString region);
 
  private:
 
