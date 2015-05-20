@@ -40,8 +40,10 @@ Int_t XMetAnalysis::Analysis()
 
   locProcesses.push_back("znn_cr_DA"); labelProc.push_back("Z(#nu#nu) CR Data");
   locProcesses.push_back("znn_cr_MC"); labelProc.push_back("Z(#nu#nu) CR MC");
+  locProcesses.push_back("znn_sr_DD"); labelProc.push_back("Z(#nu#nu) SR DD");
   locProcesses.push_back("wj_cr_DA"); labelProc.push_back("W(l#nu) CR Data");
   locProcesses.push_back("wj_cr_MC"); labelProc.push_back("W(l#nu) CR MC");
+  locProcesses.push_back("wj_sr_DD"); labelProc.push_back("W(l#nu) SR DD");
   locProcesses.push_back("data"); labelProc.push_back("Data");
 
   // Selections and variables
@@ -133,18 +135,22 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   Float_t locMin, locMax;
 
   const UInt_t nP = locProcesses.size();
-  Float_t integral[nP][nV];
+  Float_t integral=0;
+  //Float_t integral[nP][nV];
 
   // Loop over chains and generate histograms //
   //
   TString nameDir, locVar, variable;
   Int_t color;
-  TH1F* hTemp;
+  TH1F *hTemp, *hSRDD;
   //
   for(UInt_t iP=0 ; iP<nP ; iP++) {
+    nameDir = locProcesses[iP];
+
+    // sr_DD histograms don't have chains
+    if(nameDir.Contains("sr_DD")) continue;
 
     // check if current requested process is available
-    nameDir = locProcesses[iP];
     if(_mapProcess.find(nameDir)==_mapProcess.end()) { 
       if(verbose>1) {
 	cout << "-- ERROR: requested process '" 
@@ -170,7 +176,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     }
 
     // Skim the chain
-    _mapProcess[nameDir].Skim(select, cut);
+    //_mapProcess[nameDir].Skim(select, cut);
 
     // Loop over requested variables
     for(UInt_t iV=0 ; iV<nV ; iV++) {
@@ -178,7 +184,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       if(verbose>1) cout << "--- variable: " << var[iV] << endl;
 
       // initialize integrals
-      integral[iP][iV] = 0;
+      //integral[iP][iV] = 0;
       
       // Define histogram and set style
       mapVarHistos[nameDir][var[iV]] = new TH1F("h_"+var[iV]+"_"+nameDir+"_"+select, 
@@ -196,9 +202,9 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
       // Normalize
       if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
-      integral[iP][iV] = hTemp->Integral();
-      if(unity && integral[iP][iV]!=0) hTemp->Scale(1/integral[iP][iV]);
-      cout << "--- normalized" << endl;
+      //integral[iP][iV] = hTemp->Integral();
+      //if(unity && integral[iP][iV]!=0) hTemp->Scale(1/integral[iP][iV]);
+      //cout << "--- normalized" << endl;
 
       // Determine extrema
       locMin = hTemp->GetMinimum();
@@ -220,6 +226,18 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       cout << "---- histo written: " 
 	   << itHistos->second->GetName() 
 	   << endl;
+    }
+  }
+
+  // Produce sr_DD histograms
+  const UInt_t nDD=2;
+  TString myDD[2] = {"znn","wj"};
+  for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
+    for(UInt_t iV=0 ; iV<nV ; iV++) {
+      hTemp = mapVarHistos[myDD[iDD]+"_cr_DA"][var[iV]];
+      hSRDD = (TH1F*)hTemp->Clone("h_"+var[iV]+"_znn_sr_DD_"+select);
+      hSRDD->Add( mapVarHistos[myDD[iDD]+"_cr_MC"][var[iV]] , -1.0 );
+      mapVarHistos[myDD[iDD]+"_sr_DD"][var[iV]] = hSRDD;
     }
   }
 
@@ -250,9 +268,19 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       //
       // Get histogram
       hTemp = mapVarHistos[locProcesses[iP]][var[iV]];
-      //      
-      // Yields outlog
-      (*_outlog) << setw(10) << integral[iP][iV];
+      if(!hTemp) {
+	cout << "ERROR : plotting loop did not find histo:"
+	     << locProcesses[iP]+" "+var[iV]
+	     << endl;
+	(*_outlog) << setw(10) << -999999;
+	continue;
+      }
+
+      integral = hTemp->Integral();
+      (*_outlog) << setw(10) << integral;
+      if(unity && integral!=0) hTemp->Scale(1/integral);
+      cout << "--- normalized" << endl;
+      
       //
       if(hTemp) {
 	if(first) {
@@ -419,10 +447,10 @@ Int_t XMetAnalysis::DefineChains()
 
   // Data driven backgrounds
   /// Z
-  _mapProcess["znn_cr_DA"] = XMetProcess("znn_cr_DA", kAzure+7,"reducedtree.root");
+  _mapProcess["znn_cr_DA"] = XMetProcess("znn_cr_DA",kAzure+7,"reducedtree.root");
   _mapProcess["znn_cr_MC"] = XMetProcess("znn_cr_MC",kAzure+7,"reducedtree.root");
   /// W
-  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA",  kGreen+2, "reducedtree.root");
+  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "reducedtree.root");
   _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "reducedtree.root");
 
   // Signal
