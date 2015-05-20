@@ -30,6 +30,8 @@ Int_t XMetAnalysis::Analysis()
   // Processes to use
   vector<TString> locProcesses;
   vector<TString> labelProc;
+
+  // MC backgrounds
   locProcesses.push_back("znn"); labelProc.push_back("Z(#nu#nu)");
   locProcesses.push_back("zll"); labelProc.push_back("Z(ll)");
   locProcesses.push_back("wjets"); labelProc.push_back("W(l#nu)");
@@ -38,12 +40,23 @@ Int_t XMetAnalysis::Analysis()
   locProcesses.push_back("vv"); labelProc.push_back("VV");
   locProcesses.push_back("qcd"); labelProc.push_back("QCD");
 
+  // Data-driven
+  /// without acc, eff, BR corrections
   locProcesses.push_back("znn_cr_DA"); labelProc.push_back("Z(#nu#nu) CR Data");
   locProcesses.push_back("znn_cr_MC"); labelProc.push_back("Z(#nu#nu) CR MC");
   locProcesses.push_back("znn_sr_DD"); labelProc.push_back("Z(#nu#nu) SR DD");
   locProcesses.push_back("wj_cr_DA"); labelProc.push_back("W(l#nu) CR Data");
   locProcesses.push_back("wj_cr_MC"); labelProc.push_back("W(l#nu) CR MC");
   locProcesses.push_back("wj_sr_DD"); labelProc.push_back("W(l#nu) SR DD");
+  /// with acc, eff, BR corrections
+  locProcesses.push_back("znn_cr_corr_DA"); labelProc.push_back("Z(#nu#nu) CR Data (SF)");
+  locProcesses.push_back("znn_cr_corr_MC"); labelProc.push_back("Z(#nu#nu) CR MC (SF)");
+  locProcesses.push_back("znn_sr_corr_DD"); labelProc.push_back("Z(#nu#nu) SR DD (SF)");
+  locProcesses.push_back("wj_cr_corr_DA"); labelProc.push_back("W(l#nu) CR Data (SF)");
+  locProcesses.push_back("wj_cr_corr_MC"); labelProc.push_back("W(l#nu) CR MC (SF)");
+  locProcesses.push_back("wj_sr_corr_DD"); labelProc.push_back("W(l#nu) SR DD (SF)");
+
+  // Data
   locProcesses.push_back("data"); labelProc.push_back("Data");
 
   // Selections and variables
@@ -169,10 +182,16 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     else weight = "puwgt*wgt";
 
     if(     nameDir.Contains("znn_cr")) {
-      cut = defineCut(select, "zctrl");
+      if(nameDir.Contains("corr"))
+	cut = defineCut(select, "zctrl_corr");
+      else
+	cut = defineCut(select, "zctrl");
     }
     else if(nameDir.Contains("wj_cr"))  {
-      cut = defineCut(select, "wctrl");
+      if(nameDir.Contains("corr"))
+	cut = defineCut(select, "wctrl_corr");
+      else
+	cut = defineCut(select, "wctrl");
     }
 
     // Skim the chain
@@ -354,13 +373,15 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
 
   // Lepton selection depending on the region
   TCut leptons = "";
-  if(region=="zctrl") {
+  if(region.Contains("zctrl")) {
     leptons = "(nelectrons==0 && ntaus==0)";
     leptons *= "(zmass > 60 && zmass < 120 && mu1pid == -mu2pid && mu1pt > 20 && mu2pt > 20 && (mu1id == 1 || mu2id == 1))";
+    if(region.Contains("corr")) leptons *= "((5.942 * 1.023) / (0.79*(1.0-TMath::Exp(-0.00910276*(mumet-36.1669)))))";
   }
-  else if(region=="wctrl") {
+  else if(region.Contains("wctrl")) {
     leptons = "(nelectrons==0 && ntaus==0 && nmuons==1)";
     leptons *= "(wmt > 50 && wmt < 100 && abs(mu1eta) < 2.4 && mu1pt > 20 && mu1id == 1)";
+    if(region.Contains("corr")) leptons *= "(38.7823/TMath::Power(-85.7023 + mumet, 0.667232))";
   }
   else {
     leptons = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
@@ -446,12 +467,16 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "reducedtree.root");
 
   // Data driven backgrounds
-  /// Z
+  /// no corr
   _mapProcess["znn_cr_DA"] = XMetProcess("znn_cr_DA",kAzure+7,"reducedtree.root");
   _mapProcess["znn_cr_MC"] = XMetProcess("znn_cr_MC",kAzure+7,"reducedtree.root");
-  /// W
   _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "reducedtree.root");
   _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "reducedtree.root");
+  /// corr
+  _mapProcess["znn_cr_corr_DA"] = XMetProcess("znn_cr_corr_DA",kAzure+7,"reducedtree.root");
+  _mapProcess["znn_cr_corr_MC"] = XMetProcess("znn_cr_corr_MC",kAzure+7,"reducedtree.root");
+  _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "reducedtree.root");
+  _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "reducedtree.root");
 
   // Signal
   //_mapProcess["dm_v_1"]   = XMetProcess("",   kOrange+3, "reducedtree.root");
@@ -460,6 +485,7 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["data"]   = XMetProcess("data",   kBlack, "reducedtree.root");
 
   // Sub-directories in _path
+  /// mc backgrounds
   _mapProcess["znn"].AddDir("znn");
   _mapProcess["zll"].AddDir("zll");
   _mapProcess["wjets"].AddDir("wjets");
@@ -467,11 +493,18 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["top"].AddDir("singletop");
   _mapProcess["qcd"].AddDir("qcd");
   _mapProcess["vv"].AddDir("dibosons");
+  /// data-driven (no corr)
   _mapProcess["znn_cr_DA"].AddDir("met");
   _mapProcess["znn_cr_MC"].AddDir("bkgz");
   _mapProcess["wj_cr_DA"].AddDir("met");
   _mapProcess["wj_cr_MC"].AddDir("bkgw");
-  // signal still missing
+  /// data-driven (corr)
+  _mapProcess["znn_cr_corr_DA"].AddDir("met");
+  _mapProcess["znn_cr_corr_MC"].AddDir("bkgz");
+  _mapProcess["wj_cr_corr_DA"].AddDir("met");
+  _mapProcess["wj_cr_corr_MC"].AddDir("bkgw");
+  /// signal still missing
+  /// data
   _mapProcess["data"].AddDir("met");
 
   if(verbose>1) cout << "#entries in mapProcess : " << _mapProcess.size() << endl;
