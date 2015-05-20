@@ -325,11 +325,18 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   TCut trig  = "(hltmet120 > 0 || hltmet95jet80 > 0 || hltmet105jet80 > 0)";
 
   // Lepton selection depending on the region
-  TCut tcRegion = "";
-  if(     region=="signal") tcRegion = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
-  else if(region=="zctrl")  tcRegion = "(nmuons==2)";
-  else if(region=="wctrl")  tcRegion = "(nmuons==1)";
-  else tcRegion = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
+  TCut leptons = "";
+  if(region=="zctrl") {
+    leptons = "(nelectrons==0 && ntaus==0)";
+    leptons *= "(zmass > 60 && zmass < 120 && mu1pid == -mu2pid && mu1pt > 20 && mu2pt > 20 && (mu1id == 1 || mu2id == 1))";
+  }
+  else if(region=="wctrl") {
+    leptons = "(nelectrons==0 && ntaus==0 && nmuons==1)";
+    leptons *= "(wmt > 50 && wmt < 100 && abs(mu1eta) < 2.4 && mu1pt > 20 && mu1id == 1)";
+  }
+  else {
+    leptons = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
+  }
 
   // MET
   TCut metID = "(abs(pfmet - calomet) < 2*calomet)" ;
@@ -394,9 +401,7 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   else if(select.Contains("alphat"))    noqcd = alphat;
   else if(select.Contains("apcjetmetmax")) noqcd = apcjetmetmax;
 
-  //cout << trig*veto*metID*noqcd*jetID*jetKine1*jetBin << endl;
-
-  return (trig*tcRegion*metID*metCut*noqcd*jetID*jetKine1*jetBin);
+  return (trig*leptons*metID*metCut*noqcd*jetID*jetKine1*jetBin);
 
 }
 
@@ -415,11 +420,11 @@ Int_t XMetAnalysis::DefineChains()
 
   // Data driven backgrounds
   /// Z
-  _mapProcess["znn_cr_DA"] = XMetProcess("znn_cr_DA", kAzure+7,"ztree.root");
-  _mapProcess["znn_cr_MC"] = XMetProcess("znn_cr_MC",kAzure+7,"ztree.root");
+  _mapProcess["znn_cr_DA"] = XMetProcess("znn_cr_DA", kAzure+7,"reducedtree.root");
+  _mapProcess["znn_cr_MC"] = XMetProcess("znn_cr_MC",kAzure+7,"reducedtree.root");
   /// W
-  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA",  kGreen+2, "wtree.root");
-  _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "wtree.root");
+  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA",  kGreen+2, "reducedtree.root");
+  _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "reducedtree.root");
 
   // Signal
   //_mapProcess["dm_v_1"]   = XMetProcess("",   kOrange+3, "reducedtree.root");
@@ -437,10 +442,8 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["vv"].AddDir("dibosons");
   _mapProcess["znn_cr_DA"].AddDir("met");
   _mapProcess["znn_cr_MC"].AddDir("bkgz");
-  //_mapProcess["znn_cr_MC"].AddDir("bkgnowz");
   _mapProcess["wj_cr_DA"].AddDir("met");
   _mapProcess["wj_cr_MC"].AddDir("bkgw");
-  //_mapProcess["wj_cr_MC"].AddDir("bkgnowz");
   // signal still missing
   _mapProcess["data"].AddDir("met");
 
