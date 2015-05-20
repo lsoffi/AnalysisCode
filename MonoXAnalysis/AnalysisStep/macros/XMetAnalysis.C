@@ -160,8 +160,8 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   for(UInt_t iP=0 ; iP<nP ; iP++) {
     nameDir = locProcesses[iP];
 
-    // sr_DD histograms don't have chains
-    if(nameDir.Contains("sr_DD")) continue;
+    // SR data-driven histograms don't have chains
+    if(nameDir.Contains("DD")) continue;
 
     // check if current requested process is available
     if(_mapProcess.find(nameDir)==_mapProcess.end()) { 
@@ -250,13 +250,18 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
   // Produce sr_DD histograms
   const UInt_t nDD=2;
-  TString myDD[2] = {"znn","wj"};
-  for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
-    for(UInt_t iV=0 ; iV<nV ; iV++) {
-      hTemp = mapVarHistos[myDD[iDD]+"_cr_DA"][var[iV]];
-      hSRDD = (TH1F*)hTemp->Clone("h_"+var[iV]+"_znn_sr_DD_"+select);
-      hSRDD->Add( mapVarHistos[myDD[iDD]+"_cr_MC"][var[iV]] , -1.0 );
-      mapVarHistos[myDD[iDD]+"_sr_DD"][var[iV]] = hSRDD;
+  const UInt_t nCorr=2;
+  TString myDD[nDD]     = {"znn","wj"};
+  TString myCorr[nCorr] = {"_","_corr_"};
+  //
+  for(UInt_t iCorr=0 ; iCorr<nCorr ; iCorr++) {
+    for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
+      for(UInt_t iV=0 ; iV<nV ; iV++) {
+	hTemp = mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][var[iV]];
+	hSRDD = (TH1F*)hTemp->Clone("h_"+var[iV]+"_znn_sr"+myCorr[iCorr]+"DD_"+select);
+	hSRDD->Add( mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][var[iV]] , -1.0 );
+	mapVarHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][var[iV]] = hSRDD;
+      }
     }
   }
 
