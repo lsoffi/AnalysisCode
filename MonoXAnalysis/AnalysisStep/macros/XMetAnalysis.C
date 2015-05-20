@@ -349,20 +349,19 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   else if(_tag.Contains("MetFrom250to350")) metCut = "mumet>250 && mumet<=350";
 
   // JETS
-  TCut jetKine1 = "(signaljetpt > 110 && abs(signaljeteta) < 2.4)";
-  TCut jetID1 = "(signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
-  TCut jetID2 = "(secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9 && secondjetpt>30 && abs(secondjeteta)<2.4)";
-  TCut jetID3 = "thirdjetpt>30 && abs(thirdjeteta)<4.5"; // FIXME ND
-  //TCut jetID3 = "(thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
-  //TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9)&&(njets==2 || (njets==3 && thirdjetNHfrac<0.7 && thirdjetEMfrac<0.9) ) ) )" ;
-  TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5) ) ) )" ;
+  TCut jetID1 = "(signaljetpt > 110 && abs(signaljeteta) < 2.4 && signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
+  TCut jetID2 = "(secondjetpt>30 && abs(secondjeteta)<2.4 && secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9)";
+  TCut jetID3 = "(thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
+  //
+  TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9) ) ) )" ;
+  //
   TCut jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5) )" ;
 
   // Jet multiplicity, QCD killer
-  TCut jetID;
-  TCut jetBin;
-  TCut dphi;
-  TCut alphat;
+  TCut jetID="";
+  TCut jetBin="";
+  TCut dphi="";
+  TCut alphat="";
   TCut apcjetmetmax="apcjetmetmax>0.55";
 
   if(     select.Contains("alljets")) {
@@ -397,11 +396,11 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   }
 
   TCut noqcd="run>-999";
-  if(     select.Contains("dphi"))      noqcd = dphi;
-  else if(select.Contains("alphat"))    noqcd = alphat;
+  if(     select.Contains("dphi"))         noqcd = dphi;
+  else if(select.Contains("alphat"))       noqcd = alphat;
   else if(select.Contains("apcjetmetmax")) noqcd = apcjetmetmax;
 
-  return (trig*leptons*metID*metCut*noqcd*jetID*jetKine1*jetBin);
+  return (trig*leptons*metID*metCut*noqcd*jetID*jetBin);
 
 }
 
