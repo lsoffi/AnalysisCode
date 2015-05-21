@@ -1,4 +1,6 @@
+#include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <map>
 #include <utility>
@@ -22,11 +24,24 @@ Int_t setStyle(TGraph* g, Int_t marker, Int_t color,
 	       UInt_t nB, TString title, Bool_t zoom);
 Int_t setStyle(TLegend* leg);
 
-Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
+Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, bool dolog=false)
 {
 
   // Input file
   TFile* file = new TFile("plots/"+_tag+"/plots_"+_tag+".root","read");
+
+  // Output log
+  ofstream outlog("plots/"+_tag+"/wp_"+_tag+".txt",ios::out);
+  outlog << setw(33) << "Selection"
+	 << setw(7 ) << "wpQCD"
+	 << setw(14) << "wpQCD_cut"
+	 << setw(14) << "effQCD_wpQCD"
+	 << setw(14) << "effZNN_wpQCD"
+	 << setw(7 ) << "wpZNN"
+	 << setw(14) << "wpZNN_cut"
+	 << setw(14) << "effQCD_wpZNN"
+	 << setw(14) << "effZNN_wpZNN"
+	 << endl;
   
   // Output canvas
   TCanvas cRoc("cRoc","cRoc",20,20,600,600);
@@ -63,6 +78,12 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
   //Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
   //Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
+  Int_t  wpQCD_bin,wpZNN_bin;
+  Float_t wpQCD_cut,wpZNN_cut;
+  Float_t effQCD_wpQCD, effZNN_wpQCD, effQCD_wpZNN, effZNN_wpZNN;
+  wpQCD_bin = wpZNN_bin = wpQCD_cut = wpZNN_cut = -1;
+  effQCD_wpQCD = effZNN_wpQCD = effQCD_wpZNN = effZNN_wpZNN = -1;
+  
   for(UInt_t iS=0 ; iS<nS ; iS++) {
     for(UInt_t iV=0 ; iV<nV ; iV++) {
 
@@ -102,16 +123,58 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
 	for(UInt_t iB=0 ; iB<nB ; iB++) {
 	  cum_qcd += h_qcd->GetBinContent(iB+1);
 	  cum_znn += h_znn->GetBinContent(iB+1);
-	  if(iWd==0) { // upper cut : x < cut
+	  if(iWd==0) { // upper cut : x<cut
 	    yCum_qcd[iB] = cum_qcd;
 	    yCum_znn[iB] = cum_znn;
 	  }
-	  else if(iWd==1) { // lower cut : x > cut
+	  else if(iWd==1) { // lower cut : x>cut
 	    yCum_qcd[iB] = 1 - cum_qcd;
 	    yCum_znn[iB] = 1 - cum_znn;
 	  }
+
+	  // Find bin index corresponding to requested QCD/ZNN efficiency (wpQCD/wpZNN)
+	  if(iB>0) {
+	    if(     iWd==0) { // upper cut x<cut
+	      if(yCum_qcd[iB-1]<wpQCD && yCum_qcd[iB]>=wpQCD) wpQCD_bin = iB;
+	      if(yCum_znn[iB-1]<wpZNN && yCum_znn[iB]>=wpZNN) wpZNN_bin = iB;
+	    }
+	    else if(iWd==1) { // lower cut x>cut
+	      if(yCum_qcd[iB-1]>=wpQCD && yCum_qcd[iB]<wpQCD) wpQCD_bin = iB;
+	      if(yCum_znn[iB-1]>=wpZNN && yCum_znn[iB]<wpZNN) wpZNN_bin = iB;
+	    }
+	  }
 	}
-	///
+
+	///////////////////////////////////////////////////////////////////////////////
+	// WORKING POINTS /////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
+	// Find cut value using bin index for requested QCD/ZNN eff
+	wpQCD_cut = h_qcd->GetXaxis()->GetBinCenter(wpQCD_bin);
+	wpZNN_cut = h_znn->GetXaxis()->GetBinCenter(wpZNN_bin);
+	//
+	// Determine corresponding efficiencies
+	// => precise value, for both QCD and ZNN, for each requested efficiency
+	effQCD_wpQCD = (wpQCD_bin>=0 && wpQCD_bin<nB) ? yCum_qcd[wpQCD_bin] : -888888;
+	effZNN_wpQCD = (wpQCD_bin>=0 && wpQCD_bin<nB) ? yCum_znn[wpQCD_bin] : -888888;
+	effQCD_wpZNN = (wpZNN_bin>=0 && wpZNN_bin<nB) ? yCum_qcd[wpZNN_bin] : -888888;
+	effZNN_wpZNN = (wpZNN_bin>=0 && wpZNN_bin<nB) ? yCum_znn[wpZNN_bin] : -888888;
+	//
+	// Write out values
+	outlog << setw(33) << select[iS]+" "+var[iV]+" "+wdT[iWd]
+	       << setw(7 ) << wpQCD
+	       << setw(14) << wpQCD_cut
+	       << setw(14) << effQCD_wpQCD
+	       << setw(14) << effZNN_wpQCD
+	       << setw(7 ) << wpZNN
+	       << setw(14) << wpZNN_cut
+	       << setw(14) << effQCD_wpZNN
+	       << setw(14) << effZNN_wpZNN
+	       << endl;
+	///////////////////////////////////////////////////////////////////////////////
+
+	///////////////////////////////////////////////////////////////////////////////
+	// GRAPHS /////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
 	/// use the arrays to fill the graph and draw it
 	gRoc[iS][iV][iWd][0] = new TGraph(nB, yCum_znn, yCum_qcd);
 	setStyle(gRoc[iS][iV][iWd][0], kOpenSquare, colors[iV], nB,
@@ -161,6 +224,7 @@ Int_t rocCurve(TString _tag="v11_XMA_QCD_ROC_FinerBinning", bool dolog=false)
 	else
 	  cRoc.Print("plots/"+_tag+"/roczoom.pdf",pdftitle);
 	// end zoomed version
+	///////////////////////////////////////////////////////////////////////////////
 
       } // end loop over nWd
     }   // end loop over nV
