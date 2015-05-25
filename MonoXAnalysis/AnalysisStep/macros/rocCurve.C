@@ -32,7 +32,9 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, bool dol
 
   // Output log
   ofstream outlog("plots/"+_tag+"/wp_"+_tag+".txt",ios::out);
-  outlog << setw(33) << "Selection"
+  outlog << setw(10) << "Selection"
+	 << setw(14) << "Variable"
+	 << setw(12) << "Cut"
 	 << setw(7 ) << "wpQCD"
 	 << setw(14) << "wpQCD_cut"
 	 << setw(14) << "effQCD_wpQCD"
@@ -160,7 +162,9 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, bool dol
 	effZNN_wpZNN = (wpZNN_bin>=0 && wpZNN_bin<nB) ? yCum_znn[wpZNN_bin] : -888888;
 	//
 	// Write out values
-	outlog << setw(33) << select[iS]+" "+var[iV]+" "+wdT[iWd]
+	outlog << setw(10 ) << select[iS]
+	       << setw(14) << var[iV]
+	       << setw(12) << wdT[iWd]
 	       << setw(7 ) << wpQCD
 	       << setw(14) << wpQCD_cut
 	       << setw(14) << effQCD_wpQCD
