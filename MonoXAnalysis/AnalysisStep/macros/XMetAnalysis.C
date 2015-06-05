@@ -96,32 +96,29 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
   // Selections and variables
   const UInt_t nS=5;
-  const UInt_t nV=5;
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
-  TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
-  //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
-  //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
-  //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
-  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
-  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000,  10000};
-  Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
-  Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
-  /*
-  const UInt_t nS=1;
-  const UInt_t nV=2;
-  TString select[nS] = {"3jet"};
-  TString var[nV]    = {"alphat","apcjetmetmin"};
-  UInt_t  nBins[nV]  = {40,50};
-  Float_t xFirst[nV] = {0,0};
-  Float_t xLast[nV]  = {2,1};
-  */
+  const UInt_t nV=7;
+  TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
+			"jetjetdphi","jetmetdphimin",
+			"dphiJ1J3","dphiJ2J3"};
+  //
+  //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50, 50, 50};
+  //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500, 500, 500};
+  //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000, 1000, 1000};
+  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000, 5000, 5000};
+  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000, 10000, 10000, 10000};
+  //
+  Float_t xFirst[nV] = {0,  0,  0,  0,   0  , 0  , 0};
+  Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2, 3.2, 3.2};
+
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, true, locProcesses, labelProc);
+    //plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, true, locProcesses, labelProc);
+    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, false, locProcesses, labelProc);
 
   }
 
@@ -215,7 +212,10 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
       // Draw the variable
       locVar = var[iV];
-      if(var[iV].Contains("phi")) locVar = "abs("+var[iV]+")";
+      if(var[iV].Contains("phi"))  locVar = "abs("+var[iV]+")";
+      if(     var[iV]=="dphiJ1J3") locVar = "abs(signaljetphi-thirdjetphi)";
+      else if(var[iV]=="dphiJ2J3") locVar = "abs(secondjetphi-thirdjetphi)";
+
       _mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
       cout << "--- drew variable: " << locVar << endl;
 
@@ -249,14 +249,32 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   }
 
   // Produce sr_DD histograms
+  cout << "-- Ready to produce sr_DD histograms" << endl;
   const UInt_t nDD=2;
   const UInt_t nCorr=2;
   TString myDD[nDD]     = {"znn","wj"};
   TString myCorr[nCorr] = {"_","_corr_"};
   //
-  for(UInt_t iCorr=0 ; iCorr<nCorr ; iCorr++) {
-    for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
+  for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
+    
+    // Check that the current process (znn or wj) has been requested initially
+    bool srddIsHere=false;
+    for(UInt_t iP=0 ; iP<nP ; iP++) {
+      if(locProcesses[iP].Contains(myDD[iDD]+"_cr")) {
+	srddIsHere=true;
+	break; // hammertime
+      }
+    }
+    if(!srddIsHere) {
+      cout << "--- unrequested process: " << myDD[iDD] << endl;
+      continue;
+    }
+
+    for(UInt_t iCorr=0 ; iCorr<nCorr ; iCorr++) {
       for(UInt_t iV=0 ; iV<nV ; iV++) {
+	//
+	cout << "----- produce: " << "h_"+var[iV]+"_znn_sr"+myCorr[iCorr]+"DD_"+select << endl;
+	//
 	hTemp = mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][var[iV]];
 	hSRDD = (TH1F*)hTemp->Clone("h_"+var[iV]+"_znn_sr"+myCorr[iCorr]+"DD_"+select);
 	hSRDD->Add( mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][var[iV]] , -1.0 );
@@ -484,7 +502,10 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "reducedtree.root");
 
   // Signal
-  //_mapProcess["dm_v_1"]   = XMetProcess("",   kOrange+3, "reducedtree.root");
+  const UInt_t nSpin=2;
+  const UInt_t nMass=9;
+  TString nameSpin[nSignals] = {""};
+  _mapProcess["dm_v_"]   = XMetProcess("dm_v_",   kBlack, "reducedtree.root");
 
   // Data
   _mapProcess["data"]   = XMetProcess("data",   kBlack, "reducedtree.root");
