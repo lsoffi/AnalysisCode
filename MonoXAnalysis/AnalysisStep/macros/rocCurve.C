@@ -24,7 +24,7 @@ Int_t setStyle(TGraph* g, Int_t marker, Int_t color,
 	       UInt_t nB, TString title, Bool_t zoom);
 Int_t setStyle(TLegend* leg);
 
-Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, bool dolog=false)
+Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t dolog=false, Bool_t unity=true)
 {
 
   // Input file
@@ -35,14 +35,20 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, bool dol
   outlog << setw(10) << "Selection"
 	 << setw(14) << "Variable"
 	 << setw(12) << "Cut"
+	 << setw(14) << "N0(QCD)"
+	 << setw(14) << "N0(ZNN)"
 	 << setw(7 ) << "wpQCD"
 	 << setw(14) << "wpQCD_cut"
 	 << setw(14) << "effQCD_wpQCD"
 	 << setw(14) << "effZNN_wpQCD"
+	 << setw(14) << "N1(QCD)"
+	 << setw(14) << "N1(ZNN)"
 	 << setw(7 ) << "wpZNN"
 	 << setw(14) << "wpZNN_cut"
 	 << setw(14) << "effQCD_wpZNN"
 	 << setw(14) << "effZNN_wpZNN"
+	 << setw(14) << "N2(QCD)"
+	 << setw(14) << "N2(ZNN)"
 	 << endl;
   
   // Output canvas
@@ -58,31 +64,27 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, bool dol
   // Selections and variables
   const UInt_t nWd=2; // forward/backward cumulative distribution
   const UInt_t nS=5;  // selections
-  const UInt_t nV=5;  // variables
+  const UInt_t nV=7;  // variables
   const UInt_t nGZ=2;  // full/zoomed
 
   TGraph* gRoc[nS][nV][nWd][nGZ];
 
   TString tzoom[nGZ] = {"_full", "_zoom"}; 
   TString wd[nWd]    = {"upcut","lowcut"};
-  TString wdT[nWd]   = {"(upper cut)","(lower cut)"};
+  TString wdT[nWd]   = {"upper","lower"};
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
-  TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
+  TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
+			"jetjetdphi","jetmetdphimin",
+			"dphiJ1J3","dphiJ2J3"};
 
   Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kMagenta};
-
-  //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
-  //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
-  //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
-  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
-  //UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000,  10000};
-  
-  //Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
-  //Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
   Int_t  wpQCD_bin,wpZNN_bin;
   Float_t wpQCD_cut,wpZNN_cut;
   Float_t effQCD_wpQCD, effZNN_wpQCD, effQCD_wpZNN, effZNN_wpZNN;
+  Float_t yieldQCD, yieldZNN;
+
+  yieldQCD = yieldZNN = -1;
   wpQCD_bin = wpZNN_bin = wpQCD_cut = wpZNN_cut = -1;
   effQCD_wpQCD = effZNN_wpQCD = effQCD_wpZNN = effZNN_wpZNN = -1;
   
@@ -105,9 +107,13 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, bool dol
       if(!h_qcd || !h_znn) return -1;
 
       // Print the integral of the histograms
+      yieldQCD = h_qcd->Integral();
+      yieldZNN = h_znn->Integral();
+      if(unity && yieldQCD!=0) h_qcd->Scale(1/yieldQCD);
+      if(unity && yieldZNN!=0) h_znn->Scale(1/yieldZNN);
       cout << "-- "+var[iV]+" "+select[iS]+" : Integrals : "
-	   << "qcd=" << h_qcd->Integral() << " "
-	   << "znn=" << h_znn->Integral() << " " << endl;
+	   << "qcd=" << yieldQCD << " "
+	   << "znn=" << yieldZNN << " " << endl;
 
       // Get the histograms binning
       //const UInt_t nB = nBins[iV];
@@ -162,17 +168,23 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, bool dol
 	effZNN_wpZNN = (wpZNN_bin>=0 && wpZNN_bin<nB) ? yCum_znn[wpZNN_bin] : -888888;
 	//
 	// Write out values
-	outlog << setw(10 ) << select[iS]
+	outlog << setw(10) << select[iS]
 	       << setw(14) << var[iV]
 	       << setw(12) << wdT[iWd]
+	       << setw(14) << yieldQCD
+	       << setw(14) << yieldZNN
 	       << setw(7 ) << wpQCD
 	       << setw(14) << wpQCD_cut
 	       << setw(14) << effQCD_wpQCD
 	       << setw(14) << effZNN_wpQCD
+	       << setw(14) << yieldQCD*effQCD_wpQCD
+	       << setw(14) << yieldZNN*effZNN_wpQCD
 	       << setw(7 ) << wpZNN
 	       << setw(14) << wpZNN_cut
 	       << setw(14) << effQCD_wpZNN
 	       << setw(14) << effZNN_wpZNN
+	       << setw(14) << yieldQCD*effQCD_wpZNN
+	       << setw(14) << yieldZNN*effZNN_wpZNN
 	       << endl;
 	///////////////////////////////////////////////////////////////////////////////
 
