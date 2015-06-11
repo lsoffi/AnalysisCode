@@ -36,36 +36,23 @@ class PFCleaner : public edm::EDProducer {
         virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
         virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
-        double getChargedHadronEAForPhotonIso(double);
-        double getNeutralHadronEAForPhotonIso(double);
-        double getGammaEAForPhotonIso(double);
-        bool testPhotonIsolation(const reco::Photon&, double, double, double, double);
-
         edm::InputTag vertices;
-        edm::InputTag rhoTag;
         edm::InputTag muons;
         edm::InputTag electrons;
         edm::InputTag photons;
         edm::InputTag electronVetoIdMap;
         edm::InputTag electronMediumIdMap;
-        edm::InputTag photonSIEIEMap;
-        edm::InputTag photonChargedIsoMap;
-        edm::InputTag photonNeutralIsoMap;
-        edm::InputTag photonGammaIsoMap;
+        edm::InputTag photonLooseIdMap;
 };
 
 PFCleaner::PFCleaner(const edm::ParameterSet& iConfig): 
     vertices(iConfig.getParameter<edm::InputTag>("vertices")),
-    rhoTag(iConfig.getParameter<edm::InputTag>("rho")),
     muons(iConfig.getParameter<edm::InputTag>("muons")),
     electrons(iConfig.getParameter<edm::InputTag>("electrons")),
     photons(iConfig.getParameter<edm::InputTag>("photons")),
     electronVetoIdMap(iConfig.getParameter<edm::InputTag>("electronidveto")),
     electronMediumIdMap(iConfig.getParameter<edm::InputTag>("electronidmedium")),
-    photonSIEIEMap(iConfig.getParameter<edm::InputTag>("photonsigmaietaieta")),
-    photonChargedIsoMap(iConfig.getParameter<edm::InputTag>("photonchargediso")),
-    photonNeutralIsoMap(iConfig.getParameter<edm::InputTag>("photonneutraliso")),
-    photonGammaIsoMap(iConfig.getParameter<edm::InputTag>("photongammaiso"))
+    photonLooseIdMap(iConfig.getParameter<edm::InputTag>("photonidloose"))
 {
     produces<pat::MuonRefVector>("muons");
     produces<pat::ElectronRefVector>("electrons");
@@ -102,21 +89,8 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     Handle<ValueMap<bool> > electronMediumIdH;
     iEvent.getByLabel(electronMediumIdMap, electronMediumIdH);
 
-    Handle<ValueMap<float> > photonSIEIEH;
-    iEvent.getByLabel(photonSIEIEMap, photonSIEIEH);
-
-    Handle<ValueMap<float> > photonChargedIsoH;
-    iEvent.getByLabel(photonChargedIsoMap, photonChargedIsoH);
-
-    Handle<ValueMap<float> > photonNeutralIsoH;
-    iEvent.getByLabel(photonNeutralIsoMap, photonNeutralIsoH);
-
-    Handle<ValueMap<float> > photonGammaIsoH;
-    iEvent.getByLabel(photonGammaIsoMap, photonGammaIsoH);
-
-    Handle<double> rhoH;
-    iEvent.getByLabel(rhoTag, rhoH);
-    double rho = *rhoH;
+    Handle<ValueMap<bool> > photonLooseIdH;
+    iEvent.getByLabel(photonLooseIdMap, photonLooseIdH);
 
     std::auto_ptr<pat::MuonRefVector> outputmuons(new pat::MuonRefVector);
     std::auto_ptr<pat::ElectronRefVector> outputelectrons(new pat::ElectronRefVector);
@@ -154,22 +128,11 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     for (vector<pat::Photon>::const_iterator photons_iter = photonsH->begin(); photons_iter != photonsH->end(); ++photons_iter) {
         const Ptr<pat::Photon> photonPtr(photonsH, photons_iter - photonsH->begin());
         bool passeskincuts = (photons_iter->pt() > 15 && fabs(photons_iter->superCluster()->eta()) < 2.5);
-        bool haspixelseed = photons_iter->hasPixelSeed();
-        double hovere = photons_iter->hadTowOverEm();
-        double sieie = (*photonSIEIEH)[photonPtr];
-        double chiso = (*photonChargedIsoH)[photonPtr];
-        double nhiso = (*photonNeutralIsoH)[photonPtr];
-        double phiso = (*photonGammaIsoH)[photonPtr];
+        bool passeslooseid = (*photonLooseIdH)[photonPtr];
 
-        bool passesiso = testPhotonIsolation(*photons_iter, chiso, nhiso, phiso, rho);
-        bool passesselection = false;
-
-        if (passesiso && !haspixelseed && photons_iter->isEB() && sieie < 0.0101 && hovere < 0.0320) passesselection = true;
-        if (passesiso && !haspixelseed && photons_iter->isEE() && sieie < 0.0264 && hovere < 0.0166) passesselection = true;
-
-        if (passeskincuts && passesselection) {
+        if (passeskincuts && passeslooseid) {
             outputphotons->push_back(pat::PhotonRef(photonsH, photons_iter - photonsH->begin()));
-            if (photons_iter->pt() > 160) outputtightphotons->push_back(pat::PhotonRef(photonsH, photons_iter - photonsH->begin()));
+            if (photons_iter->pt() > 175) outputtightphotons->push_back(pat::PhotonRef(photonsH, photons_iter - photonsH->begin()));
         }
     }
 
@@ -203,59 +166,6 @@ void PFCleaner::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
     edm::ParameterSetDescription desc;
     desc.setUnknown();
     descriptions.addDefault(desc);
-}
-
-double PFCleaner::getChargedHadronEAForPhotonIso(double eta) {
-    if      (fabs(eta) < 1.0)                         return 0.0130;
-    else if (fabs(eta) >= 1.0   && fabs(eta) < 1.479) return 0.0096;
-    else if (fabs(eta) >= 1.479 && fabs(eta) < 2.0  ) return 0.0107;
-    else if (fabs(eta) >= 2.0   && fabs(eta) < 2.2  ) return 0.0077;
-    else if (fabs(eta) >= 2.2   && fabs(eta) < 2.3  ) return 0.0088;
-    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.4  ) return 0.0065;
-    else if (fabs(eta) >= 2.4)                        return 0.0030;
-    else return 0.;
-}
-
-double PFCleaner::getNeutralHadronEAForPhotonIso(double eta) {
-    if      (fabs(eta) < 1.0)                         return 0.0056;
-    else if (fabs(eta) >= 1.0   && fabs(eta) < 1.479) return 0.0107;
-    else if (fabs(eta) >= 1.479 && fabs(eta) < 2.0  ) return 0.0019;
-    else if (fabs(eta) >= 2.0   && fabs(eta) < 2.2  ) return 0.0011;
-    else if (fabs(eta) >= 2.2   && fabs(eta) < 2.3  ) return 0.0077;
-    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.4  ) return 0.0178;
-    else if (fabs(eta) >= 2.4)                        return 0.1675;
-    else return 0.;
-}
-
-double PFCleaner::getGammaEAForPhotonIso(double eta) {
-    if      (fabs(eta) < 1.0)                         return 0.0896;
-    else if (fabs(eta) >= 1.0   && fabs(eta) < 1.479) return 0.0762;
-    else if (fabs(eta) >= 1.479 && fabs(eta) < 2.0  ) return 0.0383;
-    else if (fabs(eta) >= 2.0   && fabs(eta) < 2.2  ) return 0.0534;
-    else if (fabs(eta) >= 2.2   && fabs(eta) < 2.3  ) return 0.0846;
-    else if (fabs(eta) >= 2.3   && fabs(eta) < 2.4  ) return 0.1032;
-    else if (fabs(eta) >= 2.4)                        return 0.1598;
-    else return 0.;
-}
-
-bool PFCleaner::testPhotonIsolation(const reco::Photon& photon, double chargedHadronIsolation, double neutralHadronIsolation, double gammaIsolation, double rhoval) {
-    double corrCHIso = chargedHadronIsolation - rhoval * getChargedHadronEAForPhotonIso(photon.eta());
-    double corrNHIso = neutralHadronIsolation - rhoval * getNeutralHadronEAForPhotonIso(photon.eta());
-    double corrPHIso = gammaIsolation - rhoval * getGammaEAForPhotonIso(photon.eta());
-
-    if (corrCHIso < 0.) corrCHIso = 0.;
-    if (corrNHIso < 0.) corrNHIso = 0.;
-    if (corrPHIso < 0.) corrPHIso = 0.;
-
-    if (photon.isEB()) {
-        if (corrCHIso < 1.90 && corrNHIso < 2.96 + 0.0025*photon.pt() && corrPHIso < 1.39 + 0.0010*photon.pt()) return true;
-        else return false;
-    }
-    else if (photon.isEE()) {
-        if (corrCHIso < 1.95 && corrNHIso < 4.42 + 0.0118*photon.pt() && corrPHIso < 1.89 + 0.0059*photon.pt()) return true;
-        else return false;
-    }
-    else return false;
 }
 
 DEFINE_FWK_MODULE(PFCleaner);

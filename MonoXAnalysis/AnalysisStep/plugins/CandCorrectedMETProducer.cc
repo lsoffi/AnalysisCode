@@ -7,6 +7,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/METReco/interface/MET.h"
 #include "DataFormats/METReco/interface/METFwd.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/Math/interface/LorentzVector.h"
 
@@ -29,11 +30,13 @@ class CandCorrectedMETProducer : public edm::EDProducer {
 
         edm::InputTag metTag;
         std::vector<edm::InputTag> candTags;
+        bool useuncorrmet;
 };
 
 CandCorrectedMETProducer::CandCorrectedMETProducer(const edm::ParameterSet& iConfig): 
     metTag(iConfig.getParameter<edm::InputTag>("met")),
-    candTags(iConfig.getParameter<std::vector<edm::InputTag> >("cands"))
+    candTags(iConfig.getParameter<std::vector<edm::InputTag> >("cands")),
+    useuncorrmet(iConfig.existsAs<bool>("useuncorrmet") ? iConfig.getParameter<bool>("useuncorrmet") : false)
 {
     produces<reco::METCollection>();
 }
@@ -47,7 +50,7 @@ void CandCorrectedMETProducer::produce(edm::Event& iEvent, const edm::EventSetup
     using namespace reco;
     using namespace std;
 
-    Handle<View<MET> > metH;
+    Handle<View<pat::MET> > metH;
     iEvent.getByLabel(metTag, metH);
 
     std::vector<Handle<View<Candidate> > > candHs;
@@ -59,8 +62,8 @@ void CandCorrectedMETProducer::produce(edm::Event& iEvent, const edm::EventSetup
 
     std::auto_ptr<METCollection> output(new METCollection);
 
-    double met    = metH->front().et();
-    double metphi = metH->front().phi();
+    double met    = (useuncorrmet ? metH->front().uncorrectedPt()  : metH->front().et());
+    double metphi = (useuncorrmet ? metH->front().uncorrectedPhi() : metH->front().phi());
     
     double ccmetx = met * cos(metphi);
     double ccmety = met * sin(metphi);

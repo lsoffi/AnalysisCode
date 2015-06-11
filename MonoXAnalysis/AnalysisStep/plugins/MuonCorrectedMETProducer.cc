@@ -7,6 +7,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/METReco/interface/MET.h"
 #include "DataFormats/METReco/interface/METFwd.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
 #include "DataFormats/Candidate/interface/Candidate.h"
@@ -31,12 +32,14 @@ class MuonCorrectedMETProducer : public edm::EDProducer {
 
         edm::InputTag metTag;
         edm::InputTag muonsTag;
+        bool useuncorrmet;
         bool muptonly;
 };
 
 MuonCorrectedMETProducer::MuonCorrectedMETProducer(const edm::ParameterSet& iConfig): 
     metTag(iConfig.getParameter<edm::InputTag>("met")),
     muonsTag(iConfig.getParameter<edm::InputTag>("muons")),
+    useuncorrmet(iConfig.existsAs<bool>("useuncorrmet") ? iConfig.getParameter<bool>("useuncorrmet") : false),
     muptonly(iConfig.existsAs<bool>("muptonly") ? iConfig.getParameter<bool>("muptonly") : false)
 {
     produces<reco::METCollection>();
@@ -51,7 +54,7 @@ void MuonCorrectedMETProducer::produce(edm::Event& iEvent, const edm::EventSetup
     using namespace reco;
     using namespace std;
 
-    Handle<View<MET> > metH;
+    Handle<View<pat::MET> > metH;
     iEvent.getByLabel(metTag, metH);
 
     Handle<View<Muon> > muonsH;
@@ -59,8 +62,8 @@ void MuonCorrectedMETProducer::produce(edm::Event& iEvent, const edm::EventSetup
 
     std::auto_ptr<METCollection> output(new METCollection);
 
-    double met    = metH->front().et();
-    double metphi = metH->front().phi();
+    double met    = (useuncorrmet ? metH->front().uncorrectedPt()  : metH->front().et());
+    double metphi = (useuncorrmet ? metH->front().uncorrectedPhi() : metH->front().phi());
     
     double ccmetx = (muptonly ? 0.0 : met * cos(metphi));
     double ccmety = (muptonly ? 0.0 : met * sin(metphi));
