@@ -33,12 +33,15 @@ class HLTCheckFilter : public edm::EDFilter {
         edm::InputTag triggerResultsTag;
         std::vector<std::string> triggerPathsVector;
         std::map<std::string, int> triggerPathsMap;
+
+        edm::EDGetTokenT<edm::TriggerResults> triggerToken;
 };
 
 HLTCheckFilter::HLTCheckFilter(const edm::ParameterSet& iConfig):
     triggerResultsTag(iConfig.getParameter<edm::InputTag>("triggerResults")),
     triggerPathsVector(iConfig.getParameter<std::vector<std::string> >("triggerPaths"))
 {
+    triggerToken = consumes<edm::TriggerResults> (triggerResultsTag);
 }
 
 
@@ -49,8 +52,8 @@ bool HLTCheckFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     using namespace edm;
     using namespace std;
 
-    Handle<TriggerResults> triggerResultsH;
-    iEvent.getByLabel(triggerResultsTag, triggerResultsH);
+    Handle<edm::TriggerResults> triggerResultsH;
+    iEvent.getByToken(triggerToken, triggerResultsH);
 
     for (size_t i = 0; i < triggerPathsVector.size(); i++) {
         if (triggerPathsMap[triggerPathsVector[i]] == -1) continue;
