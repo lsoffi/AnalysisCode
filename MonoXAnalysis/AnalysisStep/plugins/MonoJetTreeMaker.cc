@@ -90,7 +90,7 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
 
         void initPileupWeights();            
         void findFirstNonPhotonMother(const reco::Candidate*, int &, int &);
-
+        
         edm::InputTag pileupInfoTag;
         edm::InputTag verticesTag;
         edm::InputTag gensTag;
@@ -110,6 +110,27 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         edm::InputTag t1mumetTag;
         edm::InputTag t1phmetTag;
         edm::InputTag triggerResultsTag;
+
+        edm::EDGetTokenT<std::vector<PileupSummaryInfo> > pileupInfoToken;
+        // edm::EDGetTokenT verticesToken;
+        // edm::EDGetTokenT gensToken;
+        // edm::EDGetTokenT muonsToken;
+        // edm::EDGetTokenT electronsToken;
+        // edm::EDGetTokenT photonsToken;
+        // edm::EDGetTokenT tightmuonsToken;
+        // edm::EDGetTokenT tightelectronsToken;
+        // edm::EDGetTokenT tightphotonsToken;
+        // edm::EDGetTokenT tausToken;
+        // edm::EDGetTokenT jetsToken;
+        // edm::EDGetTokenT fatjetsToken;
+        // edm::EDGetTokenT t1pfmetToken;
+        // edm::EDGetTokenT pfmuptToken;
+        // edm::EDGetTokenT mumetToken;
+        // edm::EDGetTokenT phmetToken;
+        // edm::EDGetTokenT t1mumetToken;
+        // edm::EDGetTokenT t1phmetToken;
+        // edm::EDGetTokenT triggerResultsToken;
+
         std::vector<std::string> triggerPathsVector;
         std::map<std::string, int> triggerPathsMap;
         bool isWorZMCSample;   
@@ -164,6 +185,9 @@ MonoJetTreeMaker::MonoJetTreeMaker(const edm::ParameterSet& iConfig):
     kfact(iConfig.existsAs<double>("kfactor") ? iConfig.getParameter<double>("kfactor") : 1.0)
 {
     initPileupWeights();
+
+    pileupInfoToken = consumes<std::vector<PileupSummaryInfo> >(pileupInfoTag);
+
 }
 
 
@@ -181,7 +205,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     iEvent.getByLabel(triggerResultsTag, triggerResultsH);
 
     Handle<vector<PileupSummaryInfo> > pileupInfoH;
-    iEvent.getByLabel(pileupInfoTag, pileupInfoH);
+    iEvent.getByToken(pileupInfoToken, pileupInfoH);
 
     Handle<vector<Vertex> > verticesH;
     iEvent.getByLabel(verticesTag, verticesH);
