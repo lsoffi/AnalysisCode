@@ -34,6 +34,9 @@ class MuonCorrectedMETProducer : public edm::EDProducer {
         edm::InputTag muonsTag;
         bool useuncorrmet;
         bool muptonly;
+
+        edm::EDGetTokenT<edm::View<pat::MET> >   metToken;
+        edm::EDGetTokenT<edm::View<reco::Muon> > muonsToken;
 };
 
 MuonCorrectedMETProducer::MuonCorrectedMETProducer(const edm::ParameterSet& iConfig): 
@@ -43,6 +46,8 @@ MuonCorrectedMETProducer::MuonCorrectedMETProducer(const edm::ParameterSet& iCon
     muptonly(iConfig.existsAs<bool>("muptonly") ? iConfig.getParameter<bool>("muptonly") : false)
 {
     produces<reco::METCollection>();
+    metToken = consumes<edm::View<pat::MET> > (metTag); 
+    muonsToken = consumes<edm::View<reco::Muon> > (muonsTag); 
 }
 
 
@@ -54,11 +59,11 @@ void MuonCorrectedMETProducer::produce(edm::Event& iEvent, const edm::EventSetup
     using namespace reco;
     using namespace std;
 
-    Handle<View<pat::MET> > metH;
-    iEvent.getByLabel(metTag, metH);
+    Handle<edm::View<pat::MET> > metH;
+    iEvent.getByToken(metToken, metH);
 
-    Handle<View<Muon> > muonsH;
-    iEvent.getByLabel(muonsTag, muonsH);
+    Handle<edm::View<reco::Muon> > muonsH;
+    iEvent.getByToken(muonsToken, muonsH);
 
     std::auto_ptr<METCollection> output(new METCollection);
 
