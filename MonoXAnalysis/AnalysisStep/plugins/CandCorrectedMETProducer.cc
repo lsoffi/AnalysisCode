@@ -28,9 +28,13 @@ class CandCorrectedMETProducer : public edm::EDProducer {
         virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
         virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
-        edm::InputTag metTag;
+        edm::InputTag    metTag;
         std::vector<edm::InputTag> candTags;
         bool useuncorrmet;
+
+        edm::EDGetTokenT<edm::View<pat::MET> > metToken;
+        edm::EDGetTokenT<edm::View<reco::Candidate> > theCandToken;
+        std::vector<edm::EDGetTokenT<edm::View<reco::Candidate> > > candTokens;
 };
 
 CandCorrectedMETProducer::CandCorrectedMETProducer(const edm::ParameterSet& iConfig): 
@@ -39,6 +43,12 @@ CandCorrectedMETProducer::CandCorrectedMETProducer(const edm::ParameterSet& iCon
     useuncorrmet(iConfig.existsAs<bool>("useuncorrmet") ? iConfig.getParameter<bool>("useuncorrmet") : false)
 {
     produces<reco::METCollection>();
+    
+    metToken = consumes<edm::View<pat::MET> > (metTag);
+    for (std::size_t i = 0; i < candTags.size(); i++) {
+        theCandToken = consumes<edm::View<reco::Candidate> > (candTags[i]);
+	candTokens.push_back(theCandToken);
+    }
 }
 
 
@@ -51,12 +61,12 @@ void CandCorrectedMETProducer::produce(edm::Event& iEvent, const edm::EventSetup
     using namespace std;
 
     Handle<View<pat::MET> > metH;
-    iEvent.getByLabel(metTag, metH);
+    iEvent.getByToken(metToken, metH);
 
     std::vector<Handle<View<Candidate> > > candHs;
-    for (std::size_t i = 0; i < candTags.size(); i++) {
-        Handle<View<Candidate> > candH;
-        iEvent.getByLabel(candTags[i], candH);
+    for (std::size_t i = 0; i < candTokens.size(); i++) {
+        Handle<View<reco::Candidate> > candH;
+        iEvent.getByToken(candTokens[i], candH);
         candHs.push_back(candH);
     }
 
