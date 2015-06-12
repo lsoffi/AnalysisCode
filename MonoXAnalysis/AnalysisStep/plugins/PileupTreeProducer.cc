@@ -32,6 +32,9 @@ class PileupTreeProducer : public edm::EDFilter {
 
         edm::InputTag pileupInfoTag;
         edm::InputTag verticesTag;
+        edm::EDGetTokenT<std::vector<PileupSummaryInfo> >  pileupInfoToken;
+        edm::EDGetTokenT<std::vector<reco::Vertex> > verticesToken;
+
         bool filter_;
         TTree* tree;
         uint32_t event, run, lumi;
@@ -44,6 +47,8 @@ PileupTreeProducer::PileupTreeProducer(const edm::ParameterSet& iConfig):
     verticesTag(iConfig.getParameter<edm::InputTag>("vertices")),
     filter_(iConfig.existsAs<bool>("filter") ? iConfig.getParameter<bool>("filter") : false)
 {
+    pileupInfoToken = consumes<std::vector<PileupSummaryInfo> > (pileupInfoTag);
+    verticesToken = consumes<std::vector<reco::Vertex> > (verticesTag);
 }
 
 
@@ -57,12 +62,12 @@ bool PileupTreeProducer::filter(edm::Event& iEvent, const edm::EventSetup& iSetu
 
     bool return_val = !filter_;
 
-    Handle<vector<PileupSummaryInfo> > pileupInfoH;
-    iEvent.getByLabel(pileupInfoTag, pileupInfoH);
+    Handle<std::vector<PileupSummaryInfo> > pileupInfoH;
+    iEvent.getByToken(pileupInfoToken, pileupInfoH);
     if (!pileupInfoH.isValid()) return return_val;
 
-    Handle<vector<Vertex> > verticesH;
-    iEvent.getByLabel(verticesTag, verticesH);
+    Handle<std::vector<reco::Vertex> > verticesH;
+    iEvent.getByToken(verticesToken, verticesH);
     if (!verticesH.isValid()) return return_val;
 
     event = iEvent.id().event();
