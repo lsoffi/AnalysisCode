@@ -43,6 +43,14 @@ class PFCleaner : public edm::EDProducer {
         edm::InputTag electronVetoIdMap;
         edm::InputTag electronMediumIdMap;
         edm::InputTag photonLooseIdMap;
+
+        edm::EDGetTokenT<std::vector<reco::Vertex> > verticesToken;
+        edm::EDGetTokenT<std::vector<pat::Muon> > muonsToken;
+        edm::EDGetTokenT<std::vector<pat::Electron> > electronsToken;
+        edm::EDGetTokenT<std::vector<pat::Photon> > photonsToken;
+        edm::EDGetTokenT<edm::ValueMap<bool> > electronVetoIdMapToken;
+        edm::EDGetTokenT<edm::ValueMap<bool> > electronMediumIdMapToken;
+        edm::EDGetTokenT<edm::ValueMap<bool> > photonLooseIdMapToken;
 };
 
 PFCleaner::PFCleaner(const edm::ParameterSet& iConfig): 
@@ -60,6 +68,14 @@ PFCleaner::PFCleaner(const edm::ParameterSet& iConfig):
     produces<pat::MuonRefVector>("tightmuons");
     produces<pat::ElectronRefVector>("tightelectrons");
     produces<pat::PhotonRefVector>("tightphotons");
+
+    verticesToken  = consumes<std::vector<reco::Vertex> > (vertices);
+    muonsToken     = consumes<std::vector<pat::Muon> > (muons); 
+    electronsToken = consumes<std::vector<pat::Electron> > (electrons); 
+    photonsToken   = consumes<std::vector<pat::Photon> > (photons); 
+    electronVetoIdMapToken   = consumes<edm::ValueMap<bool> >(electronVetoIdMap);
+    electronMediumIdMapToken = consumes<edm::ValueMap<bool> >(electronMediumIdMap);
+    photonLooseIdMapToken    = consumes<edm::ValueMap<bool> >(photonLooseIdMap);
 }
 
 
@@ -71,26 +87,26 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     using namespace reco;
     using namespace std;
 
-    Handle<vector<Vertex> > verticesH;
-    iEvent.getByLabel(vertices, verticesH);
+    Handle<std::vector<reco::Vertex> > verticesH;
+    iEvent.getByToken(verticesToken, verticesH);
 
-    Handle<vector<pat::Muon> > muonsH;
-    iEvent.getByLabel(muons, muonsH);
+    Handle<std::vector<pat::Muon> > muonsH;
+    iEvent.getByToken(muonsToken, muonsH);
 
-    Handle<vector<pat::Electron> > electronsH;
-    iEvent.getByLabel(electrons, electronsH);
+    Handle<std::vector<pat::Electron> > electronsH;
+    iEvent.getByToken(electronsToken, electronsH);
 
-    Handle<vector<pat::Photon> > photonsH;
-    iEvent.getByLabel(photons, photonsH);
+    Handle<std::vector<pat::Photon> > photonsH;
+    iEvent.getByToken(photonsToken, photonsH);
 
-    Handle<ValueMap<bool> > electronVetoIdH;
-    iEvent.getByLabel(electronVetoIdMap, electronVetoIdH);
+    Handle<edm::ValueMap<bool> > electronVetoIdH;
+    iEvent.getByToken(electronVetoIdMapToken, electronVetoIdH);
 
-    Handle<ValueMap<bool> > electronMediumIdH;
-    iEvent.getByLabel(electronMediumIdMap, electronMediumIdH);
+    Handle<edm::ValueMap<bool> > electronMediumIdH;
+    iEvent.getByToken(electronMediumIdMapToken, electronMediumIdH);
 
-    Handle<ValueMap<bool> > photonLooseIdH;
-    iEvent.getByLabel(photonLooseIdMap, photonLooseIdH);
+    Handle<edm::ValueMap<bool> > photonLooseIdH;
+    iEvent.getByToken(photonLooseIdMapToken, photonLooseIdH);
 
     std::auto_ptr<pat::MuonRefVector> outputmuons(new pat::MuonRefVector);
     std::auto_ptr<pat::ElectronRefVector> outputelectrons(new pat::ElectronRefVector);
