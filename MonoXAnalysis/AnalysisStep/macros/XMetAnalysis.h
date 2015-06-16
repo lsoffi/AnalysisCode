@@ -22,8 +22,7 @@ class XMetAnalysis {
 
   Int_t plot(TString select, const UInt_t nV, TString* var, 
 	     UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
-	     Bool_t stack, Bool_t dolog, Bool_t unity,
-	     vector<TString> locProcesses, vector<TString> labelProc);
+	     vector<TString> locProcesses);
 
   TCut  defineCut(TString select, TString region);
 
