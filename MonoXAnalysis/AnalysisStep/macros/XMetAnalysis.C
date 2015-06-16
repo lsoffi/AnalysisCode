@@ -29,35 +29,48 @@ Int_t XMetAnalysis::Analysis()
 
   // Processes to use
   vector<TString> locProcesses;
-  vector<TString> labelProc;
 
   // MC backgrounds
-  locProcesses.push_back("znn"); labelProc.push_back("Z(#nu#nu)");
-  locProcesses.push_back("zll"); labelProc.push_back("Z(ll)");
-  locProcesses.push_back("wjets"); labelProc.push_back("W(l#nu)");
-  locProcesses.push_back("ttbar"); labelProc.push_back("t#bar{t}");
-  locProcesses.push_back("top"); labelProc.push_back("t");
-  locProcesses.push_back("vv"); labelProc.push_back("VV");
-  locProcesses.push_back("qcd"); labelProc.push_back("QCD");
+  locProcesses.push_back("znn"); //labelProc.push_back("Z(#nu#nu)");
+  locProcesses.push_back("zll"); //labelProc.push_back("Z(ll)");
+  locProcesses.push_back("wjets"); //labelProc.push_back("W(l#nu)");
+  locProcesses.push_back("ttbar"); //labelProc.push_back("t#bar{t}");
+  locProcesses.push_back("top"); //labelProc.push_back("t");
+  locProcesses.push_back("vv"); //labelProc.push_back("VV");
+  locProcesses.push_back("qcd"); //labelProc.push_back("QCD");
 
   // Data-driven
   /// without acc, eff, BR corrections
-  locProcesses.push_back("znn_cr_DA"); labelProc.push_back("Z(#nu#nu) CR Data");
-  locProcesses.push_back("znn_cr_MC"); labelProc.push_back("Z(#nu#nu) CR MC");
-  locProcesses.push_back("znn_sr_DD"); labelProc.push_back("Z(#nu#nu) SR DD");
-  locProcesses.push_back("wj_cr_DA"); labelProc.push_back("W(l#nu) CR Data");
-  locProcesses.push_back("wj_cr_MC"); labelProc.push_back("W(l#nu) CR MC");
-  locProcesses.push_back("wj_sr_DD"); labelProc.push_back("W(l#nu) SR DD");
+  locProcesses.push_back("zn_cr_DA"); //labelProc.push_back("Z(#nu#nu) CR Data");
+  locProcesses.push_back("zn_cr_MC"); //labelProc.push_back("Z(#nu#nu) CR MC");
+  locProcesses.push_back("zn_sr_DD"); //labelProc.push_back("Z(#nu#nu) SR DD");
+  locProcesses.push_back("wj_cr_DA"); //labelProc.push_back("W(l#nu) CR Data");
+  locProcesses.push_back("wj_cr_MC"); //labelProc.push_back("W(l#nu) CR MC");
+  locProcesses.push_back("wj_sr_DD"); //labelProc.push_back("W(l#nu) SR DD");
   /// with acc, eff, BR corrections
-  locProcesses.push_back("znn_cr_corr_DA"); labelProc.push_back("Z(#nu#nu) CR Data (SF)");
-  locProcesses.push_back("znn_cr_corr_MC"); labelProc.push_back("Z(#nu#nu) CR MC (SF)");
-  locProcesses.push_back("znn_sr_corr_DD"); labelProc.push_back("Z(#nu#nu) SR DD (SF)");
-  locProcesses.push_back("wj_cr_corr_DA"); labelProc.push_back("W(l#nu) CR Data (SF)");
-  locProcesses.push_back("wj_cr_corr_MC"); labelProc.push_back("W(l#nu) CR MC (SF)");
-  locProcesses.push_back("wj_sr_corr_DD"); labelProc.push_back("W(l#nu) SR DD (SF)");
+  locProcesses.push_back("zn_cr_corr_DA"); //labelProc.push_back("Z(#nu#nu) CR Data (SF)");
+  locProcesses.push_back("zn_cr_corr_MC"); //labelProc.push_back("Z(#nu#nu) CR MC (SF)");
+  locProcesses.push_back("zn_sr_corr_DD"); //labelProc.push_back("Z(#nu#nu) SR DD (SF)");
+  locProcesses.push_back("wj_cr_corr_DA"); //labelProc.push_back("W(l#nu) CR Data (SF)");
+  locProcesses.push_back("wj_cr_corr_MC"); //labelProc.push_back("W(l#nu) CR MC (SF)");
+  locProcesses.push_back("wj_sr_corr_DD"); //labelProc.push_back("W(l#nu) SR DD (SF)");
+
+  // Signal
+  const UInt_t nSpin=2;
+  const UInt_t nMass=9;
+  TString nameSpin[nSpin] = {"V","AV"};
+  TString nameMass[nMass] = {"0p1","1","10","100","200","300","400","700","1000"};
+  TString nameProcess;
+  for(UInt_t iS=0 ; iS<nSpin ; iS++) {
+    for(UInt_t iM=0 ; iM<nMass ; iM++) {
+      nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
+      locProcesses.push_back(nameProcess);
+      //labelProc.push_back("DM "+nameSpin[iS]+" M="+nameMass[iM]);
+    }
+  }
 
   // Data
-  locProcesses.push_back("data"); labelProc.push_back("Data");
+  locProcesses.push_back("data"); //labelProc.push_back("Data");
 
   // Selections and variables
   const UInt_t nS=5;
@@ -70,10 +83,12 @@ Int_t XMetAnalysis::Analysis()
   Float_t xLast[nV]  = {1000};
 
   for(UInt_t iS=0 ; iS<nS ; iS++) {
+    //for(UInt_t iS=0 ; iS<1 ; iS++) { // FIXME
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, false, locProcesses, labelProc);
+    //select, nV, var, nBins, xFirst, xLast, vector<TString> locProcesses, vector<TString> labelProc
+    plot(select[iS], nV, var, nBins, xFirst, xLast, locProcesses);
 
   }
 
@@ -117,8 +132,7 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    //plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, true, locProcesses, labelProc);
-    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, false, locProcesses, labelProc);
+    plot(select[iS], nV, var, nBins, xFirst, xLast, locProcesses);
 
   }
 
@@ -128,15 +142,15 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
 Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 			 UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
-			 Bool_t stack, Bool_t dolog, Bool_t unity,
-			 vector<TString> locProcesses, vector<TString> labelProc)
+			 vector<TString> locProcesses)
 {
 
   (*_outlog) << "Selection: " << select << endl;
 
   // Define selections //
   TCut weight="";
-  TCut cut = defineCut(select, "signal");
+  TString region = "signal";
+  TCut cut = defineCut(select, region);
 
   // Declare histograms //
   map<TString, map<TString,TH1F*> > mapVarHistos;
@@ -146,13 +160,12 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
   const UInt_t nP = locProcesses.size();
   Float_t integral=0;
-  //Float_t integral[nP][nV];
 
   // Loop over chains and generate histograms //
   //
   TString nameDir, locVar, variable;
   Int_t color;
-  TH1F *hTemp, *hSRDD;
+  TH1F *hTemp, *hSRDD, *hTemp_cr_d, *hTemp_cr_mc;
   //
   for(UInt_t iP=0 ; iP<nP ; iP++) {
     nameDir = locProcesses[iP];
@@ -178,19 +191,23 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     }
     else weight = "puwgt*wgt";
 
-    if(     nameDir.Contains("znn_cr")) {
+    // Choose the phase space region
+    region = "signal";
+    if(     nameDir.Contains("zn_cr")) {
       if(nameDir.Contains("corr"))
-	cut = defineCut(select, "zctrl_corr");
+	region = "zctrl_corr";
       else
-	cut = defineCut(select, "zctrl");
+	region = "zctrl";
     }
     else if(nameDir.Contains("wj_cr"))  {
       if(nameDir.Contains("corr"))
-	cut = defineCut(select, "wctrl_corr");
+	region = "wctrl_corr";
       else
-	cut = defineCut(select, "wctrl");
+	region = "wctrl";
     }
-
+    else {region = "signal";}
+    cut = defineCut(select, region);
+    
     // Skim the chain
     _mapProcess[nameDir].Skim(select, cut);
 
@@ -199,15 +216,12 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
       if(verbose>1) cout << "--- variable: " << var[iV] << endl;
 
-      // initialize integrals
-      //integral[iP][iV] = 0;
-      
       // Define histogram and set style
       mapVarHistos[nameDir][var[iV]] = new TH1F("h_"+var[iV]+"_"+nameDir+"_"+select, 
 						var[iV]+" "+nameDir+" "+select,
 						nBins[iV], xFirst[iV], xLast[iV]);
       hTemp = mapVarHistos[nameDir][var[iV]];
-      color   = _mapProcess[nameDir].GetColor();
+      color = _mapProcess[nameDir].GetColor();
       setStyle( hTemp , color );
 
       // Draw the variable
@@ -217,13 +231,21 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       else if(var[iV]=="dphiJ2J3") locVar = "abs(secondjetphi-thirdjetphi)";
 
       _mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
-      cout << "--- drew variable: " << locVar << endl;
+      if(verbose>1) cout << "--- drew variable: " << locVar << endl;
+
+      // Checks
+      if(verbose>1) {
+	cout << "--- check:" 
+	     << " nameDir="  << nameDir
+	     << " GetName="  << hTemp->GetName()
+	     << " Entries="  << hTemp->GetEntries()
+	     << " Integral=" << hTemp->Integral()
+	     << " Weight="   << weight
+	     << endl;
+      }
 
       // Normalize
       if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
-      //integral[iP][iV] = hTemp->Integral();
-      //if(unity && integral[iP][iV]!=0) hTemp->Scale(1/integral[iP][iV]);
-      //cout << "--- normalized" << endl;
 
       // Determine extrema
       locMin = hTemp->GetMinimum();
@@ -232,27 +254,13 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       if(locMax>maxPlot) maxPlot = locMax;
     } // end loop:variables
   } // end loop:processes 
-  cout << "-- end loop over processes" << endl;
+  if(verbose>1) cout << "-- end loop over processes" << endl;
   
-  // Save histograms //
-  _outfile->cd();
-  cout << "-- _outfile->cd()... done" << endl;
-  map<TString, map<TString,TH1F*> >::iterator itVarHistos;
-  map<TString,TH1F*>::iterator itHistos;
-  for( itVarHistos=mapVarHistos.begin() ; itVarHistos!=mapVarHistos.end() ; itVarHistos++) {
-    for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
-      itHistos->second->Write();
-      cout << "---- histo written: " 
-	   << itHistos->second->GetName() 
-	   << endl;
-    }
-  }
-
   // Produce sr_DD histograms
-  cout << "-- Ready to produce sr_DD histograms" << endl;
+  if(verbose>1) cout << "-- Ready to produce sr_DD histograms" << endl;
   const UInt_t nDD=2;
   const UInt_t nCorr=2;
-  TString myDD[nDD]     = {"znn","wj"};
+  TString myDD[nDD]     = {"zn","wj"};
   TString myCorr[nCorr] = {"_","_corr_"};
   //
   for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
@@ -266,125 +274,90 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       }
     }
     if(!srddIsHere) {
-      cout << "--- unrequested process: " << myDD[iDD] << endl;
+      if(verbose>1) cout << "--- unrequested process: " << myDD[iDD] << endl;
       continue;
     }
 
     for(UInt_t iCorr=0 ; iCorr<nCorr ; iCorr++) {
       for(UInt_t iV=0 ; iV<nV ; iV++) {
 	//
-	cout << "----- produce: " << "h_"+var[iV]+"_znn_sr"+myCorr[iCorr]+"DD_"+select << endl;
+	if(verbose>1) cout << "----- produce: " << "h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+select << endl;
 	//
-	hTemp = mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][var[iV]];
-	hSRDD = (TH1F*)hTemp->Clone("h_"+var[iV]+"_znn_sr"+myCorr[iCorr]+"DD_"+select);
-	hSRDD->Add( mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][var[iV]] , -1.0 );
+	hTemp_cr_d  = mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][var[iV]];
+	hTemp_cr_mc = mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][var[iV]];
+	if(!hTemp_cr_d || !hTemp_cr_mc) continue;
+	//
+	hSRDD = (TH1F*)hTemp_cr_d->Clone("h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+select);
+	if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
 	mapVarHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][var[iV]] = hSRDD;
       }
     }
   }
 
-  // Produce the plot for each variable //
+  //////////////////////////
 
-  /// Prepare TCanvas and TLegend
-  TCanvas* c = new TCanvas("c","c",20,20,600,600);
-  TLegend* leg = new TLegend(0.88,0.65,0.98,0.76,"","brNDC");
-  setStyle(c);
-  setStyle(leg);
-  if(dolog) gPad->SetLogy();
+  // Yields outlog //
 
   // Loop over variables
   for(UInt_t iV=0 ; iV<nV ; iV++) {
-
-    // Yields outlog
+    // Print out variable and processes names
     (*_outlog) << "Var: " << var[iV] << endl;
     for(UInt_t iP=0 ; iP<nP ; iP++) {
       (*_outlog) << setw(10) << locProcesses[iP];
     }
     (*_outlog) << endl;
-
-  
-    // LOOP OVER PROCESSES' HISTO //
-    Bool_t first=true;
-    //
+    //  
+    // Loop over processes
     for(UInt_t iP=0 ; iP<nP ; iP++) {
-      //
       // Get histogram
       hTemp = mapVarHistos[locProcesses[iP]][var[iV]];
       if(!hTemp) {
-	cout << "ERROR : plotting loop did not find histo:"
-	     << locProcesses[iP]+" "+var[iV]
-	     << endl;
+	if(verbose>1) {
+	  cout << "ERROR : yield loop did not find histo:"
+	       << locProcesses[iP]+" "+var[iV]
+	       << endl;
+	}
 	(*_outlog) << setw(10) << -999999;
 	continue;
       }
-
-      integral = hTemp->Integral();
-      (*_outlog) << setw(10) << integral;
-      if(unity && integral!=0) hTemp->Scale(1/integral);
-      cout << "--- normalized" << endl;
-      
-      //
-      if(hTemp) {
-	if(first) {
-	  first=false;
-	  //
-	  if(!stack) {
-	    hTemp->SetMinimum(minPlot);
-	    hTemp->SetMaximum(maxPlot);
-	    if(!dolog) hTemp->SetMinimum(0.);
-	    if(unity) hTemp->SetMaximum(1.1);
-	  }
-	  else {
-	    
-	  }
-	  //
-	  hTemp->Draw("HISTE1");
-	}
-	//	
-	hTemp->Draw("HISTE1SAME");
+      else {
+	integral = hTemp->Integral();
+	(*_outlog) << setw(10) << integral;
       }
-      //      
-      if(iV==0) leg->AddEntry(hTemp,labelProc[iP],"L");
-    }
+    } // end loop over processes
     //
     (*_outlog) << endl;
-
-    // Compute shape compatibility
-  
-
-    // Draw and Print
-    leg->Draw();
-    //
-    if(nV>1) {
-      if(iV==0)
-	c->Print("plots/"+_tag+"/plots_"+select+".pdf(" , "Title:"+var[iV]);
-      else if(iV==nV-1)
-	c->Print("plots/"+_tag+"/plots_"+select+".pdf)" , "Title:"+var[iV]);
-      else
-	c->Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
-    }
-    else {
-      c->Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
-    }
-
-  }
-  
+  } // end loop over var
+  //
   (*_outlog) << endl;
 
   //////////////////////////
 
-  // Delete histo pointers
+  // Save histograms //
+  _outfile->cd();
+  if(verbose>1) cout << "-- _outfile->cd()... done" << endl;
+  TString nameHisto;
+  map<TString, map<TString,TH1F*> >::iterator itVarHistos;
+  map<TString,TH1F*>::iterator itHistos;
+  //
   for( itVarHistos=mapVarHistos.begin() ; itVarHistos!=mapVarHistos.end() ; itVarHistos++) {
     for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
-      delete (itHistos->second);
-      cout << "---- histo deleted" << endl;
-    }
-  }
 
-  delete c;
-  delete leg;
+      hTemp = itHistos->second;
 
-  // END
+      if(hTemp) {
+	nameHisto = hTemp->GetName();
+	hTemp->Write();
+	if(verbose>1) cout << "---- histo written: " << nameHisto << endl;
+	delete hTemp;
+	if(verbose>1) cout << "---- histo deleted: " << nameHisto << endl;	
+      }
+    } // end loop over histos in itVarHistos->second
+  } // end loop over maps in mapVarHistos
+
+  //////////////////////////
+
+  // END //
   return 1;
 }
 
@@ -491,21 +464,29 @@ Int_t XMetAnalysis::DefineChains()
 
   // Data driven backgrounds
   /// no corr
-  _mapProcess["znn_cr_DA"] = XMetProcess("znn_cr_DA",kAzure+7,"reducedtree.root");
-  _mapProcess["znn_cr_MC"] = XMetProcess("znn_cr_MC",kAzure+7,"reducedtree.root");
+  _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"reducedtree.root");
+  _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"reducedtree.root");
   _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "reducedtree.root");
   _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "reducedtree.root");
   /// corr
-  _mapProcess["znn_cr_corr_DA"] = XMetProcess("znn_cr_corr_DA",kAzure+7,"reducedtree.root");
-  _mapProcess["znn_cr_corr_MC"] = XMetProcess("znn_cr_corr_MC",kAzure+7,"reducedtree.root");
+  _mapProcess["zn_cr_corr_DA"] = XMetProcess("zn_cr_corr_DA",kAzure+7,"reducedtree.root");
+  _mapProcess["zn_cr_corr_MC"] = XMetProcess("zn_cr_corr_MC",kAzure+7,"reducedtree.root");
   _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "reducedtree.root");
   _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "reducedtree.root");
 
   // Signal
   const UInt_t nSpin=2;
   const UInt_t nMass=9;
-  TString nameSpin[nSignals] = {""};
-  _mapProcess["dm_v_"]   = XMetProcess("dm_v_",   kBlack, "reducedtree.root");
+  TString nameSpin[nSpin] = {"V","AV"};
+  TString nameMass[nMass] = {"0p1","1","10","100","200","300","400","700","1000"};
+  TString nameProcess;
+  for(UInt_t iS=0 ; iS<nSpin ; iS++) {
+    for(UInt_t iM=0 ; iM<nMass ; iM++) {
+      nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
+      _mapProcess[nameProcess] = XMetProcess(nameProcess, kBlack, "tree_"+nameProcess+".root");
+      _mapProcess[nameProcess].AddDir("signal");
+    }
+  }
 
   // Data
   _mapProcess["data"]   = XMetProcess("data",   kBlack, "reducedtree.root");
@@ -520,13 +501,13 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["qcd"].AddDir("qcd");
   _mapProcess["vv"].AddDir("dibosons");
   /// data-driven (no corr)
-  _mapProcess["znn_cr_DA"].AddDir("met");
-  _mapProcess["znn_cr_MC"].AddDir("bkgz");
+  _mapProcess["zn_cr_DA"].AddDir("met");
+  _mapProcess["zn_cr_MC"].AddDir("bkgz");
   _mapProcess["wj_cr_DA"].AddDir("met");
   _mapProcess["wj_cr_MC"].AddDir("bkgw");
   /// data-driven (corr)
-  _mapProcess["znn_cr_corr_DA"].AddDir("met");
-  _mapProcess["znn_cr_corr_MC"].AddDir("bkgz");
+  _mapProcess["zn_cr_corr_DA"].AddDir("met");
+  _mapProcess["zn_cr_corr_MC"].AddDir("bkgz");
   _mapProcess["wj_cr_corr_DA"].AddDir("met");
   _mapProcess["wj_cr_corr_MC"].AddDir("bkgw");
   /// signal still missing
