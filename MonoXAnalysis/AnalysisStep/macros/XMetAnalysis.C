@@ -407,13 +407,26 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   else if(_tag.Contains("MetFrom250to350")) metCut = "mumet>250 && mumet<=350";
 
   // JETS
-  TCut jetID1 = "(signaljetpt > 110 && abs(signaljeteta) < 2 && signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
-  TCut jetID2 = "(secondjetpt>30 && abs(secondjeteta)<2.4 && secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9)";
-  TCut jetID3 = "(thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
+  TCut jetID1, jetID2, jetID3, jetIDMult, jetIDMono;
   //
-  TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<4.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9) ) ) )" ;
-  //
-  TCut jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<4.5) )" ;
+  if(_tag.Contains("Run1")) { // Run1 cuts
+    jetID1 = "(signaljetpt > 110 && abs(signaljeteta) < 2 && signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
+    jetID2 = "(secondjetpt>30 && abs(secondjeteta)<4.5)";
+    jetID3 = "(thirdjetpt>30 && abs(thirdjeteta)<4.5)";
+    //
+    jetIDMult = "(njets==1 || ( (secondjetpt>30 && abs(secondjeteta)<4.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<4.5) ) ) )" ;
+    //
+    jetIDMono = "(njets==1 || (njets==2 && secondjetpt>30 && abs(secondjeteta)<4.5) )" ;
+  }
+  else { // Updated cuts
+    jetID1 = "(signaljetpt>110 && abs(signaljeteta)<2.4 && signaljetNHfrac<0.7 && signaljetEMfrac<0.7 && signaljetCHfrac > 0.2)";
+    jetID2 = "(secondjetpt>30  && abs(secondjeteta)<2.4 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9)";
+    jetID3 = "( thirdjetpt>30  &&  abs(thirdjeteta)<2.4 &&  thirdjetNHfrac<0.7 &&  thirdjetEMfrac<0.9)";
+    //
+    jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<4.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9) ) ) )" ;
+    //
+    jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<4.5) )" ;
+  }
 
   // Jet multiplicity, QCD killer
   TCut jetID="";
@@ -422,6 +435,12 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   TCut alphat="";
   TCut apcjetmetmax="apcjetmetmax>0.55";
 
+  TCut jmdphi="";
+  if(     _tag.Contains("JetMet0p2")) jmdphi = "abs(jetmetdphimin)>0.2";
+  else if(_tag.Contains("JetMet0p4")) jmdphi = "abs(jetmetdphimin)>0.4";
+  else if(_tag.Contains("JetMet0p6")) jmdphi = "abs(jetmetdphimin)>0.6";
+  else if(_tag.Contains("JetMet0p8")) jmdphi = "abs(jetmetdphimin)>0.8";
+  
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
     jetID  = jetID1*jetIDMult;
@@ -454,9 +473,13 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   }
 
   TCut noqcd="run>-999";
-  if(     select.Contains("dphi"))         noqcd = dphi;
-  else if(select.Contains("alphat"))       noqcd = alphat;
-  else if(select.Contains("apcjetmetmax")) noqcd = apcjetmetmax;
+  if(     select.Contains("dphi"))          noqcd = dphi;
+  else if(select.Contains("alphat"))        noqcd = alphat;
+  else if(select.Contains("apcjetmetmax"))  noqcd = apcjetmetmax;
+  else if(select.Contains("jetmetdphimin")) noqcd = jmdphi;
+
+  // Gives precedence to "_tag" over "select"
+  if(_tag.Contains("JetMet")) noqcd = jmdphi;
 
   return (trig*leptons*metID*metCut*noqcd*jetID*jetBin);
 
