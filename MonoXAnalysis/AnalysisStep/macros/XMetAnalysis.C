@@ -74,23 +74,25 @@ Int_t XMetAnalysis::Analysis()
   locProcesses.push_back("wj_sr_corr_DD"); //labelProc.push_back("W(l#nu) SR DD (SF)");
 
   // Selections and variables
-  const UInt_t nS=5;
-  const UInt_t nV=1;
-  TString select[nS] = {"alljets_dphi","monojet_dphi","1jet_dphi","2jet_dphi","3jet_dphi"};
-  //TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
-  TString var[nV]    = {"mumet"};
+  const UInt_t nS=3;
+  TString select[nS] = {"1jet","2jet","3jet"};
 
+  const UInt_t nCut=4;
+  TString scanCut[  nCut] = {"JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
+  Bool_t  scanReset[nCut] = {true,false,false,false};
+
+  const UInt_t nV=1;
+  TString var[nV]    = {"mumet"};
   UInt_t  nBins[nV]  = {50};
   Float_t xFirst[nV] = {0};
   Float_t xLast[nV]  = {1000};
 
   for(UInt_t iS=0 ; iS<nS ; iS++) {
-    //for(UInt_t iS=0 ; iS<1 ; iS++) { // FIXME
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    //select, nV, var, nBins, xFirst, xLast, vector<TString> locProcesses, vector<TString> labelProc
-    plot(select[iS], nV, var, nBins, xFirst, xLast, locProcesses);
+    //select, nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, vector<TString> locProcesses, vector<TString> labelProc
+    plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
 
   }
 
@@ -115,6 +117,10 @@ Int_t XMetAnalysis::StudyQCDKiller()
   const UInt_t nS=5;
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
 
+  const UInt_t nCut=1;
+  TString scanCut[  nCut] = {"1"};
+  Bool_t  scanReset[nCut] = {true};
+
   const UInt_t nV=7;
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
 			"jetjetdphi","jetmetdphimin",
@@ -134,7 +140,7 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    plot(select[iS], nV, var, nBins, xFirst, xLast, locProcesses);
+    plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
 
   }
 
@@ -142,7 +148,9 @@ Int_t XMetAnalysis::StudyQCDKiller()
   return 0;
 }
 
-Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
+Int_t XMetAnalysis::plot(TString select, 
+			 const UInt_t nCut, TString* scanCut, Bool_t* scanReset,
+			 const UInt_t nV,    TString* var, 
 			 UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
 			 vector<TString> locProcesses)
 {
@@ -150,12 +158,13 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   (*_outlog) << "Selection: " << select << endl;
 
   // Define selections //
+  TString selectScan;
   TCut weight="";
   TString region = "signal";
   TCut cut = defineCut(select, region);
 
   // Declare histograms //
-  map<TString, map<TString,TH1F*> > mapVarHistos;
+  M_PROCESS_CUT_VAR_H mapHistos;
   Float_t minPlot = 9999999.;
   Float_t maxPlot = -9999999.;
   Float_t locMin, locMax;
@@ -208,61 +217,68 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 	region = "wctrl";
     }
     else {region = "signal";}
-    cut = defineCut(select, region);
-    
-    // Skim the chain
-    Bool_t reset=true;
-    _mapProcess[nameDir].Skim(select, cut, reset);
 
-    // Loop over requested variables
-    for(UInt_t iV=0 ; iV<nV ; iV++) {
+    // Loop over cuts to be scanned
+    for(UInt_t iCut=0; iCut<nCut; iCut++) {
 
-      if(verbose>1) cout << "--- variable: " << var[iV] << endl;
+      selectScan = select+"_"+scanCut[iCut];
+      cut = defineCut(selectScan, region);
+      
+      // Skim the chain
+      _mapProcess[nameDir].Skim(selectScan, cut, scanReset[iCut]);
 
-      // Define histogram and set style
-      mapVarHistos[nameDir][var[iV]] = new TH1F("h_"+var[iV]+"_"+nameDir+"_"+select, 
-						var[iV]+" "+nameDir+" "+select,
-						nBins[iV], xFirst[iV], xLast[iV]);
-      hTemp = mapVarHistos[nameDir][var[iV]];
-      color = _mapProcess[nameDir].GetColor();
-      setStyle( hTemp , color );
+      // Loop over requested variables
+      for(UInt_t iV=0 ; iV<nV ; iV++) {
 
-      // Draw the variable
-      locVar = var[iV];
-      if(var[iV].Contains("phi"))  locVar = "abs("+var[iV]+")";
-      if(     var[iV]=="dphiJ1J3") locVar = "abs(signaljetphi-thirdjetphi)";
-      else if(var[iV]=="dphiJ2J3") locVar = "abs(secondjetphi-thirdjetphi)";
+	if(verbose>1) cout << "--- variable: " << var[iV] << endl;
 
-      _mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
-      if(verbose>1) cout << "--- drew variable: " << locVar << endl;
+	// Define histogram and set style
+	mapHistos[nameDir][scanCut[iCut]][var[iV]] = 
+	  new TH1F("h_"+var[iV]+"_"+nameDir+"_"+selectScan, 
+		   var[iV]+" "+nameDir+" "+selectScan,
+		   nBins[iV], xFirst[iV], xLast[iV]);
 
-      // Checks
-      if(verbose>1) {
-	cout << "--- check:" 
-	     << " nameDir="  << nameDir
-	     << " GetName="  << hTemp->GetName()
-	     << " Entries="  << hTemp->GetEntries()
-	     << " Integral=" << hTemp->Integral(0, hTemp->GetNbinsX() + 1)
-	  //<< " Integral=" << hTemp->Integral()
-	     << " Weight="   << weight
-	     << endl;
-      }
+	hTemp = mapHistos[nameDir][scanCut[iCut]][var[iV]];
+	color = _mapProcess[nameDir].GetColor();
+	setStyle( hTemp , color );
 
-      // Normalize
-      Double_t theScale=1.0;
-      if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
-	theScale = _lumi*_rescale;
-	if(nameDir.Contains("qcd")) theScale *= 1.3;
-      }
-      hTemp->Scale(theScale);
+	// Draw the variable
+	locVar = var[iV];
+	if(var[iV].Contains("phi"))  locVar = "abs("+var[iV]+")";
+	if(     var[iV]=="dphiJ1J3") locVar = "abs(signaljetphi-thirdjetphi)";
+	else if(var[iV]=="dphiJ2J3") locVar = "abs(secondjetphi-thirdjetphi)";
 
-      // Determine extrema
-      locMin = hTemp->GetMinimum();
-      locMax = hTemp->GetMaximum();
-      if(locMin<minPlot) minPlot = locMin;
-      if(locMax>maxPlot) maxPlot = locMax;
+	_mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
+	if(verbose>1) cout << "--- drew variable: " << locVar << endl;
 
-    } // end loop:variables
+	// Checks
+	if(verbose>1) {
+	  cout << "--- check:" 
+	       << " nameDir="  << nameDir
+	       << " GetName="  << hTemp->GetName()
+	       << " Entries="  << hTemp->GetEntries()
+	       << " Integral=" << hTemp->Integral(0, hTemp->GetNbinsX() + 1)
+	    //<< " Integral=" << hTemp->Integral()
+	       << " Weight="   << weight
+	       << endl;
+	}
+
+	// Normalize
+	Double_t theScale=1.0;
+	if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
+	  theScale = _lumi*_rescale;
+	  if(nameDir.Contains("qcd")) theScale *= 1.3;
+	}
+	hTemp->Scale(theScale);
+
+	// Determine extrema
+	locMin = hTemp->GetMinimum();
+	locMax = hTemp->GetMaximum();
+	if(locMin<minPlot) minPlot = locMin;
+	if(locMax>maxPlot) maxPlot = locMax;
+
+      } // end loop:variables
+    } // end loop:cuts
   } // end loop:processes 
   if(verbose>1) cout << "-- end loop over processes" << endl;
   
@@ -273,37 +289,42 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   TString myDD[nDD]     = {"zn","wj"};
   TString myCorr[nCorr] = {"_","_corr_"};
   //
-  for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
+
+  // Loop over cuts to be scanned
+  for(UInt_t iCut=0; iCut<nCut; iCut++) {
+    selectScan = select+"_"+scanCut[iCut];
+
+    for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
     
-    // Check that the current process (znn or wj) has been requested initially
-    bool srddIsHere=false;
-    for(UInt_t iP=0 ; iP<nP ; iP++) {
-      if(locProcesses[iP].Contains(myDD[iDD]+"_cr")) {
-	srddIsHere=true;
-	break; // hammertime
+      // Check that the current process (znn or wj) has been requested initially
+      bool srddIsHere=false;
+      for(UInt_t iP=0 ; iP<nP ; iP++) {
+	if(locProcesses[iP].Contains(myDD[iDD]+"_cr")) {
+	  srddIsHere=true;
+	  break; // hammertime
+	}
       }
-    }
-    if(!srddIsHere) {
-      if(verbose>1) cout << "--- unrequested process: " << myDD[iDD] << endl;
-      continue;
-    }
-
-    for(UInt_t iCorr=0 ; iCorr<nCorr ; iCorr++) {
-      for(UInt_t iV=0 ; iV<nV ; iV++) {
-	//
-	if(verbose>1) cout << "----- produce: " << "h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+select << endl;
-	//
-	hTemp_cr_d  = mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][var[iV]];
-	hTemp_cr_mc = mapVarHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][var[iV]];
-	if(!hTemp_cr_d || !hTemp_cr_mc) continue;
-	//
-	hSRDD = (TH1F*)hTemp_cr_d->Clone("h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+select);
-	if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
-	mapVarHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][var[iV]] = hSRDD;
+      if(!srddIsHere) {
+	if(verbose>1) cout << "--- unrequested process: " << myDD[iDD] << endl;
+	continue;
       }
-    }
-  }
 
+      for(UInt_t iCorr=0 ; iCorr<nCorr ; iCorr++) {
+	for(UInt_t iV=0 ; iV<nV ; iV++) {
+	  //
+	  if(verbose>1) cout << "----- produce: " << "h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+selectScan << endl;
+	  //
+	  hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
+	  hTemp_cr_mc = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
+	  if(!hTemp_cr_d || !hTemp_cr_mc) continue;
+	  //
+	  hSRDD = (TH1F*)hTemp_cr_d->Clone("h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+selectScan);
+	  if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
+	  mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+	} // end loop:var
+      } // end loop:corr options
+    } // end loop:DD processes
+  } //end loop:cuts to be scanned
   //////////////////////////
 
   // Yields outlog //
@@ -313,6 +334,13 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
     // Print out variable and processes names
     (*_outlog) << "Var: " << var[iV] << endl;
 
+    // Write 1 column title per scanned cut
+    (*_outlog) << setw(14) << "Process" ;
+    for(UInt_t iCut=0; iCut<nCut; iCut++) {
+      (*_outlog) << setw(14) << scanCut[iCut] ;
+    }
+    (*_outlog) << endl;
+
     // Loop over processes
     for(UInt_t iP=0 ; iP<nP ; iP++) {
 
@@ -320,26 +348,29 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       (*_outlog) << setw(14) << locProcesses[iP] ;
 
       // Get histogram
-      hTemp = mapVarHistos[locProcesses[iP]][var[iV]];
-      if(!hTemp) {
-	if(verbose>1) {
-	  cout << "ERROR : yield loop did not find histo:"
-	       << locProcesses[iP]+" "+var[iV]
-	       << endl;
+      for(UInt_t iCut=0; iCut<nCut; iCut++) {
+	hTemp = mapHistos[locProcesses[iP]][scanCut[iCut]][var[iV]];
+	if(!hTemp) {
+	  if(verbose>1) {
+	    cout << "ERROR : yield loop did not find histo:"
+		 << locProcesses[iP]+" "+var[iV]
+		 << endl;
+	  }
+	  (*_outlog) << setw(14) << "ERROR" ;
+	  continue;
 	}
-	(*_outlog) << setw(14) << "ERROR" << endl;
-	continue;
-      }
-      else {
-	integral = hTemp->Integral(0, hTemp->GetNbinsX() + 1);
-	//integral = hTemp->Integral();
-	(*_outlog) << setw(14) << integral << endl;
-      }
-    } // end loop over processes
+	else {
+	  integral = hTemp->Integral(0, hTemp->GetNbinsX() + 1);
+	  //integral = hTemp->Integral();
+	  (*_outlog) << setw(14) << integral ;
+	}
+      } // end loop:cuts
+      (*_outlog) << endl;
+    }   // end loop:processes
     //
     (*_outlog) << endl;
   } // end loop over var
-  //
+    //
   (*_outlog) << endl;
 
   //////////////////////////
@@ -348,24 +379,26 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   _outfile->cd();
   if(verbose>2) cout << "-- _outfile->cd()... done" << endl;
   TString nameHisto;
-  map<TString, map<TString,TH1F*> >::iterator itVarHistos;
-  map<TString,TH1F*>::iterator itHistos;
+  M_PROCESS_CUT_VAR_H::iterator itCutVarHistos;
+  M_CUT_VAR_H::iterator itVarHistos;
+  M_VAR_H::iterator itHistos;
   //
-  for( itVarHistos=mapVarHistos.begin() ; itVarHistos!=mapVarHistos.end() ; itVarHistos++) {
-    for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
+  for( itCutVarHistos=mapHistos.begin() ; itCutVarHistos!=mapHistos.end() ; itCutVarHistos++) {
+    for( itVarHistos=itCutVarHistos->second.begin() ; itVarHistos!=itCutVarHistos->second.end() ; itVarHistos++) {
+      for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
 
-      hTemp = itHistos->second;
+	hTemp = itHistos->second;
 
-      if(hTemp) {
-	nameHisto = hTemp->GetName();
-	hTemp->Write();
-	if(verbose>2) cout << "---- histo written: " << nameHisto << endl;
-	delete hTemp;
-	if(verbose>2) cout << "---- histo deleted: " << nameHisto << endl;	
-      }
-    } // end loop over histos in itVarHistos->second
-  } // end loop over maps in mapVarHistos
-
+	if(hTemp) {
+	  nameHisto = hTemp->GetName();
+	  hTemp->Write();
+	  if(verbose>2) cout << "---- histo written: " << nameHisto << endl;
+	  delete hTemp;
+	  if(verbose>2) cout << "---- histo deleted: " << nameHisto << endl;	
+	}
+      }// end loop:histos
+    }  // end loop:variables
+  }    // end loop:cuts
   //////////////////////////
 
   // END //
@@ -437,10 +470,10 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   TCut apcjetmetmax="apcjetmetmax>0.55";
 
   TCut jmdphi="";
-  if(     _tag.Contains("JetMet0p2")) jmdphi = "abs(jetmetdphimin)>0.2";
-  else if(_tag.Contains("JetMet0p4")) jmdphi = "abs(jetmetdphimin)>0.4";
-  else if(_tag.Contains("JetMet0p6")) jmdphi = "abs(jetmetdphimin)>0.6";
-  else if(_tag.Contains("JetMet0p8")) jmdphi = "abs(jetmetdphimin)>0.8";
+  if(     select.Contains("JetMet0p2")) jmdphi = "abs(jetmetdphimin)>0.2";
+  else if(select.Contains("JetMet0p4")) jmdphi = "abs(jetmetdphimin)>0.4";
+  else if(select.Contains("JetMet0p6")) jmdphi = "abs(jetmetdphimin)>0.6";
+  else if(select.Contains("JetMet0p8")) jmdphi = "abs(jetmetdphimin)>0.8";
   
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
@@ -477,7 +510,7 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(     select.Contains("dphi"))          noqcd = dphi;
   else if(select.Contains("alphat"))        noqcd = alphat;
   else if(select.Contains("apcjetmetmax"))  noqcd = apcjetmetmax;
-  else if(select.Contains("jetmetdphimin")) noqcd = jmdphi;
+  else if(select.Contains("JetMet"))        noqcd = jmdphi;
 
   // Gives precedence to "_tag" over "select"
   if(_tag.Contains("JetMet")) noqcd = jmdphi;
