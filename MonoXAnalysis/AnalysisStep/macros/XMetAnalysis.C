@@ -10,7 +10,8 @@ XMetAnalysis::XMetAnalysis(TString tag)
   _path    = "/user/ndaci/Data/XMET/5Xtrees/";
   //_path    = "/user/ndaci/Data/XMET/7Xtrees/";
 
-  _lumi    = 19.7;
+  _lumi    = 19.7; // Adish
+  //_lumi    = 19.5; // Run1 AN
   _rescale = 1.0;
   _outfile = new TFile("plots/"+_tag+"/plots_"+_tag+".root","recreate");
   _outlog  = new ofstream("plots/"+_tag+"/yields_"+_tag+".txt",ios::out);
@@ -29,6 +30,23 @@ Int_t XMetAnalysis::Analysis()
 
   // Processes to use
   vector<TString> locProcesses;
+
+  // Data
+  locProcesses.push_back("data"); //labelProc.push_back("Data");
+
+  // Signal
+  const UInt_t nSpin=2;
+  const UInt_t nMass=9;
+  TString nameSpin[nSpin] = {"V","AV"};
+  TString nameMass[nMass] = {"0p1","1","10","100","200","300","400","700","1000"};
+  TString nameProcess;
+  for(UInt_t iS=0 ; iS<nSpin ; iS++) {
+    for(UInt_t iM=0 ; iM<nMass ; iM++) {
+      nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
+      locProcesses.push_back(nameProcess);
+      //labelProc.push_back("DM "+nameSpin[iS]+" M="+nameMass[iM]);
+    }
+  }
 
   // MC backgrounds
   locProcesses.push_back("znn"); //labelProc.push_back("Z(#nu#nu)");
@@ -55,27 +73,11 @@ Int_t XMetAnalysis::Analysis()
   locProcesses.push_back("wj_cr_corr_MC"); //labelProc.push_back("W(l#nu) CR MC (SF)");
   locProcesses.push_back("wj_sr_corr_DD"); //labelProc.push_back("W(l#nu) SR DD (SF)");
 
-  // Signal
-  const UInt_t nSpin=2;
-  const UInt_t nMass=9;
-  TString nameSpin[nSpin] = {"V","AV"};
-  TString nameMass[nMass] = {"0p1","1","10","100","200","300","400","700","1000"};
-  TString nameProcess;
-  for(UInt_t iS=0 ; iS<nSpin ; iS++) {
-    for(UInt_t iM=0 ; iM<nMass ; iM++) {
-      nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
-      locProcesses.push_back(nameProcess);
-      //labelProc.push_back("DM "+nameSpin[iS]+" M="+nameMass[iM]);
-    }
-  }
-
-  // Data
-  locProcesses.push_back("data"); //labelProc.push_back("Data");
-
   // Selections and variables
   const UInt_t nS=5;
   const UInt_t nV=1;
-  TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
+  TString select[nS] = {"alljets_dphi","monojet_dphi","1jet_dphi","2jet_dphi","3jet_dphi"};
+  //TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
   TString var[nV]    = {"mumet"};
 
   UInt_t  nBins[nV]  = {50};
@@ -239,19 +241,26 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 	     << " nameDir="  << nameDir
 	     << " GetName="  << hTemp->GetName()
 	     << " Entries="  << hTemp->GetEntries()
-	     << " Integral=" << hTemp->Integral()
+	     << " Integral=" << hTemp->Integral(0, hTemp->GetNbinsX() + 1)
+	  //<< " Integral=" << hTemp->Integral()
 	     << " Weight="   << weight
 	     << endl;
       }
 
       // Normalize
-      if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
+      Double_t theScale=1.0;
+      if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
+	theScale = _lumi*_rescale;
+	if(nameDir.Contains("qcd")) theScale *= 1.3;
+      }
+      hTemp->Scale(theScale);
 
       // Determine extrema
       locMin = hTemp->GetMinimum();
       locMax = hTemp->GetMaximum();
       if(locMin<minPlot) minPlot = locMin;
       if(locMax>maxPlot) maxPlot = locMax;
+
     } // end loop:variables
   } // end loop:processes 
   if(verbose>1) cout << "-- end loop over processes" << endl;
@@ -302,13 +311,13 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
   for(UInt_t iV=0 ; iV<nV ; iV++) {
     // Print out variable and processes names
     (*_outlog) << "Var: " << var[iV] << endl;
-    for(UInt_t iP=0 ; iP<nP ; iP++) {
-      (*_outlog) << setw(10) << locProcesses[iP];
-    }
-    (*_outlog) << endl;
-    //  
+
     // Loop over processes
     for(UInt_t iP=0 ; iP<nP ; iP++) {
+
+      // Write out process name
+      (*_outlog) << setw(14) << locProcesses[iP] ;
+
       // Get histogram
       hTemp = mapVarHistos[locProcesses[iP]][var[iV]];
       if(!hTemp) {
@@ -317,12 +326,13 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 	       << locProcesses[iP]+" "+var[iV]
 	       << endl;
 	}
-	(*_outlog) << setw(10) << -999999;
+	(*_outlog) << setw(14) << "ERROR" << endl;
 	continue;
       }
       else {
-	integral = hTemp->Integral();
-	(*_outlog) << setw(10) << integral;
+	integral = hTemp->Integral(0, hTemp->GetNbinsX() + 1);
+	//integral = hTemp->Integral();
+	(*_outlog) << setw(14) << integral << endl;
       }
     } // end loop over processes
     //
@@ -335,7 +345,7 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
 
   // Save histograms //
   _outfile->cd();
-  if(verbose>1) cout << "-- _outfile->cd()... done" << endl;
+  if(verbose>2) cout << "-- _outfile->cd()... done" << endl;
   TString nameHisto;
   map<TString, map<TString,TH1F*> >::iterator itVarHistos;
   map<TString,TH1F*>::iterator itHistos;
@@ -348,9 +358,9 @@ Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
       if(hTemp) {
 	nameHisto = hTemp->GetName();
 	hTemp->Write();
-	if(verbose>1) cout << "---- histo written: " << nameHisto << endl;
+	if(verbose>2) cout << "---- histo written: " << nameHisto << endl;
 	delete hTemp;
-	if(verbose>1) cout << "---- histo deleted: " << nameHisto << endl;	
+	if(verbose>2) cout << "---- histo deleted: " << nameHisto << endl;	
       }
     } // end loop over histos in itVarHistos->second
   } // end loop over maps in mapVarHistos
@@ -385,22 +395,25 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
 
   // MET
   TCut metID = "(abs(pfmet - calomet) < 2*calomet)" ;
+  if(_tag.Contains("NoMetClean"))  metID  = "";
+  //
   TCut metCut="";
   if(_tag.Contains("NoMetCut"))    metCut = "";
   else if(_tag.Contains("Met200")) metCut = "mumet>200";
+  else if(_tag.Contains("Met250")) metCut = "mumet>250";
   else if(_tag.Contains("Met350")) metCut = "mumet>350";
   else if(_tag.Contains("MetFrom0to200"))   metCut = "mumet<=200";
   else if(_tag.Contains("MetFrom200to250")) metCut = "mumet>200 && mumet<=250";
   else if(_tag.Contains("MetFrom250to350")) metCut = "mumet>250 && mumet<=350";
 
   // JETS
-  TCut jetID1 = "(signaljetpt > 110 && abs(signaljeteta) < 2.4 && signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
+  TCut jetID1 = "(signaljetpt > 110 && abs(signaljeteta) < 2 && signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
   TCut jetID2 = "(secondjetpt>30 && abs(secondjeteta)<2.4 && secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9)";
   TCut jetID3 = "(thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
   //
-  TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9) ) ) )" ;
+  TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<4.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9) ) ) )" ;
   //
-  TCut jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5) )" ;
+  TCut jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<4.5) )" ;
 
   // Jet multiplicity, QCD killer
   TCut jetID="";
@@ -412,13 +425,13 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
     jetID  = jetID1*jetIDMult;
-    dphi   = "njets==1 || abs(jetjetdphi) < 2.5";
+    dphi   = "njets==1 || abs(jetjetdphi) < 2";
     alphat = "njets==1 || alphat>0.55";
   }
   else if(select.Contains("monojet")) {
     jetBin = "njets>=1 && njets<=2";
     jetID  = jetID1*jetIDMono;
-    dphi   = "njets==1 || abs(jetjetdphi) < 2.5";
+    dphi   = "njets==1 || abs(jetjetdphi) < 2";
     alphat = "njets==1 || alphat>0.55";
   }
   else if(select.Contains("1jet")) { 
@@ -430,13 +443,13 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   else if(select.Contains("2jet")) { 
     jetBin = "njets==2"; 
     jetID  = jetID1*jetID2; 
-    dphi   = "abs(jetjetdphi) < 2.5";
+    dphi   = "abs(jetjetdphi) < 2";
     alphat = "alphat>0.55";
   }
   else if(select.Contains("3jet")) {
     jetBin = "njets==3";
     jetID  = jetID1*jetID2*jetID3;
-    dphi   = "abs(jetjetdphi) < 2.5";
+    dphi   = "abs(jetjetdphi) < 2";
     alphat = "alphat>0.55";
   }
 
