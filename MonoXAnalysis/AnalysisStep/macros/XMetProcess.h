@@ -27,7 +27,7 @@ class XMetProcess {
   TString GetNameFile();
 
   // Analysis tools
-  Int_t Skim(TString select, TCut cut);
+  Int_t Skim(TString select, TCut cut, Bool_t reset);
   Int_t Draw(TH1F* h, TString var, TCut cut, TCut weight);
     
  private:
@@ -127,9 +127,9 @@ Int_t XMetProcess::AddTrees()
   return 0;
 }
 
-Int_t XMetProcess::Skim(TString select, TCut cut)
+Int_t XMetProcess::Skim(TString select, TCut cut, Bool_t reset)
 {
-  _chain->SetEntryList(0);
+  if(reset) _chain->SetEntryList(0);
 
   TString tskim="skim_"+_nameProcess+"_"+select;
   _chain->Draw(">>+"+tskim, cut, "entrylist");
