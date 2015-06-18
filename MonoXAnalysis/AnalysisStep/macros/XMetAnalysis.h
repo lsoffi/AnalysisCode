@@ -9,6 +9,10 @@ using namespace std;
 //typedef map< TString , pair< TChain* , pair< vector<TString> , Int_t > > > MAP_PROCESS;
 typedef map< TString , XMetProcess > MAP_PROCESS;
 
+typedef map<TString,TH1F*> M_VAR_H;
+typedef map<TString, map<TString,TH1F*> > M_CUT_VAR_H;
+typedef map<TString, map<TString, map<TString,TH1F*> > > M_PROCESS_CUT_VAR_H;
+
 class XMetAnalysis {
 
  public:
@@ -20,7 +24,9 @@ class XMetAnalysis {
   Int_t StudyQCDKiller();
   Int_t DefineChains();
 
-  Int_t plot(TString select, const UInt_t nV, TString* var, 
+  Int_t plot(TString select, 			 
+	     const UInt_t nCut, TString* scanCut, Bool_t* scanReset,
+	     const UInt_t nV, TString* var, 
 	     UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
 	     vector<TString> locProcesses);
 
