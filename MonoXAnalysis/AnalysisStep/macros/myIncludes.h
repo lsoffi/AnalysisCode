@@ -11,6 +11,7 @@
 #include "TChain.h"
 #include "TFile.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TGraph.h"
 #include "TString.h"
 #include "TCut.h"
