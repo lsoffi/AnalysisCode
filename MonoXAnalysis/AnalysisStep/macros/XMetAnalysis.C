@@ -74,12 +74,21 @@ Int_t XMetAnalysis::Analysis()
   locProcesses.push_back("wj_sr_corr_DD"); //labelProc.push_back("W(l#nu) SR DD (SF)");
 
   // Selections and variables
+  /*
   const UInt_t nS=3;
   TString select[nS] = {"1jet","2jet","3jet"};
+  const UInt_t nCut=5;
+  TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
+  Bool_t  scanReset[nCut] = {true,false,false,false,false};
+  */
 
-  const UInt_t nCut=4;
-  TString scanCut[  nCut] = {"JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
-  Bool_t  scanReset[nCut] = {true,false,false,false};
+  // FIXME
+  const UInt_t nS=1;
+  TString select[nS] = {"monojet"};
+
+  const UInt_t nCut=1;
+  TString scanCut[  nCut] = {"NoJmCut"};
+  Bool_t  scanReset[nCut] = {true};
 
   const UInt_t nV=1;
   TString var[nV]    = {"mumet"};
@@ -200,21 +209,23 @@ Int_t XMetAnalysis::plot(TString select,
 	nameDir.Contains("DA") ) {
       weight = "1";
     }
-    else weight = "puwgt*wgt";
+    else { weight = "puwgt*wgt"; }
 
     // Choose the phase space region
     region = "signal";
     if(     nameDir.Contains("zn_cr")) {
-      if(nameDir.Contains("corr"))
-	region = "zctrl_corr";
-      else
-	region = "zctrl";
+      if(nameDir.Contains("corr")) {
+	region  = "zctrl_corr";
+	weight *= "((5.942 * 1.023) / (0.79*(1.0-TMath::Exp(-0.00910276*(mumet-36.1669)))))";
+      }
+      else { region = "zctrl"; }
     }
     else if(nameDir.Contains("wj_cr"))  {
-      if(nameDir.Contains("corr"))
-	region = "wctrl_corr";
-      else
-	region = "wctrl";
+      if(nameDir.Contains("corr")) {
+	region  = "wctrl_corr";
+	weight *= "(38.7823/TMath::Power(-85.7023 + mumet, 0.667232))";
+      }
+      else { region = "wctrl"; }
     }
     else {region = "signal";}
 
@@ -251,6 +262,14 @@ Int_t XMetAnalysis::plot(TString select,
 	_mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
 	if(verbose>1) cout << "--- drew variable: " << locVar << endl;
 
+	// Normalize
+	Double_t theScale=1.0;
+	if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
+	  theScale = _lumi*_rescale;
+	  if(nameDir.Contains("qcd")) theScale *= 1.3;
+	}
+	hTemp->Scale(theScale);
+
 	// Checks
 	if(verbose>1) {
 	  cout << "--- check:" 
@@ -262,14 +281,6 @@ Int_t XMetAnalysis::plot(TString select,
 	       << " Weight="   << weight
 	       << endl;
 	}
-
-	// Normalize
-	Double_t theScale=1.0;
-	if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
-	  theScale = _lumi*_rescale;
-	  if(nameDir.Contains("qcd")) theScale *= 1.3;
-	}
-	hTemp->Scale(theScale);
 
 	// Determine extrema
 	locMin = hTemp->GetMinimum();
@@ -312,15 +323,26 @@ Int_t XMetAnalysis::plot(TString select,
       for(UInt_t iCorr=0 ; iCorr<nCorr ; iCorr++) {
 	for(UInt_t iV=0 ; iV<nV ; iV++) {
 	  //
-	  if(verbose>1) cout << "----- produce: " << "h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+selectScan << endl;
+	  nameDir = "h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+selectScan;
+	  if(verbose>1) cout << "----- produce: " << nameDir << endl;
 	  //
 	  hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
 	  hTemp_cr_mc = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
 	  if(!hTemp_cr_d || !hTemp_cr_mc) continue;
 	  //
-	  hSRDD = (TH1F*)hTemp_cr_d->Clone("h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+selectScan);
+	  hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
 	  if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
 	  mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+
+	  if(verbose>1) {
+	    cout << "----- check:" 
+		 << " GetName="  << hSRDD->GetName()
+		 << " Entries="  << hSRDD->GetEntries()
+		 << " Integral=" << hSRDD->Integral(0, hSRDD->GetNbinsX() + 1)
+		 << " Weight="   << weight
+		 << endl;
+	  }
+
 	} // end loop:var
       } // end loop:corr options
     } // end loop:DD processes
@@ -416,12 +438,12 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(region.Contains("zctrl")) {
     leptons = "(nelectrons==0 && ntaus==0)";
     leptons *= "(zmass > 60 && zmass < 120 && mu1pid == -mu2pid && mu1pt > 20 && mu2pt > 20 && (mu1id == 1 || mu2id == 1))";
-    if(region.Contains("corr")) leptons *= "((5.942 * 1.023) / (0.79*(1.0-TMath::Exp(-0.00910276*(mumet-36.1669)))))";
+    //if(region.Contains("corr")) leptons *= "((5.942 * 1.023) / (0.79*(1.0-TMath::Exp(-0.00910276*(mumet-36.1669)))))";
   }
   else if(region.Contains("wctrl")) {
     leptons = "(nelectrons==0 && ntaus==0 && nmuons==1)";
     leptons *= "(wmt > 50 && wmt < 100 && abs(mu1eta) < 2.4 && mu1pt > 20 && mu1id == 1)";
-    if(region.Contains("corr")) leptons *= "(38.7823/TMath::Power(-85.7023 + mumet, 0.667232))";
+    //if(region.Contains("corr")) leptons *= "(38.7823/TMath::Power(-85.7023 + mumet, 0.667232))";
   }
   else {
     leptons = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
@@ -444,7 +466,7 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   TCut jetID1, jetID2, jetID3, jetIDMult, jetIDMono;
   //
   if(_tag.Contains("Run1")) { // Run1 cuts
-    jetID1 = "(signaljetpt > 110 && abs(signaljeteta) < 2 && signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
+    jetID1 = "(signaljetpt > 110 && abs(signaljeteta) < 2.4 && signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
     jetID2 = "(secondjetpt>30 && abs(secondjeteta)<4.5)";
     jetID3 = "(thirdjetpt>30 && abs(thirdjeteta)<4.5)";
     //
@@ -463,9 +485,9 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   }
 
   // Jet multiplicity, QCD killer
-  TCut jetID="";
+  TCut jetID ="";
   TCut jetBin="";
-  TCut dphi="";
+  TCut dphi  ="";
   TCut alphat="";
   TCut apcjetmetmax="apcjetmetmax>0.55";
 
@@ -478,13 +500,13 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
     jetID  = jetID1*jetIDMult;
-    dphi   = "njets==1 || abs(jetjetdphi) < 2";
+    dphi   = "njets==1 || abs(jetjetdphi) < 2.5";
     alphat = "njets==1 || alphat>0.55";
   }
   else if(select.Contains("monojet")) {
     jetBin = "njets>=1 && njets<=2";
     jetID  = jetID1*jetIDMono;
-    dphi   = "njets==1 || abs(jetjetdphi) < 2";
+    dphi   = "njets==1 || abs(jetjetdphi) < 2.5";
     alphat = "njets==1 || alphat>0.55";
   }
   else if(select.Contains("1jet")) { 
@@ -496,26 +518,30 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   else if(select.Contains("2jet")) { 
     jetBin = "njets==2"; 
     jetID  = jetID1*jetID2; 
-    dphi   = "abs(jetjetdphi) < 2";
+    dphi   = "abs(jetjetdphi) < 2.5";
     alphat = "alphat>0.55";
   }
   else if(select.Contains("3jet")) {
     jetBin = "njets==3";
     jetID  = jetID1*jetID2*jetID3;
-    dphi   = "abs(jetjetdphi) < 2";
+    dphi   = "abs(jetjetdphi) < 2.5";
     alphat = "alphat>0.55";
   }
 
-  TCut noqcd="run>-999";
-  if(     select.Contains("dphi"))          noqcd = dphi;
-  else if(select.Contains("alphat"))        noqcd = alphat;
-  else if(select.Contains("apcjetmetmax"))  noqcd = apcjetmetmax;
-  else if(select.Contains("JetMet"))        noqcd = jmdphi;
+  // QCD Killer
+  TCut noqcd="";
+  //
+  if(select.Contains("dphi"))          noqcd *= dphi;
+  if(select.Contains("alphat"))        noqcd *= alphat;
+  if(select.Contains("apcjetmetmax"))  noqcd *= apcjetmetmax;
+  if(select.Contains("JetMet"))        noqcd *= jmdphi;
+  //
+  if(_tag.Contains("dphi"))          noqcd *= dphi;
+  if(_tag.Contains("alphat"))        noqcd *= alphat;
+  if(_tag.Contains("apcjetmetmax"))  noqcd *= apcjetmetmax;
+  if(_tag.Contains("JetMet"))        noqcd *= jmdphi;
 
-  // Gives precedence to "_tag" over "select"
-  if(_tag.Contains("JetMet")) noqcd = jmdphi;
-
-  return (trig*leptons*metID*metCut*noqcd*jetID*jetBin);
+  return (trig*metCut*metID*leptons*jetID*jetBin*noqcd);
 
 }
 
@@ -534,15 +560,15 @@ Int_t XMetAnalysis::DefineChains()
 
   // Data driven backgrounds
   /// no corr
-  _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"reducedtree.root");
-  _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"reducedtree.root");
-  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "reducedtree.root");
-  _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "reducedtree.root");
+  _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"ztree.root");
+  _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"ztree.root");
+  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "wtree.root");
+  _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "wtree.root");
   /// corr
-  _mapProcess["zn_cr_corr_DA"] = XMetProcess("zn_cr_corr_DA",kAzure+7,"reducedtree.root");
-  _mapProcess["zn_cr_corr_MC"] = XMetProcess("zn_cr_corr_MC",kAzure+7,"reducedtree.root");
-  _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "reducedtree.root");
-  _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "reducedtree.root");
+  _mapProcess["zn_cr_corr_DA"] = XMetProcess("zn_cr_corr_DA",kAzure+7,"ztree.root");
+  _mapProcess["zn_cr_corr_MC"] = XMetProcess("zn_cr_corr_MC",kAzure+7,"ztree.root");
+  _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "wtree.root");
+  _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "wtree.root");
 
   // Signal
   const UInt_t nSpin=2;
