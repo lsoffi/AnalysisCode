@@ -20,11 +20,17 @@
 //
 #include "tdrstyle.h"
 
+Float_t calcBoS(Float_t totS, Float_t totB, 
+		Float_t effS, Float_t effB, Float_t &error);
+
+Int_t setStyle(TH1* g, Int_t marker, Int_t color);
 Int_t setStyle(TGraph* g, Int_t marker, Int_t color, 
 	       UInt_t nB, TString title, Bool_t zoom);
 Int_t setStyle(TLegend* leg);
 
-Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t dolog=false, Bool_t unity=true)
+Int_t rocCurve(TString _tag="", 
+	       Float_t wpQCD=0.08, Float_t wpZNN=0.93, Float_t BoS=0.01, 
+	       Bool_t useBoS=false, Bool_t dolog=false, Bool_t unity=true)
 {
 
   // Input file
@@ -68,6 +74,7 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
   const UInt_t nGZ=2;  // full/zoomed
 
   TGraph* gRoc[nS][nV][nWd][nGZ];
+  TH1F*   hBoS[nS][nV];
 
   TString tzoom[nGZ] = {"_full", "_zoom"}; 
   TString wd[nWd]    = {"upcut","lowcut"};
@@ -83,6 +90,7 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
   Float_t wpQCD_cut,wpZNN_cut;
   Float_t effQCD_wpQCD, effZNN_wpQCD, effQCD_wpZNN, effZNN_wpZNN;
   Float_t yieldQCD, yieldZNN;
+  Float_t theBos, error;
 
   yieldQCD = yieldZNN = -1;
   wpQCD_bin = wpZNN_bin = wpQCD_cut = wpZNN_cut = -1;
@@ -94,6 +102,10 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
       // Get input QCD and Znn distributions from the file
       TH1F* h_qcd = (TH1F*) file->Get("h_"+var[iV]+"_qcd_"+select[iS]);
       TH1F* h_znn = (TH1F*) file->Get("h_"+var[iV]+"_znn_"+select[iS]);
+
+      // B/S histogram
+      hBoS[iS][iV] = (TH1F*)h_znn->Clone("hBoS_"+var[iV]+"_"+select[iS]);
+      hBoS[iS][iV]->Reset();
 
       // Check that the histograms were found
       if(!h_qcd) {
@@ -122,9 +134,9 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
       // Build the graph from cumulative distributions
       // for each backward/forward case
       for(UInt_t iWd=0 ; iWd<nWd ; iWd++) {
-	Double_t cum_qcd=0, cum_znn=0;
-	Double_t yCum_qcd[nB];
-	Double_t yCum_znn[nB];
+	Float_t cum_qcd=0, cum_znn=0;
+	Float_t yCum_qcd[nB];
+	Float_t yCum_znn[nB];
 
 	// Prepare full version of the graph
 	/// Loop over the bins of the input distributions
@@ -139,6 +151,12 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
 	    yCum_qcd[iB] = 1 - cum_qcd;
 	    yCum_znn[iB] = 1 - cum_znn;
 	  }
+
+	  // B/S profile
+	  error  = 0;
+	  theBos = calcBoS(yieldZNN, yieldQCD, yCum_znn[iB], yCum_qcd[iB], error);
+	  hBoS[iS][iV]->SetBinContent(iB, theBos);
+	  hBoS[iS][iV]->SetBinError(  iB, error);
 
 	  // Find bin index corresponding to requested QCD/ZNN efficiency (wpQCD/wpZNN)
 	  if(iB>0) {
@@ -191,6 +209,7 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
 	///////////////////////////////////////////////////////////////////////////////
 	// GRAPHS /////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
 	/// use the arrays to fill the graph and draw it
 	gRoc[iS][iV][iWd][0] = new TGraph(nB, yCum_znn, yCum_qcd);
 	setStyle(gRoc[iS][iV][iWd][0], kOpenSquare, colors[iV], nB,
@@ -218,8 +237,8 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
 	///
 	/// use the indices to build arrays
 	const UInt_t nZ = idxZoom.size();
-	Double_t yZoo_qcd[nZ];
-	Double_t yZoo_znn[nZ];
+	Float_t yZoo_qcd[nZ];
+	Float_t yZoo_znn[nZ];
 	for(UInt_t iZ=0 ; iZ<nZ ; iZ++) {	
 	  yZoo_qcd[iZ] = yCum_qcd[idxZoom[iZ]];
 	  yZoo_znn[iZ] = yCum_znn[idxZoom[iZ]];
@@ -245,6 +264,33 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
       } // end loop over nWd
     }   // end loop over nV
   }     // end loop over nS
+
+  TString metCut;
+  if(_tag.Contains("NoMetCut"))    metCut = "NoMetCut";
+  else if(_tag.Contains("Met200")) metCut = "Met200";
+  else if(_tag.Contains("Met350")) metCut = "Met350";
+  else if(_tag.Contains("MetFrom0to200"))   metCut = "MetFrom0to200";
+  else if(_tag.Contains("MetFrom200to250")) metCut = "MetFrom200to250";
+  else if(_tag.Contains("MetFrom250to350")) metCut = "MetFrom250to350";
+
+  // Print BoS plots
+  for(UInt_t iS=0 ; iS<nS ; iS++) {
+    for(UInt_t iV=0 ; iV<nV ; iV++) {
+
+      if(hBoS[iS][iV]) {
+	hBoS[iS][iV]->SetTitle("Selection: "+select[iS]+" Variable: "+var[iV]);
+	setStyle(hBoS[iS][iV], kOpenSquare, colors[iV]);
+	hBoS[iS][iV]->Draw("P");
+      }
+
+      if(iV==0) 
+	cRoc.Print("plots/"+_tag+"/bos_"+select[iS]+".pdf(","Title:"+var[iV]);
+      else if(iV==nV-1)
+	cRoc.Print("plots/"+_tag+"/bos_"+select[iS]+".pdf)","Title:"+var[iV]);
+      else
+	cRoc.Print("plots/"+_tag+"/bos_"+select[iS]+".pdf","Title:"+var[iV]);
+    }
+  }
 
   // Put several killers per plot
   for(UInt_t iGZ=0 ; iGZ<nGZ ; iGZ++) {
@@ -273,13 +319,6 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
 
       leg->Draw();
 
-      TString metCut;
-      if(_tag.Contains("NoMetCut"))    metCut = "NoMetCut";
-      else if(_tag.Contains("Met200")) metCut = "Met200";
-      else if(_tag.Contains("Met350")) metCut = "Met350";
-      else if(_tag.Contains("MetFrom0to200"))   metCut = "MetFrom0to200";
-      else if(_tag.Contains("MetFrom200to250")) metCut = "MetFrom200to250";
-      else if(_tag.Contains("MetFrom250to350")) metCut = "MetFrom250to350";
       TString mysel = select[iS]+"_"+metCut;
 
       if(iS==0) 
@@ -292,6 +331,27 @@ Int_t rocCurve(TString _tag="", Float_t wpQCD=0.08, Float_t wpZNN=0.93, Bool_t d
     }
   }
   
+  return 0;
+}
+
+Float_t calcBoS(Float_t totS, Float_t totB, Float_t effS, Float_t effB, Float_t &error)
+{
+  Float_t S=effS*totS;
+  Float_t B=effB*totB;
+  error = 0.01*(B/S);
+
+  return S!=0 ? B/S : -1;
+}
+
+Int_t setStyle(TH1* g, Int_t marker, Int_t color)
+{
+
+  g->SetMarkerStyle(marker);
+  g->SetMarkerColor(color);
+  g->SetLineColor(color);
+  //g->SetMarkerSize();
+  g->SetFillColor(kWhite);
+
   return 0;
 }
 
