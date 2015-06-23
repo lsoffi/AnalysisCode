@@ -563,19 +563,7 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "reducedtree.root");
   _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "reducedtree.root");
 
-  // // Data driven backgrounds
-  // /// no corr
-  // _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"ztree.root");
-  // _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"ztree.root");
-  // _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "wtree.root");
-  // _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "wtree.root");
-  // /// corr
-  // _mapProcess["zn_cr_corr_DA"] = XMetProcess("zn_cr_corr_DA",kAzure+7,"ztree.root");
-  // _mapProcess["zn_cr_corr_MC"] = XMetProcess("zn_cr_corr_MC",kAzure+7,"ztree.root");
-  // _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "wtree.root");
-  // _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "wtree.root");
   // Data driven backgrounds
-
   /// no corr
   _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"reducedtree.root");
   _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"reducedtree.root");
