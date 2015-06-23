@@ -23,7 +23,7 @@ class XMetAnalysis {
   Int_t Analysis();
   Int_t StudyQCDKiller();
   Int_t DefineChains();
-
+  
   Int_t plot(TString select, 			 
 	     const UInt_t nCut, TString* scanCut, Bool_t* scanReset,
 	     const UInt_t nV, TString* var, 
@@ -40,10 +40,8 @@ class XMetAnalysis {
   MAP_PROCESS _mapProcess;
   MAP_PROCESS::iterator _itProcess;
   //
-  TString  _tag;
-  TString  _path;
-  Double_t _lumi;
-  Double_t _rescale;
+  TString  _tag,  _path;
+  Double_t _lumi, _rescale, _qcdScale;
   
 };
 
