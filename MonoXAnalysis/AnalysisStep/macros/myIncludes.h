@@ -21,8 +21,27 @@
 #include "TStyle.h"
 #include "TROOT.h"
 #include "TEntryList.h"
+#include "TMath.h"
 //
 #include "tdrstyle.h"
+
+using namespace std;
+
+pair<Double_t, Double_t> Integrate(TH1F* h) 
+{
+
+  if(!h) {
+    cout << "ERROR: called Integrate on a NULL histogram pointer... Abort."
+	 << endl;
+    return make_pair(-888,-777);
+  }
+
+  Double_t norm  = h->Integral(0, h->GetNbinsX() + 1);
+  Double_t ent   = h->GetEntries();
+  Double_t error = ent>0 ? TMath::Sqrt(ent) * (norm/ent) : -999;
+
+  return make_pair(norm,error);
+}
 
 Int_t setStyle(TH1F* h, Int_t color)
 {
