@@ -13,6 +13,7 @@ XMetAnalysis::XMetAnalysis(TString tag)
   _lumi    = 19.7; // Adish
   //_lumi    = 19.5; // Run1 AN
   _rescale = 1.0;
+  _qcdScale= 1.6;
   _outfile = new TFile("plots/"+_tag+"/plots_"+_tag+".root","recreate");
   _outlog  = new ofstream("plots/"+_tag+"/yields_"+_tag+".txt",ios::out);
 
@@ -91,7 +92,7 @@ Int_t XMetAnalysis::Analysis()
   Bool_t  scanReset[nCut] = {true};
 
   const UInt_t nV=1;
-  TString var[nV]    = {"mumet"};
+  TString var[nV]    = {"t1mumet"};
   UInt_t  nBins[nV]  = {50};
   Float_t xFirst[nV] = {0};
   Float_t xLast[nV]  = {1000};
@@ -179,13 +180,13 @@ Int_t XMetAnalysis::plot(TString select,
   Float_t locMin, locMax;
 
   const UInt_t nP = locProcesses.size();
-  Float_t integral=0;
 
   // Loop over chains and generate histograms //
   //
   TString nameDir, locVar, variable;
   Int_t color;
   TH1F *hTemp, *hSRDD, *hTemp_cr_d, *hTemp_cr_mc;
+  pair<Double_t, Double_t> intErr;
   //
   for(UInt_t iP=0 ; iP<nP ; iP++) {
     nameDir = locProcesses[iP];
@@ -216,14 +217,14 @@ Int_t XMetAnalysis::plot(TString select,
     if(     nameDir.Contains("zn_cr")) {
       if(nameDir.Contains("corr")) {
 	region  = "zctrl_corr";
-	weight *= "((5.942 * 1.023) / (0.79*(1.0-TMath::Exp(-0.00910276*(mumet-36.1669)))))";
+	weight *= "((5.942 * 1.023) / (0.79*(1.0-TMath::Exp(-0.00910276*(t1mumet-36.1669)))))";
       }
       else { region = "zctrl"; }
     }
     else if(nameDir.Contains("wj_cr"))  {
       if(nameDir.Contains("corr")) {
 	region  = "wctrl_corr";
-	weight *= "(38.7823/TMath::Power(-85.7023 + mumet, 0.667232))";
+	weight *= "(38.7823/TMath::Power(-85.7023 + t1mumet, 0.667232))";
       }
       else { region = "wctrl"; }
     }
@@ -266,18 +267,19 @@ Int_t XMetAnalysis::plot(TString select,
 	Double_t theScale=1.0;
 	if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
 	  theScale = _lumi*_rescale;
-	  if(nameDir.Contains("qcd")) theScale *= 1.3;
+	  if(nameDir.Contains("qcd")) theScale *= _qcdScale;
 	}
 	hTemp->Scale(theScale);
 
 	// Checks
+	intErr = Integrate(hTemp);
 	if(verbose>1) {
 	  cout << "--- check:" 
 	       << " nameDir="  << nameDir
 	       << " GetName="  << hTemp->GetName()
 	       << " Entries="  << hTemp->GetEntries()
-	       << " Integral=" << hTemp->Integral(0, hTemp->GetNbinsX() + 1)
-	    //<< " Integral=" << hTemp->Integral()
+	       << " Integral=" << intErr.first
+	       << " +/- "      << intErr.second
 	       << " Weight="   << weight
 	       << endl;
 	}
@@ -334,11 +336,13 @@ Int_t XMetAnalysis::plot(TString select,
 	  if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
 	  mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
 
+	  intErr = Integrate(hSRDD);
 	  if(verbose>1) {
 	    cout << "----- check:" 
 		 << " GetName="  << hSRDD->GetName()
 		 << " Entries="  << hSRDD->GetEntries()
-		 << " Integral=" << hSRDD->Integral(0, hSRDD->GetNbinsX() + 1)
+		 << " Integral=" << intErr.first
+		 << " +/- "      << intErr.second
 		 << " Weight="   << weight
 		 << endl;
 	  }
@@ -359,7 +363,7 @@ Int_t XMetAnalysis::plot(TString select,
     // Write 1 column title per scanned cut
     (*_outlog) << setw(14) << "Process" ;
     for(UInt_t iCut=0; iCut<nCut; iCut++) {
-      (*_outlog) << setw(14) << scanCut[iCut] ;
+      (*_outlog) << setw(29) << scanCut[iCut] ;
     }
     (*_outlog) << endl;
 
@@ -382,9 +386,10 @@ Int_t XMetAnalysis::plot(TString select,
 	  continue;
 	}
 	else {
-	  integral = hTemp->Integral(0, hTemp->GetNbinsX() + 1);
-	  //integral = hTemp->Integral();
-	  (*_outlog) << setw(14) << integral ;
+	  intErr = Integrate(hTemp);
+	  (*_outlog) << setw(14) << intErr.first 
+		     << setw(5)  << "+/-"
+		     << setw(10) << intErr.second;
 	}
       } // end loop:cuts
       (*_outlog) << endl;
@@ -438,16 +443,16 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(region.Contains("zctrl")) {
     leptons = "(nelectrons==0 && ntaus==0)";
     leptons *= "(zmass > 60 && zmass < 120 && mu1pid == -mu2pid && mu1pt > 20 && mu2pt > 20 && (mu1id == 1 || mu2id == 1))";
-    //if(region.Contains("corr")) leptons *= "((5.942 * 1.023) / (0.79*(1.0-TMath::Exp(-0.00910276*(mumet-36.1669)))))";
   }
   else if(region.Contains("wctrl")) {
     leptons = "(nelectrons==0 && ntaus==0 && nmuons==1)";
     leptons *= "(wmt > 50 && wmt < 100 && abs(mu1eta) < 2.4 && mu1pt > 20 && mu1id == 1)";
-    //if(region.Contains("corr")) leptons *= "(38.7823/TMath::Power(-85.7023 + mumet, 0.667232))";
   }
   else {
     leptons = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
   }
+
+  if(_tag.Contains("NoLepVeto")) leptons = "";
 
   // MET
   TCut metID = "(abs(pfmet - calomet) < 2*calomet)" ;
@@ -455,12 +460,12 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   //
   TCut metCut="";
   if(_tag.Contains("NoMetCut"))    metCut = "";
-  else if(_tag.Contains("Met200")) metCut = "mumet>200";
-  else if(_tag.Contains("Met250")) metCut = "mumet>250";
-  else if(_tag.Contains("Met350")) metCut = "mumet>350";
-  else if(_tag.Contains("MetFrom0to200"))   metCut = "mumet<=200";
-  else if(_tag.Contains("MetFrom200to250")) metCut = "mumet>200 && mumet<=250";
-  else if(_tag.Contains("MetFrom250to350")) metCut = "mumet>250 && mumet<=350";
+  else if(_tag.Contains("Met200")) metCut = "t1mumet>200";
+  else if(_tag.Contains("Met250")) metCut = "t1mumet>250";
+  else if(_tag.Contains("Met350")) metCut = "t1mumet>350";
+  else if(_tag.Contains("MetFrom0to200"))   metCut = "t1mumet<=200";
+  else if(_tag.Contains("MetFrom200to250")) metCut = "t1mumet>200 && t1mumet<=250";
+  else if(_tag.Contains("MetFrom250to350")) metCut = "t1mumet>250 && t1mumet<=350";
 
   // JETS
   TCut jetID1, jetID2, jetID3, jetIDMult, jetIDMono;
@@ -558,17 +563,29 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "reducedtree.root");
   _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "reducedtree.root");
 
+  // // Data driven backgrounds
+  // /// no corr
+  // _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"ztree.root");
+  // _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"ztree.root");
+  // _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "wtree.root");
+  // _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "wtree.root");
+  // /// corr
+  // _mapProcess["zn_cr_corr_DA"] = XMetProcess("zn_cr_corr_DA",kAzure+7,"ztree.root");
+  // _mapProcess["zn_cr_corr_MC"] = XMetProcess("zn_cr_corr_MC",kAzure+7,"ztree.root");
+  // _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "wtree.root");
+  // _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "wtree.root");
   // Data driven backgrounds
+
   /// no corr
-  _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"ztree.root");
-  _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"ztree.root");
-  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "wtree.root");
-  _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "wtree.root");
+  _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"reducedtree.root");
+  _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"reducedtree.root");
+  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "reducedtree.root");
+  _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "reducedtree.root");
   /// corr
-  _mapProcess["zn_cr_corr_DA"] = XMetProcess("zn_cr_corr_DA",kAzure+7,"ztree.root");
-  _mapProcess["zn_cr_corr_MC"] = XMetProcess("zn_cr_corr_MC",kAzure+7,"ztree.root");
-  _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "wtree.root");
-  _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "wtree.root");
+  _mapProcess["zn_cr_corr_DA"] = XMetProcess("zn_cr_corr_DA",kAzure+7,"reducedtree.root");
+  _mapProcess["zn_cr_corr_MC"] = XMetProcess("zn_cr_corr_MC",kAzure+7,"reducedtree.root");
+  _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "reducedtree.root");
+  _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "reducedtree.root");
 
   // Signal
   const UInt_t nSpin=2;
@@ -624,3 +641,4 @@ Int_t XMetAnalysis::DefineChains()
 
   return 0;
 }
+
