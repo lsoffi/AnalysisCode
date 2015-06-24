@@ -50,29 +50,30 @@ Int_t XMetAnalysis::Analysis()
   }
 
   // MC backgrounds
-  locProcesses.push_back("znn"); //labelProc.push_back("Z(#nu#nu)");
-  locProcesses.push_back("zll"); //labelProc.push_back("Z(ll)");
-  locProcesses.push_back("wjets"); //labelProc.push_back("W(l#nu)");
-  locProcesses.push_back("ttbar"); //labelProc.push_back("t#bar{t}");
-  locProcesses.push_back("top"); //labelProc.push_back("t");
-  locProcesses.push_back("vv"); //labelProc.push_back("VV");
-  locProcesses.push_back("qcd"); //labelProc.push_back("QCD");
+  locProcesses.push_back("znn"); 
+  locProcesses.push_back("zll"); 
+  locProcesses.push_back("wjets"); 
+  locProcesses.push_back("ttbar"); 
+  locProcesses.push_back("top"); 
+  locProcesses.push_back("vv"); 
+  locProcesses.push_back("qcd"); 
 
   // Data-driven
   /// without acc, eff, BR corrections
-  locProcesses.push_back("zn_cr_DA"); //labelProc.push_back("Z(#nu#nu) CR Data");
-  locProcesses.push_back("zn_cr_MC"); //labelProc.push_back("Z(#nu#nu) CR MC");
-  locProcesses.push_back("zn_sr_DD"); //labelProc.push_back("Z(#nu#nu) SR DD");
-  locProcesses.push_back("wj_cr_DA"); //labelProc.push_back("W(l#nu) CR Data");
-  locProcesses.push_back("wj_cr_MC"); //labelProc.push_back("W(l#nu) CR MC");
-  locProcesses.push_back("wj_sr_DD"); //labelProc.push_back("W(l#nu) SR DD");
+  locProcesses.push_back("zn_cr_DA"); 
+  locProcesses.push_back("zn_cr_MC"); 
+  locProcesses.push_back("zn_sr_DD"); 
+  locProcesses.push_back("wj_cr_DA"); 
+  locProcesses.push_back("wj_cr_MC"); 
+  locProcesses.push_back("wj_sr_DD"); 
+
   /// with acc, eff, BR corrections
-  locProcesses.push_back("zn_cr_corr_DA"); //labelProc.push_back("Z(#nu#nu) CR Data (SF)");
-  locProcesses.push_back("zn_cr_corr_MC"); //labelProc.push_back("Z(#nu#nu) CR MC (SF)");
-  locProcesses.push_back("zn_sr_corr_DD"); //labelProc.push_back("Z(#nu#nu) SR DD (SF)");
-  locProcesses.push_back("wj_cr_corr_DA"); //labelProc.push_back("W(l#nu) CR Data (SF)");
-  locProcesses.push_back("wj_cr_corr_MC"); //labelProc.push_back("W(l#nu) CR MC (SF)");
-  locProcesses.push_back("wj_sr_corr_DD"); //labelProc.push_back("W(l#nu) SR DD (SF)");
+  locProcesses.push_back("zn_cr_corr_DA"); 
+  locProcesses.push_back("zn_cr_corr_MC"); 
+  locProcesses.push_back("zn_sr_corr_DD"); 
+  locProcesses.push_back("wj_cr_corr_DA"); 
+  locProcesses.push_back("wj_cr_corr_MC"); 
+  locProcesses.push_back("wj_sr_corr_DD"); 
 
   // Selections and variables
   /*
@@ -185,7 +186,8 @@ Int_t XMetAnalysis::plot(TString select,
   //
   TString nameDir, locVar, variable;
   Int_t color;
-  TH1F *hTemp, *hSRDD, *hTemp_cr_d, *hTemp_cr_mc;
+  TH1F *hTemp, *hSRDD, *hTemp_cr_d, *hTemp_cr_mc,
+    *hTemp_sr_mc_num, *hTemp_sr_mc_den;
   pair<Double_t, Double_t> intErr;
   //
   for(UInt_t iP=0 ; iP<nP ; iP++) {
@@ -295,10 +297,19 @@ Int_t XMetAnalysis::plot(TString select,
   } // end loop:processes 
   if(verbose>1) cout << "-- end loop over processes" << endl;
   
-  // Produce sr_DD histograms
+
+  // DATA-DRIVEN //
+
+  // Prepare DD parameters
   if(verbose>1) cout << "-- Ready to produce sr_DD histograms" << endl;
-  const UInt_t nDD=2;
-  const UInt_t nCorr=2;
+  const UInt_t nDD=2;   // 2 processes to be evaluated: Z(nn), W(ln)
+  const UInt_t nCorr=2; // 2 DD methods
+  pair<Double_t, Double_t> theNum, theDen, theSF;
+  //
+  // DD scale-factor-like
+  TString myNum[nDD]    = {"znn","wjets"};
+  TString myDen[nDD]    = {"zll","wj_cr_MC"};
+  // DD corrected-like
   TString myDD[nDD]     = {"zn","wj"};
   TString myCorr[nCorr] = {"_","_corr_"};
   //
@@ -314,7 +325,7 @@ Int_t XMetAnalysis::plot(TString select,
       for(UInt_t iP=0 ; iP<nP ; iP++) {
 	if(locProcesses[iP].Contains(myDD[iDD]+"_cr")) {
 	  srddIsHere=true;
-	  break; // hammertime
+	  break; 
 	}
       }
       if(!srddIsHere) {
@@ -328,13 +339,43 @@ Int_t XMetAnalysis::plot(TString select,
 	  nameDir = "h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+selectScan;
 	  if(verbose>1) cout << "----- produce: " << nameDir << endl;
 	  //
-	  hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
-	  hTemp_cr_mc = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
-	  if(!hTemp_cr_d || !hTemp_cr_mc) continue;
+	  // Method1: corrected-like
+	  if(myCorr[iCorr].Contains("corr")) {
+	    hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
+	    hTemp_cr_mc = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
+	    if(!hTemp_cr_d || !hTemp_cr_mc) continue;
+	    //
+	    hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
+	    if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
+	    mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+	  }
 	  //
-	  hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
-	  if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
-	  mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+	  // Method2: SF-like
+	  else {
+	    hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
+	    hTemp_sr_mc_num = mapHistos[myNum[iDD]][scanCut[iCut]][var[iV]];
+	    hTemp_sr_mc_den = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
+	    if(!hTemp_cr_d || !hTemp_sr_mc_num || !hTemp_sr_mc_den) continue;
+	    //
+	    hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
+	    theSF.first = 1.0;
+	    theSF.second= 1.0;
+	    if(hTemp_sr_mc_num && hTemp_sr_mc_den) {
+	      theNum = Integrate(hTemp_sr_mc_num);
+	      theDen = Integrate(hTemp_sr_mc_den);
+	      theSF.first  = theDen.first!=0 ? theNum.first / theDen.first : 1.0;
+	    }
+	    else {
+	      theSF.first = 1.0;
+	    }
+	    hSRDD->Scale( theSF.first );
+	    mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+	    cout << "----- SF(" << nameDir 
+		 << ")=" << theNum.first 
+		 << "/"  << theDen.first
+		 << "="  << theSF.first
+		 << endl;
+	  }
 
 	  intErr = Integrate(hSRDD);
 	  if(verbose>1) {
@@ -342,9 +383,11 @@ Int_t XMetAnalysis::plot(TString select,
 		 << " GetName="  << hSRDD->GetName()
 		 << " Entries="  << hSRDD->GetEntries()
 		 << " Integral=" << intErr.first
-		 << " +/- "      << intErr.second
-		 << " Weight="   << weight
-		 << endl;
+		 << " +/- "      << intErr.second;
+	      //<< " Weight="   << weight
+	    if(!myCorr[iCorr].Contains("corr")) 
+	      cout << " SF="  << theSF.first;
+	    cout << endl;
 	  }
 
 	} // end loop:var
@@ -603,9 +646,11 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["vv"].AddDir("dibosons");
   /// data-driven (no corr)
   _mapProcess["zn_cr_DA"].AddDir("met");
-  _mapProcess["zn_cr_MC"].AddDir("bkgz");
+  //_mapProcess["zn_cr_MC"].AddDir("bkgz"); // useful only for corrected-like method
+  _mapProcess["zn_cr_MC"].AddDir("zll");
   _mapProcess["wj_cr_DA"].AddDir("met");
-  _mapProcess["wj_cr_MC"].AddDir("bkgw");
+  //_mapProcess["wj_cr_MC"].AddDir("bkgw"); // useful only for corrected-like method
+  _mapProcess["wj_cr_MC"].AddDir("wjets");
   /// data-driven (corr)
   _mapProcess["zn_cr_corr_DA"].AddDir("met");
   _mapProcess["zn_cr_corr_MC"].AddDir("bkgz");
