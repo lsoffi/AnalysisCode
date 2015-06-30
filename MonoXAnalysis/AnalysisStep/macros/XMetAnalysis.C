@@ -7,52 +7,92 @@ XMetAnalysis::XMetAnalysis(TString tag)
 {
   _tag = tag;
 
-  //_path    = "/user/ndaci/Data/XMET/MonoJetTrees/V4/test/";
-  _path    = "/user/ndaci/Data/XMET/Phys14/MonoJet7XTrees/";
-  _lumi    = 19.7;
+  _path    = "/user/ndaci/Data/XMET/5Xtrees/";
+  //_path    = "/user/ndaci/Data/XMET/7Xtrees/";
+
+  _lumi    = 19.7; // Adish
+  //_lumi    = 19.5; // Run1 AN
   _rescale = 1.0;
+  _qcdScale= 1.6;
   _outfile = new TFile("plots/"+_tag+"/plots_"+_tag+".root","recreate");
+  _outlog  = new ofstream("plots/"+_tag+"/yields_"+_tag+".txt",ios::out);
 
   DefineChains();
 }
 
 XMetAnalysis::~XMetAnalysis()
 {
-
   _outfile->Close();
-
-  // End job //
-  //delete _outfile;
-  /*
-  for(UInt_t iP=0 ; iP<nP ; iP++) {
-    delete trees[iP];
-    delete mapHistos[nameDir];
-    files[iP]->Close();
-    //delete files[iP];
-    //delete trees[iP];
-    //delete mapHistos[nameDir];
-  }
-  */
+  delete _outfile;
 }
 
-Int_t XMetAnalysis::Analysis()
+Int_t XMetAnalysis::AnalysisRun1()
 {
 
   // Processes to use
   vector<TString> locProcesses;
-  vector<TString> labelProc;
-  locProcesses.push_back("znn"); labelProc.push_back("Z(#nu#nu)");
-  locProcesses.push_back("wln"); labelProc.push_back("W(l#nu)");
-  locProcesses.push_back("ttbar"); labelProc.push_back("t#bar{t}");
-  locProcesses.push_back("zll"); labelProc.push_back("Z(ll)");
-  locProcesses.push_back("qcd"); labelProc.push_back("QCD");
+
+  // Data
+  locProcesses.push_back("data");
+
+  // Signal
+  const UInt_t nSpin=2;
+  const UInt_t nMass=9;
+  TString nameSpin[nSpin] = {"V","AV"};
+  TString nameMass[nMass] = {"0p1","1","10","100","200","300","400","700","1000"};
+  TString nameProcess;
+  for(UInt_t iS=0 ; iS<nSpin ; iS++) {
+    for(UInt_t iM=0 ; iM<nMass ; iM++) {
+      nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
+      locProcesses.push_back(nameProcess); 
+    }
+  }
+
+  // MC backgrounds
+  locProcesses.push_back("znn"); 
+  locProcesses.push_back("zll"); 
+  locProcesses.push_back("wjets"); 
+  locProcesses.push_back("ttbar"); 
+  locProcesses.push_back("top"); 
+  locProcesses.push_back("vv"); 
+  locProcesses.push_back("qcd"); 
+
+  // Data-driven
+  /// without acc, eff, BR corrections
+  locProcesses.push_back("zn_cr_DA"); 
+  locProcesses.push_back("zn_cr_MC"); 
+  locProcesses.push_back("zn_sr_DD"); 
+  locProcesses.push_back("wj_cr_DA"); 
+  locProcesses.push_back("wj_cr_MC"); 
+  locProcesses.push_back("wj_sr_DD"); 
+
+  /// with acc, eff, BR corrections
+  locProcesses.push_back("zn_cr_corr_DA"); 
+  locProcesses.push_back("zn_cr_corr_MC"); 
+  locProcesses.push_back("zn_sr_corr_DD"); 
+  locProcesses.push_back("wj_cr_corr_DA"); 
+  locProcesses.push_back("wj_cr_corr_MC"); 
+  locProcesses.push_back("wj_sr_corr_DD"); 
 
   // Selections and variables
-  const UInt_t nS=5;
-  const UInt_t nV=1;
-  TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
-  TString var[nV]    = {"mumet"};
+  const UInt_t nS=3;
+  TString select[nS] = {"1jet","2jet","3jet"};
+  /*
+  const UInt_t nS=1;
+  TString select[nS] = {"monojet"};
+  */
 
+  const UInt_t nCut=5;
+  TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
+  Bool_t  scanReset[nCut] = {true,true,true,true,true};
+  /*
+  const UInt_t nCut=1;
+  TString scanCut[  nCut] = {"NoJmCut"};
+  Bool_t  scanReset[nCut] = {true};
+  */
+
+  const UInt_t nV=1;
+  TString var[nV]    = {"t1mumet"};
   UInt_t  nBins[nV]  = {50};
   Float_t xFirst[nV] = {0};
   Float_t xLast[nV]  = {1000};
@@ -61,7 +101,8 @@ Int_t XMetAnalysis::Analysis()
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, false, locProcesses, labelProc);
+    //select, nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, vector<TString> locProcesses
+    plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
 
   }
 
@@ -71,11 +112,6 @@ Int_t XMetAnalysis::Analysis()
 Int_t XMetAnalysis::StudyQCDKiller()
 {
 
-  // STYLE
-  //gROOT->Reset();
-  //loadPresentationStyle();
-  //gROOT->ForceStyle();
-
   // Processes to use
   vector<TString> locProcesses;
   vector<TString> labelProc;
@@ -84,233 +120,425 @@ Int_t XMetAnalysis::StudyQCDKiller()
 
   // Selections and variables
   const UInt_t nS=5;
-  const UInt_t nV=5;
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
-  TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin","jetjetdphi","jetmetdphimin"};
-  UInt_t  nBins[nV]  = {40, 50, 50, 50,  50};
-  //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500};
-  //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000};
-  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000};
-  Float_t xFirst[nV] = {0,  0,  0,  0,   0  };
-  Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};
 
-  /*
-  const UInt_t nS=1;
-  const UInt_t nV=2;
-  TString select[nS] = {"3jet"};
-  TString var[nV]    = {"alphat","apcjetmetmin"};
-  UInt_t  nBins[nV]  = {40,50};
-  Float_t xFirst[nV] = {0,0};
-  Float_t xLast[nV]  = {2,1};
-  */
+  const UInt_t nCut=1;
+  TString scanCut[  nCut] = {"1"};
+  Bool_t  scanReset[nCut] = {true};
+
+  const UInt_t nV=7;
+  TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
+			"jetjetdphi","jetmetdphimin",
+			"dphiJ1J3","dphiJ2J3"};
+  //
+  //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50, 50, 50};
+  //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500, 500, 500};
+  //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000, 1000, 1000};
+  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000, 5000, 5000};
+  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000, 10000, 10000, 10000};
+  //
+  Float_t xFirst[nV] = {0,  0,  0,  0,   0  , 0  , 0};
+  Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2, 3.2, 3.2};
+
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    plot(select[iS], nV, var, nBins, xFirst, xLast, false, false, true, locProcesses, labelProc);
+    plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
 
   }
 
+  _outfile->Close();
   return 0;
 }
 
-Int_t XMetAnalysis::plot(TString select, const UInt_t nV, TString* var,
+Int_t XMetAnalysis::plot(TString select, 
+			 const UInt_t nCut, TString* scanCut, Bool_t* scanReset,
+			 const UInt_t nV,    TString* var, 
 			 UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
-			 Bool_t stack, Bool_t dolog, Bool_t unity,
-			 vector<TString> locProcesses, vector<TString> labelProc)
+			 vector<TString> locProcesses)
 {
 
+  (*_outlog) << "Selection: " << select << endl;
+
   // Define selections //
-  TCut weight;
-  TCut cut = defineCut(select);
+  TString selectScan;
+  TCut weight="";
+  TString region = "signal";
+  TCut cut = defineCut(select, region);
 
   // Declare histograms //
-  map<TString, map<TString,TH1F*> > mapVarHistos;
+  M_PROCESS_CUT_VAR_H mapHistos;
   Float_t minPlot = 9999999.;
   Float_t maxPlot = -9999999.;
-  Float_t locMin, locMax, integral;
+  Float_t locMin, locMax;
+
+  const UInt_t nP = locProcesses.size();
 
   // Loop over chains and generate histograms //
   //
   TString nameDir, locVar, variable;
   Int_t color;
-  TChain* chain;
-  TH1F* hTemp;
+  TH1F *hTemp, *hSRDD, *hTemp_cr_d, *hTemp_cr_mc,
+    *hTemp_num, *hTemp_den;
+  pair<Double_t, Double_t> intErr;
   //
-  for(UInt_t iP=0 ; iP<locProcesses.size() ; iP++) {
+  for(UInt_t iP=0 ; iP<nP ; iP++) {
+    nameDir = locProcesses[iP];
+
+    // SR data-driven histograms don't have chains
+    if(nameDir.Contains("DD")) continue;
 
     // check if current requested process is available
-    nameDir = locProcesses[iP];
     if(_mapProcess.find(nameDir)==_mapProcess.end()) { 
-      if(verbose>1) cout << "-- ERROR: requested process '" << locProcesses[iP] << "' unavailable." << endl;
+      if(verbose>1) {
+	cout << "-- ERROR: requested process '" 
+	     << locProcesses[iP] << "' unavailable." << endl;
+      }
       continue;
     }
-
-    // Process and corresponding chain
-    chain   = _mapProcess[nameDir].first;
-    color   = _mapProcess[nameDir].second.second;
-    if(verbose>1) cout << "--- process : " << nameDir << endl;
+    //
+    if(verbose>1) cout << "-- process : " << nameDir << endl;
 
     // Define reweighting
-    if( nameDir.Contains("met") ) weight = "1";
-    else weight = "puwgt*wgt";
-
-    // Define skim for current process and requested selection
-    //chain->Draw(">>+skim_"+nameDir, cut,"entrylist",100); // FIXME ND
-    chain->Draw(">>+skim_"+nameDir, cut,"entrylist");
-    TEntryList *skim = (TEntryList*)gDirectory->Get("skim_"+nameDir);
-    int nEntries = skim->GetN();
-    chain->SetEntryList(skim);
-    if(verbose>1) cout << "--- produced skim : " << nEntries << " entries" << endl;
-    
-    // Loop over requested variables
-    for(UInt_t iV=0 ; iV<nV ; iV++) {
-
-      // Define histogram and set style
-      mapVarHistos[nameDir][var[iV]] = new TH1F("h_"+var[iV]+"_"+nameDir+"_"+select, 
-						var[iV]+" "+nameDir+" "+select,
-						nBins[iV], xFirst[iV], xLast[iV]);
-      hTemp = mapVarHistos[nameDir][var[iV]];
-      setStyle( hTemp , color );
-
-      // Draw the variable
-      locVar = var[iV];
-      if(var[iV].Contains("phi")) locVar = "abs("+var[iV]+")";
-      chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight);
-      //chain->Draw(locVar+">>"+TString(hTemp->GetName()), cut*weight, "", 100); // FIXME ND
-
-      // Normalize
-      if( !nameDir.Contains("met") ) hTemp->Scale(_lumi*_rescale);
-      integral = hTemp->Integral();
-      if(unity && integral!=0) hTemp->Scale(1/integral);
-
-      // Determine extrema
-      locMin = hTemp->GetMinimum();
-      locMax = hTemp->GetMaximum();
-      if(locMin<minPlot) minPlot = locMin;
-      if(locMax>maxPlot) maxPlot = locMax;
+    if( nameDir.Contains("data") ||
+	nameDir.Contains("DA") ) {
+      weight = "1";
     }
+    else { weight = "puwgt*wgt"; }
 
-    chain->SetEntryList(0);
-    skim->Reset();
-  }
-  
-  // Save histograms //
-  _outfile->cd();
-  map<TString, map<TString,TH1F*> >::iterator itVarHistos;
-  map<TString,TH1F*>::iterator itHistos;
-  for( itVarHistos=mapVarHistos.begin() ; itVarHistos!=mapVarHistos.end() ; itVarHistos++) {
-    for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
-      itHistos->second->Write();
-    }
-  }
-
-  // Produce the plot for each variable //
-  for(UInt_t iV=0 ; iV<nV ; iV++) {
-
-    // Prepare TCanvas /////
-    TCanvas c("c","c",20,20,600,600);
-    c.SetFillColor(0);
-    c.SetBorderMode(0);
-    c.SetBorderSize(2);
-    c.SetFrameBorderMode(0);
-    c.SetFrameBorderMode(0);
-    //
-    if(dolog) gPad->SetLogy();
-    //
-    // Add legend
-    TLegend* leg = new TLegend(0.88,0.65,0.98,0.76,"","brNDC");
-    leg->SetLineColor(1);
-    leg->SetTextColor(1);
-    leg->SetTextFont(42);
-    leg->SetTextSize(0.0244755);
-    leg->SetShadowColor(kWhite);
-    leg->SetFillColor(kWhite);  
-  
-    // LOOP OVER PROCESSES' HISTO //
-    Bool_t first=true;
-    
-    for(UInt_t iP=0 ; iP<locProcesses.size() ; iP++) {
-
-      hTemp = mapVarHistos[locProcesses[iP]][var[iV]];
-
-      if(hTemp) {
-	if(first) {
-	  first=false;
-	  
-	  if(!stack) {
-	    hTemp->SetMinimum(minPlot);
-	    hTemp->SetMaximum(maxPlot);
-	    if(!dolog) hTemp->SetMinimum(0.);
-	    else       hTemp->SetMinimum(minPlot!=0 ? minPlot : 0.0001);
-	    if(unity) hTemp->SetMaximum(1.1);
-	  }
-	  else {
-	    
-	  }
-
-	  hTemp->Draw("HISTE1");
-	}
-	
-	hTemp->Draw("HISTE1SAME");
+    // Choose the phase space region
+    region = "signal";
+    if(     nameDir.Contains("zn_cr")) {
+      if(nameDir.Contains("corr")) {
+	region  = "zctrl_corr";
+	weight *= "((5.942 * 1.023) / (0.79*(1.0-TMath::Exp(-0.00910276*(t1mumet-36.1669)))))";
       }
+      else { region = "zctrl"; }
+    }
+    else if(nameDir.Contains("wj_cr"))  {
+      if(nameDir.Contains("corr")) {
+	region  = "wctrl_corr";
+	weight *= "(38.7823/TMath::Power(-85.7023 + t1mumet, 0.667232))";
+      }
+      else { region = "wctrl"; }
+    }
+    else {region = "signal";}
+
+    // Loop over cuts to be scanned
+    for(UInt_t iCut=0; iCut<nCut; iCut++) {
+
+      selectScan = select+"_"+scanCut[iCut];
+      cut = defineCut(selectScan, region);
       
-      leg->AddEntry(hTemp,labelProc[iP],"L");
-    }
-  
-    // Compute shape compatibility
+      // Skim the chain
+      _mapProcess[nameDir].Skim(selectScan, cut, scanReset[iCut]);
+
+      // Loop over requested variables
+      for(UInt_t iV=0 ; iV<nV ; iV++) {
+
+	if(verbose>1) cout << "--- variable: " << var[iV] << endl;
+
+	// Define histogram and set style
+	mapHistos[nameDir][scanCut[iCut]][var[iV]] = 
+	  new TH1F("h_"+var[iV]+"_"+nameDir+"_"+selectScan, 
+		   var[iV]+" "+nameDir+" "+selectScan,
+		   nBins[iV], xFirst[iV], xLast[iV]);
+
+	hTemp = mapHistos[nameDir][scanCut[iCut]][var[iV]];
+	color = _mapProcess[nameDir].GetColor();
+	setStyle( hTemp , color );
+
+	// Draw the variable
+	locVar = var[iV];
+	if(var[iV].Contains("phi"))  locVar = "abs("+var[iV]+")";
+	if(     var[iV]=="dphiJ1J3") locVar = "abs(signaljetphi-thirdjetphi)";
+	else if(var[iV]=="dphiJ2J3") locVar = "abs(secondjetphi-thirdjetphi)";
+
+	_mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
+	if(verbose>1) cout << "--- drew variable: " << locVar << endl;
+
+	// Normalize
+	Double_t theScale=1.0;
+	if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
+	  theScale = _lumi*_rescale;
+	  if(nameDir.Contains("qcd")) theScale *= _qcdScale;
+	}
+	hTemp->Scale(theScale);
+
+	// Checks
+	intErr = Integrate(hTemp);
+	if(verbose>1) {
+	  cout << "--- check:" 
+	       << " nameDir="  << nameDir
+	       << " GetName="  << hTemp->GetName()
+	       << " Entries="  << hTemp->GetEntries()
+	       << " Integral=" << intErr.first
+	       << " +/- "      << intErr.second
+	       << " Weight="   << weight
+	       << endl;
+	}
+
+	// Determine extrema
+	locMin = hTemp->GetMinimum();
+	locMax = hTemp->GetMaximum();
+	if(locMin<minPlot) minPlot = locMin;
+	if(locMax>maxPlot) maxPlot = locMax;
+
+      } // end loop:variables
+    } // end loop:cuts
+  } // end loop:processes 
+  if(verbose>1) cout << "-- end loop over processes" << endl;
   
 
-    // Draw and Print
-    leg->Draw();
-    //
-    if(nV>1) {
-      if(iV==0)
-	c.Print("plots/"+_tag+"/plots_"+select+".pdf(" , "Title:"+var[iV]);
-      else if(iV==nV-1)
-	c.Print("plots/"+_tag+"/plots_"+select+".pdf)" , "Title:"+var[iV]);
-      else
-	c.Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
-    }
-    else {
-      c.Print("plots/"+_tag+"/plots_"+select+".pdf"  , "Title:"+var[iV]);
-    }
+  // DATA-DRIVEN //
 
-  }
+  // Prepare DD parameters
+  if(verbose>1) cout << "-- Ready to produce sr_DD histograms" << endl;
+  const UInt_t nDD=2;   // 2 processes to be evaluated: Z(nn), W(ln)
+  const UInt_t nCorr=2; // 2 DD methods
+  pair<Double_t, Double_t> theNum, theDen, theSF;
+  //
+  // DD scale-factor-like
+  TString myNum[nDD]    = {"znn","wjets"};
+  TString myDen[nDD]    = {"zn_cr_MC","wj_cr_MC"};
+  // DD corrected-like
+  TString myDD[nDD]     = {"zn","wj"};
+  TString myCorr[nCorr] = {"_","_corr_"};
+  //
+
+  // Loop over cuts to be scanned
+  for(UInt_t iCut=0; iCut<nCut; iCut++) {
+    selectScan = select+"_"+scanCut[iCut];
+
+    for(UInt_t iDD=0 ; iDD<nDD ; iDD++) {
+    
+      // Check that the current process (znn or wj) has been requested initially
+      bool srddIsHere=false;
+      for(UInt_t iP=0 ; iP<nP ; iP++) {
+	if(locProcesses[iP].Contains(myDD[iDD]+"_cr")) {
+	  srddIsHere=true;
+	  break; 
+	}
+      }
+      if(!srddIsHere) {
+	if(verbose>1) cout << "--- unrequested process: " << myDD[iDD] << endl;
+	continue;
+      }
+
+      for(UInt_t iCorr=0 ; iCorr<nCorr ; iCorr++) {
+	for(UInt_t iV=0 ; iV<nV ; iV++) {
+	  //
+	  nameDir = "h_"+var[iV]+"_"+myDD[iDD]+"_sr"+myCorr[iCorr]+"DD_"+selectScan;
+	  if(verbose>1) cout << "----- produce: " << nameDir << endl;
+	  //
+	  // Method1: corrected-like
+	  if(myCorr[iCorr].Contains("corr")) {
+	    hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
+	    hTemp_cr_mc = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
+	    if(!hTemp_cr_d || !hTemp_cr_mc) continue;
+	    //
+	    hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
+	    if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
+	    mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+	  }
+	  //
+	  // Method2: SF-like
+	  else {
+	    hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
+	    hTemp_num = mapHistos[myNum[iDD]][scanCut[iCut]][var[iV]];
+	    hTemp_den = mapHistos[myDen[iDD]][scanCut[iCut]][var[iV]];
+	    if(!hTemp_cr_d || !hTemp_num || !hTemp_den) continue;
+	    //
+	    hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
+	    theSF.first = 1.0;
+	    theSF.second= 1.0;
+	    if(hTemp_num && hTemp_den) {
+	      theNum = Integrate(hTemp_num);
+	      theDen = Integrate(hTemp_den);
+	      theSF.first  = theDen.first!=0 ? theNum.first / theDen.first : 1.0;
+	    }
+	    else {
+	      theSF.first = 1.0;
+	    }
+	    hSRDD->Scale( theSF.first );
+	    mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+	    cout << "----- SF(" << nameDir 
+		 << ")=" << theNum.first 
+		 << "/"  << theDen.first
+		 << "="  << theSF.first
+		 << endl;
+	  }
+
+	  intErr = Integrate(hSRDD);
+	  if(verbose>1) {
+	    cout << "----- check:" 
+		 << " GetName="  << hSRDD->GetName()
+		 << " Entries="  << hSRDD->GetEntries()
+		 << " Integral=" << intErr.first
+		 << " +/- "      << intErr.second;
+	      //<< " Weight="   << weight
+	    if(!myCorr[iCorr].Contains("corr")) 
+	      cout << " SF="  << theSF.first;
+	    cout << endl;
+	  }
+
+	} // end loop:var
+      } // end loop:corr options
+    } // end loop:DD processes
+  } //end loop:cuts to be scanned
   //////////////////////////
 
+  // Yields outlog //
+
+  // Loop over variables
+  for(UInt_t iV=0 ; iV<nV ; iV++) {
+    // Print out variable and processes names
+    (*_outlog) << "Var: " << var[iV] << endl;
+
+    // Write 1 column title per scanned cut
+    (*_outlog) << setw(14) << "Process" ;
+    for(UInt_t iCut=0; iCut<nCut; iCut++) {
+      (*_outlog) << setw(23) << scanCut[iCut] ;
+    }
+    (*_outlog) << endl;
+
+    // Loop over processes
+    for(UInt_t iP=0 ; iP<nP ; iP++) {
+
+      // Write out process name
+      (*_outlog) << setw(14) << locProcesses[iP] ;
+
+      // Get histogram
+      for(UInt_t iCut=0; iCut<nCut; iCut++) {
+	hTemp = mapHistos[locProcesses[iP]][scanCut[iCut]][var[iV]];
+	if(!hTemp) {
+	  if(verbose>1) {
+	    cout << "ERROR : yield loop did not find histo:"
+		 << locProcesses[iP]+" "+var[iV]
+		 << endl;
+	  }
+	  (*_outlog) << setw(23) << "ERROR" ;
+	  continue;
+	}
+	else {
+	  intErr = Integrate(hTemp);
+	  (*_outlog) << setw(10) << intErr.first 
+		     << setw(5)  << "+/-"
+		     << setw(8) << intErr.second;
+	}
+      } // end loop:cuts
+      (*_outlog) << endl;
+    }   // end loop:processes
+    //
+    (*_outlog) << endl;
+  } // end loop over var
+    //
+  (*_outlog) << endl;
+
+  //////////////////////////
+
+  // Save histograms //
+  _outfile->cd();
+  if(verbose>2) cout << "-- _outfile->cd()... done" << endl;
+  TString nameHisto;
+  M_PROCESS_CUT_VAR_H::iterator itCutVarHistos;
+  M_CUT_VAR_H::iterator itVarHistos;
+  M_VAR_H::iterator itHistos;
+  //
+  for( itCutVarHistos=mapHistos.begin() ; itCutVarHistos!=mapHistos.end() ; itCutVarHistos++) {
+    for( itVarHistos=itCutVarHistos->second.begin() ; itVarHistos!=itCutVarHistos->second.end() ; itVarHistos++) {
+      for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
+
+	hTemp = itHistos->second;
+
+	if(hTemp) {
+	  nameHisto = hTemp->GetName();
+	  hTemp->Write();
+	  if(verbose>2) cout << "---- histo written: " << nameHisto << endl;
+	  delete hTemp;
+	  if(verbose>2) cout << "---- histo deleted: " << nameHisto << endl;	
+	}
+      }// end loop:histos
+    }  // end loop:variables
+  }    // end loop:cuts
+  //////////////////////////
+
+  // END //
   return 1;
 }
 
-TCut XMetAnalysis::defineCut(TString select)
+TCut XMetAnalysis::defineCut(TString select, TString region)
 {
 
-  //TCut trig   = "(hltjet140met100mht140 > 0)";
-  TCut trig   = "(mumet>200)";
-  TCut veto   = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
+  // Trigger
+  TCut trig  = "(hltmet120 > 0 || hltmet95jet80 > 0 || hltmet105jet80 > 0)";
 
-  //TCut metID  = "(abs(pfmet - calomet) < 2*calomet)" ;
-  TCut metID  = "" ;
-  TCut metCut = "" ;
+  // Lepton selection depending on the region
+  TCut leptons = "";
+  if(region.Contains("zctrl")) {
+    leptons = "(nelectrons==0 && ntaus==0)";
+    leptons *= "(zmass > 60 && zmass < 120 && mu1pid == -mu2pid && mu1pt > 20 && mu2pt > 20 && (mu1id == 1 || mu2id == 1))";
+  }
+  else if(region.Contains("wctrl")) {
+    leptons = "(nelectrons==0 && ntaus==0 && nmuons==1)";
+    leptons *= "(wmt > 50 && wmt < 100 && abs(mu1eta) < 2.4 && mu1pt > 20 && mu1id == 1)";
+  }
+  else {
+    leptons = "(nmuons == 0 && nelectrons == 0 && ntaus == 0)";
+  }
 
-  TCut jetID1 = "(signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
-  TCut jetID2 = "(secondjetNHfrac < 0.7 && secondjetEMfrac < 0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)";
-  TCut jetID3 = "(thirdjetpt>30 && abs(thirdjeteta)<4.5)"; // FIXME ND
-  //TCut jetID3 = "(thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9)";
+  if(_tag.Contains("NoLepVeto")) leptons = "";
 
-  //TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9)&&(njets==2 || (njets==3 && thirdjetNHfrac<0.7 && thirdjetEMfrac<0.9) ) ) )" ;
-  TCut jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5) ) ) )" ;
-  TCut jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5) )" ;
+  // MET
+  TCut metID = "(abs(pfmet - calomet) < 2*calomet)" ;
+  if(_tag.Contains("NoMetClean"))  metID  = "";
+  //
+  TCut metCut="";
+  if(_tag.Contains("NoMetCut"))    metCut = "";
+  else if(_tag.Contains("Met200")) metCut = "t1mumet>200";
+  else if(_tag.Contains("Met250")) metCut = "t1mumet>250";
+  else if(_tag.Contains("Met350")) metCut = "t1mumet>350";
+  else if(_tag.Contains("MetFrom0to200"))   metCut = "t1mumet<=200";
+  else if(_tag.Contains("MetFrom200to250")) metCut = "t1mumet>200 && t1mumet<=250";
+  else if(_tag.Contains("MetFrom250to350")) metCut = "t1mumet>250 && t1mumet<=350";
 
-  TCut jetKine1 = "signaljetpt > 110 && abs(signaljeteta) < 2.4";
+  // JETS
+  TCut jetID1, jetID2, jetID3, jetIDMult, jetIDMono;
+  //
+  if(_tag.Contains("Run1")) { // Run1 cuts
+    jetID1 = "(signaljetpt > 110 && abs(signaljeteta) < 2.4 && signaljetNHfrac < 0.7 && signaljetEMfrac < 0.7 && signaljetCHfrac > 0.2)";
+    jetID2 = "(secondjetpt>30 && abs(secondjeteta)<4.5)";
+    jetID3 = "(thirdjetpt>30 && abs(thirdjeteta)<4.5)";
+    //
+    jetIDMult = "(njets==1 || ( (secondjetpt>30 && abs(secondjeteta)<4.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<4.5) ) ) )" ;
+    //
+    jetIDMono = "(njets==1 || (njets==2 && secondjetpt>30 && abs(secondjeteta)<4.5) )" ;
+  }
+  else { // Updated cuts
+    jetID1 = "(signaljetpt>110 && abs(signaljeteta)<2.4 && signaljetNHfrac<0.7 && signaljetEMfrac<0.7 && signaljetCHfrac > 0.2)";
+    jetID2 = "(secondjetpt>30  && abs(secondjeteta)<2.4 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9)";
+    jetID3 = "( thirdjetpt>30  &&  abs(thirdjeteta)<2.4 &&  thirdjetNHfrac<0.7 &&  thirdjetEMfrac<0.9)";
+    //
+    jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<4.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<4.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9) ) ) )" ;
+    //
+    jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<4.5) )" ;
+  }
 
-  TCut jetID;
-  TCut jetBin;
-  TCut dphi;
-  TCut alphat;
+  // Jet multiplicity, QCD killer
+  TCut jetID ="";
+  TCut jetBin="";
+  TCut dphi  ="";
+  TCut alphat="";
   TCut apcjetmetmax="apcjetmetmax>0.55";
 
+  TCut jmdphi="";
+  if(     select.Contains("JetMet0p2")) jmdphi = "abs(jetmetdphimin)>0.2";
+  else if(select.Contains("JetMet0p4")) jmdphi = "abs(jetmetdphimin)>0.4";
+  else if(select.Contains("JetMet0p6")) jmdphi = "abs(jetmetdphimin)>0.6";
+  else if(select.Contains("JetMet0p8")) jmdphi = "abs(jetmetdphimin)>0.8";
+  
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
     jetID  = jetID1*jetIDMult;
@@ -342,83 +570,127 @@ TCut XMetAnalysis::defineCut(TString select)
     alphat = "alphat>0.55";
   }
 
-  TCut noqcd="run>-999";
-  if(     select.Contains("dphi"))      noqcd = dphi;
-  else if(select.Contains("alphat"))    noqcd = alphat;
-  else if(select.Contains("apcjetmetmax")) noqcd = apcjetmetmax;
+  // QCD Killer
+  TCut noqcd="";
+  //
+  if(select.Contains("dphi"))          noqcd *= dphi;
+  if(select.Contains("alphat"))        noqcd *= alphat;
+  if(select.Contains("apcjetmetmax"))  noqcd *= apcjetmetmax;
+  if(select.Contains("JetMet"))        noqcd *= jmdphi;
+  //
+  if(_tag.Contains("dphi"))          noqcd *= dphi;
+  if(_tag.Contains("alphat"))        noqcd *= alphat;
+  if(_tag.Contains("apcjetmetmax"))  noqcd *= apcjetmetmax;
+  if(_tag.Contains("JetMet"))        noqcd *= jmdphi;
 
-  //cout << trig*veto*metID*noqcd*jetID*jetKine1*jetBin << endl;
-  //return (trig*veto*metID*noqcd*jetID*jetKine1*jetBin);
-  return (trig*veto*noqcd*jetID*jetKine1*jetBin);
+  return (trig*metCut*metID*leptons*jetID*jetBin*noqcd);
 
-}
-
-int XMetAnalysis::setStyle(TH1F* h, Int_t color)
-{
-  h->Sumw2();
-
-  h->SetMarkerSize(0.5);
-  h->SetMarkerStyle(kPlus);
-
-  h->SetLineColor(color);
-  h->SetMarkerColor(color);
-  //h->SetFillColor(color);
-
-  return 0;
 }
 
 Int_t XMetAnalysis::DefineChains()
 {
   if(verbose>1) cout << "- begin DefineChains()" << endl;
 
-  // Processes
+  // MC backgrounds
+  _mapProcess["znn"  ] = XMetProcess("znn",   kAzure+7,  "reducedtree.root");
+  _mapProcess["zll"  ] = XMetProcess("zll",   kPink+9,   "reducedtree.root");
+  _mapProcess["wjets"] = XMetProcess("wjets", kGreen+2,  "reducedtree.root");
+  _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3,"reducedtree.root");
+  _mapProcess["qcd"  ] = XMetProcess("qcd",   kRed,      "reducedtree.root");
+  _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "reducedtree.root");
+  _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "reducedtree.root");
+
+  // Data driven backgrounds
+  /// no corr
+  _mapProcess["zn_cr_DA"] = XMetProcess("zn_cr_DA",kAzure+7,"reducedtree.root");
+  _mapProcess["zn_cr_MC"] = XMetProcess("zn_cr_MC",kAzure+7,"reducedtree.root");
+  _mapProcess["wj_cr_DA" ] = XMetProcess("wj_cr_DA", kGreen+2, "reducedtree.root");
+  _mapProcess["wj_cr_MC" ] = XMetProcess("wj_cr_MC", kGreen+2, "reducedtree.root");
+  /// corr
+  _mapProcess["zn_cr_corr_DA"] = XMetProcess("zn_cr_corr_DA",kAzure+7,"reducedtree.root");
+  _mapProcess["zn_cr_corr_MC"] = XMetProcess("zn_cr_corr_MC",kAzure+7,"reducedtree.root");
+  _mapProcess["wj_cr_corr_DA" ] = XMetProcess("wj_cr_corr_DA", kGreen+2, "reducedtree.root");
+  _mapProcess["wj_cr_corr_MC" ] = XMetProcess("wj_cr_corr_MC", kGreen+2, "reducedtree.root");
+
+  // Signal
+  const UInt_t nSpin=2;
+  const UInt_t nMass=9;
+  TString nameSpin[nSpin] = {"V","AV"};
+  TString nameMass[nMass] = {"0p1","1","10","100","200","300","400","700","1000"};
+  // FIXME
+  /*
+  Double_t dmXSec[nMass][nSpin] 
+    = { {,},
+	{,},
+	{,},
+	{,},
+	{,},
+	{,},
+	{,},
+	{,},
+	{,} };
   //
-  // {"bkgnowz","bkgw","bkgz","dibosons","met","qcd","singletop","ttbar","wjets","zjets","znn"};
-  // {kGreen, kGreen, kBlue, kRed, kBlack, kYellow, kOrange, kViolet, kGreen, kMagenta-10, kBlue};
+  Int_t dmNGen[nMass][nSpin] 
+    = { {64436,65480},
+	{40433,43034},
+	{44266,39712},
+	{41514,43225},
+	{48028,43699},
+	{45040,47848},
+	{45546,47770},
+	{52487,46773},
+	{44781,46569} };
+  */
   //
-  _mapProcess["znn"].second.second       = kAzure+7;
-  //_mapProcess["wln"].second.second       = kSpring-9;
-  _mapProcess["wln"].second.second       = kGreen+2;
-  _mapProcess["ttbar"].second.second     = kMagenta+3;
-  _mapProcess["singletop"].second.second = kOrange-3;
-  _mapProcess["qcd"].second.second       = kRed;
-  _mapProcess["dibosons"].second.second  = kBlue+1;
-  _mapProcess["zll"].second.second       = kPink+9;
-  //
-  _mapProcess["znn"].second.first.push_back("znunu");
-  //
-  _mapProcess["wln"].second.first.push_back("wjets");
-  // 
-  _mapProcess["ttbar"].second.first.push_back("ttbar"); 
-  //
-  //_mapProcess["singletop"].second.first.push_back("");
-  //
-  _mapProcess["qcd"].second.first.push_back("qcd");
-  //
-  //_mapProcess["dibosons"].second.first.push_back("ww"); 
-  //_mapProcess["dibosons"].second.first.push_back("zz"); 
-  //_mapProcess["dibosons"].second.first.push_back("wz"); 
-  //
-  _mapProcess["zll"].second.first.push_back("zjets");
-  //
+  TString nameProcess;
+  for(UInt_t iS=0 ; iS<nSpin ; iS++) {
+    for(UInt_t iM=0 ; iM<nMass ; iM++) {
+      nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
+      _mapProcess[nameProcess] = XMetProcess(nameProcess, kBlack, "tree_"+nameProcess+".root");
+      _mapProcess[nameProcess].AddDir("signal");
+      //_mapProcess[nameProcess].SetXSec(dmXSec[iM][iS]); // FIXME
+      //_mapProcess[nameProcess].SetNGen(dmNGen[iM][iS]);
+    }
+  }
+
+  // Data
+  _mapProcess["data"]   = XMetProcess("data",   kBlack, "reducedtree.root");
+
+  // Sub-directories in _path
+  /// mc backgrounds
+  _mapProcess["znn"].AddDir("znn");
+  _mapProcess["zll"].AddDir("zll");
+  _mapProcess["wjets"].AddDir("wjets");
+  _mapProcess["ttbar"].AddDir("ttbar");
+  _mapProcess["top"].AddDir("singletop");
+  _mapProcess["qcd"].AddDir("qcd");
+  _mapProcess["vv"].AddDir("dibosons");
+  /// data-driven (no corr)
+  _mapProcess["zn_cr_DA"].AddDir("met");
+  _mapProcess["zn_cr_MC"].AddDir("zll");
+  _mapProcess["wj_cr_DA"].AddDir("met");
+  _mapProcess["wj_cr_MC"].AddDir("wjets");
+  /// data-driven (corr)
+  _mapProcess["zn_cr_corr_DA"].AddDir("met");
+  _mapProcess["zn_cr_corr_MC"].AddDir("bkgz");
+  _mapProcess["wj_cr_corr_DA"].AddDir("met");
+  _mapProcess["wj_cr_corr_MC"].AddDir("bkgw");
+  /// signal still missing
+  /// data
+  _mapProcess["data"].AddDir("met");
 
   if(verbose>1) cout << "#entries in mapProcess : " << _mapProcess.size() << endl;
   
-  //
   // Add the files to the chains
-  //
   for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++ ) {
-
-    _itProcess->second.first = new TChain("tree/tree");
-    vector<TString> theDirs = _itProcess->second.second.first;
-
-    for(UInt_t iD=0 ; iD<theDirs.size() ; iD++) {
-      _itProcess->second.first->Add(_path+"/"+theDirs[iD]+"/tree*.root");
-    }
-    //if(verbose>1) cout << "number of entries : " << _itProcess->second.first->GetEntries() << endl;
+    _itProcess->second.SetNameTree("tree/tree");
+    //_itProcess->second.SetNameFile("reducedtree.root"); // FIXME
+    _itProcess->second.SetPath(_path);
+    _itProcess->second.AddTrees();
   }
 
   if(verbose>1) cout << "- end DefineChains()" << endl;
 
   return 0;
 }
+

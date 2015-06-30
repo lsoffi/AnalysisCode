@@ -1,26 +1,17 @@
-#include <iostream>
-#include <sstream>
-#include <map>
-#include <utility>
-//
-#include "TChain.h"
-#include "TFile.h"
-#include "TH1F.h"
-#include "TGraph.h"
-#include "TString.h"
-#include "TCut.h"
-#include "TCanvas.h"
-#include "THStack.h"
-#include "TLegend.h"
-#include "TStyle.h"
-#include "TROOT.h"
-#include "TEntryList.h"
-//
-#include "tdrstyle.h"
+#ifndef XMETANALYSIS
+#define XMETANALYSIS
+
+#include "myIncludes.h"
+#include "XMetProcess.h"
 
 using namespace std;
 
-typedef map< TString , pair< TChain* , pair< vector<TString> , Int_t > > > MAP_PROCESS;
+//typedef map< TString , pair< TChain* , pair< vector<TString> , Int_t > > > MAP_PROCESS;
+typedef map< TString , XMetProcess > MAP_PROCESS;
+
+typedef map<TString,TH1F*> M_VAR_H;
+typedef map<TString, map<TString,TH1F*> > M_CUT_VAR_H;
+typedef map<TString, map<TString, map<TString,TH1F*> > > M_PROCESS_CUT_VAR_H;
 
 class XMetAnalysis {
 
@@ -28,31 +19,32 @@ class XMetAnalysis {
 
   XMetAnalysis(TString tag);
   ~XMetAnalysis();
-  
-  Int_t StudyQCDKiller();
-  Int_t Analysis();
 
+  Int_t AnalysisRun1();
+  Int_t StudyQCDKiller();
   Int_t DefineChains();
 
-  Int_t plot(TString select, const UInt_t nV, TString* var, 
-	     UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
-	     Bool_t stack, Bool_t dolog, Bool_t unity,
-	     vector<TString> locProcesses, vector<TString> labelProc);
-
-  Int_t setStyle(TH1F* h, Int_t color);
+  //TCut XSecWeight(TString process);
   
-  TCut  defineCut(TString select);
+  Int_t plot(TString select, 			 
+	     const UInt_t nCut, TString* scanCut, Bool_t* scanReset,
+	     const UInt_t nV, TString* var, 
+	     UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
+	     vector<TString> locProcesses);
+
+  TCut  defineCut(TString select, TString region);
 
  private:
 
-  TFile*  _outfile;
+  TFile*   _outfile;
+  ofstream* _outlog;
   //
   MAP_PROCESS _mapProcess;
   MAP_PROCESS::iterator _itProcess;
   //
-  TString  _tag;
-  TString  _path;
-  Double_t _lumi;
-  Double_t _rescale;
+  TString  _tag,  _path;
+  Double_t _lumi, _rescale, _qcdScale;
   
 };
+
+#endif
