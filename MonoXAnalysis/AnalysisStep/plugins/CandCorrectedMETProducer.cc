@@ -47,7 +47,7 @@ CandCorrectedMETProducer::CandCorrectedMETProducer(const edm::ParameterSet& iCon
     metToken = consumes<edm::View<pat::MET> > (metTag);
     for (std::size_t i = 0; i < candTags.size(); i++) {
         theCandToken = consumes<edm::View<reco::Candidate> > (candTags[i]);
-	candTokens.push_back(theCandToken);
+        candTokens.push_back(theCandToken);
     }
 }
 

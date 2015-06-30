@@ -37,6 +37,7 @@ class PFCleaner : public edm::EDProducer {
         virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
         edm::InputTag vertices;
+        edm::InputTag pfcands;
         edm::InputTag muons;
         edm::InputTag electrons;
         edm::InputTag photons;
@@ -45,6 +46,7 @@ class PFCleaner : public edm::EDProducer {
         edm::InputTag photonLooseIdMap;
 
         edm::EDGetTokenT<std::vector<reco::Vertex> > verticesToken;
+        edm::EDGetTokenT<edm::View<reco::Candidate> > pfcandsToken;
         edm::EDGetTokenT<std::vector<pat::Muon> > muonsToken;
         edm::EDGetTokenT<std::vector<pat::Electron> > electronsToken;
         edm::EDGetTokenT<std::vector<pat::Photon> > photonsToken;
@@ -55,6 +57,7 @@ class PFCleaner : public edm::EDProducer {
 
 PFCleaner::PFCleaner(const edm::ParameterSet& iConfig): 
     vertices(iConfig.getParameter<edm::InputTag>("vertices")),
+    pfcands(iConfig.getParameter<edm::InputTag>("pfcands")),
     muons(iConfig.getParameter<edm::InputTag>("muons")),
     electrons(iConfig.getParameter<edm::InputTag>("electrons")),
     photons(iConfig.getParameter<edm::InputTag>("photons")),
@@ -68,8 +71,11 @@ PFCleaner::PFCleaner(const edm::ParameterSet& iConfig):
     produces<pat::MuonRefVector>("tightmuons");
     produces<pat::ElectronRefVector>("tightelectrons");
     produces<pat::PhotonRefVector>("tightphotons");
+    produces<pat::PhotonRefVector>("loosephotons");
+    produces<edm::ValueMap<float> >("rndgammaiso");
 
     verticesToken  = consumes<std::vector<reco::Vertex> > (vertices);
+    pfcandsToken   = consumes<edm::View<reco::Candidate> > (pfcands);
     muonsToken     = consumes<std::vector<pat::Muon> > (muons); 
     electronsToken = consumes<std::vector<pat::Electron> > (electrons); 
     photonsToken   = consumes<std::vector<pat::Photon> > (photons); 
@@ -89,6 +95,9 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
     Handle<std::vector<reco::Vertex> > verticesH;
     iEvent.getByToken(verticesToken, verticesH);
+
+    Handle<edm::View<reco::Candidate> > pfcandsH;
+    iEvent.getByToken(pfcandsToken, pfcandsH);
 
     Handle<std::vector<pat::Muon> > muonsH;
     iEvent.getByToken(muonsToken, muonsH);
@@ -114,6 +123,8 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     std::auto_ptr<pat::MuonRefVector> outputtightmuons(new pat::MuonRefVector);
     std::auto_ptr<pat::ElectronRefVector> outputtightelectrons(new pat::ElectronRefVector);
     std::auto_ptr<pat::PhotonRefVector> outputtightphotons(new pat::PhotonRefVector);
+    std::auto_ptr<pat::PhotonRefVector> outputloosephotons(new pat::PhotonRefVector);
+    std::auto_ptr<edm::ValueMap<float> > outputgammaisomap(new ValueMap<float>());
 
     for (vector<pat::Muon>::const_iterator muons_iter = muonsH->begin(); muons_iter != muonsH->end(); ++muons_iter) {
         if (verticesH->size() == 0) continue;
@@ -141,16 +152,32 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
         if (passeskincuts && passesmediumid) outputtightelectrons->push_back(pat::ElectronRef(electronsH, electrons_iter - electronsH->begin()));
     }
 
-    for (vector<pat::Photon>::const_iterator photons_iter = photonsH->begin(); photons_iter != photonsH->end(); ++photons_iter) {
-        const Ptr<pat::Photon> photonPtr(photonsH, photons_iter - photonsH->begin());
-        bool passeskincuts = (photons_iter->pt() > 15 && fabs(photons_iter->superCluster()->eta()) < 2.5);
-        bool passeslooseid = (*photonLooseIdH)[photonPtr];
+    std::vector<float> rndgammaiso;
 
-        if (passeskincuts && passeslooseid) {
+    for (vector<pat::Photon>::const_iterator photons_iter = photonsH->begin(); photons_iter != photonsH->end(); ++photons_iter) {
+        float isoval = 0.;
+        for(size_t i = 0; i < pfcandsH->size(); i++) {
+            const auto& pfcand = pfcandsH->ptrAt(i);
+            if (pfcand->pdgId() != 22) continue;
+            if (deltaR(photons_iter->eta(), photons_iter->phi()+M_PI/2.0, pfcand->eta(), pfcand->phi()) > 0.3) continue;
+            isoval += pfcand->pt();
+        }
+        rndgammaiso.push_back(isoval);
+
+        if (fabs(photons_iter->superCluster()->eta()) > 2.5 || photons_iter->pt() < 15) continue;
+        if (photons_iter->r9() > 0.8 || photons_iter->chargedHadronIso() < 20. || photons_iter->chargedHadronIso() < photons_iter->pt()*0.3) outputloosephotons->push_back(pat::PhotonRef(photonsH, photons_iter - photonsH->begin())); 
+
+        const Ptr<pat::Photon> photonPtr(photonsH, photons_iter - photonsH->begin());
+        bool passeslooseid = (*photonLooseIdH)[photonPtr];
+        if (passeslooseid) {
             outputphotons->push_back(pat::PhotonRef(photonsH, photons_iter - photonsH->begin()));
             if (photons_iter->pt() > 175) outputtightphotons->push_back(pat::PhotonRef(photonsH, photons_iter - photonsH->begin()));
         }
     }
+
+    edm::ValueMap<float>::Filler filler(*outputgammaisomap);
+    filler.insert(photonsH, rndgammaiso.begin(), rndgammaiso.end());
+    filler.fill();
 
     iEvent.put(outputmuons, "muons");
     iEvent.put(outputelectrons, "electrons");
@@ -158,6 +185,8 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     iEvent.put(outputtightmuons, "tightmuons");
     iEvent.put(outputtightelectrons, "tightelectrons");
     iEvent.put(outputtightphotons, "tightphotons");
+    iEvent.put(outputloosephotons, "loosephotons");
+    iEvent.put(outputgammaisomap, "rndgammaiso");
 }
 
 void PFCleaner::beginJob() {

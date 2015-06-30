@@ -33,7 +33,7 @@ filterHighMETEvents = False
 
 # Define the input source
 process.source = cms.Source("PoolSource", 
-    fileNames = cms.untracked.vstring('/store/relval/CMSSW_7_4_1/RelValADDMonoJet_d3MD3_13/MINIAODSIM/MCRUN2_74_V9_gensim_740pre7-v1/00000/28477369-2CEC-E411-8BC6-0025905964C4.root')
+    fileNames = cms.untracked.vstring('/store/mc/RunIISpring15DR74/QCD_Pt_800to1000_TuneCUETP8M1_13TeV_pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v2/00000/04DC7D13-1E0C-E511-847C-00A0D1EE923C.root')
 )
 
 # Setup the service to make a ROOT TTree
@@ -68,6 +68,7 @@ for idmod in ph_id_modules:
 
 process.selectedObjects = cms.EDProducer("PFCleaner",
     vertices = cms.InputTag("goodVertices"),
+    pfcands = cms.InputTag("packedPFCandidates"),
     muons = cms.InputTag("slimmedMuons"),
     electrons = cms.InputTag("slimmedElectrons"),
     photons = cms.InputTag("slimmedPhotons"),
@@ -107,15 +108,18 @@ if not isMC:
 
 process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     pileup = cms.InputTag("addPileupInfo"),
+    genevt = cms.InputTag("generator"),
     vertices = cms.InputTag("goodVertices"),
     gens = cms.InputTag("prunedGenParticles"),
-    pfcands = cms.InputTag("packedPFCandidates"),
     muons = cms.InputTag("selectedObjects", "muons"),
     electrons = cms.InputTag("selectedObjects", "electrons"),
     photons = cms.InputTag("selectedObjects", "photons"),
     tightmuons = cms.InputTag("selectedObjects", "tightmuons"),
     tightelectrons = cms.InputTag("selectedObjects", "tightelectrons"),
     tightphotons = cms.InputTag("selectedObjects", "tightphotons"),
+    loosephotons = cms.InputTag("selectedObjects", "loosephotons"),
+    rndgammaiso = cms.InputTag("selectedObjects", "rndgammaiso"),
+    photonsieie = cms.InputTag("photonIDValueMapProducer", "phoFull5x5SigmaIEtaIEta"),
     taus = cms.InputTag("slimmedTaus"),
     jets = cms.InputTag("slimmedJets"),
     fatjets = cms.InputTag("slimmedJetsAK8"),
@@ -127,19 +131,30 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     t1mumet = cms.InputTag("t1mumet"),
     t1phmet = cms.InputTag("t1phmet"),
     triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
-    weight = cms.double(1.0),
+    xsec = cms.double(32.293),
+    cleanMuonJet = cms.bool(True),
+    cleanElectronJet = cms.bool(True),
+    cleanPhotonJet = cms.bool(True),
+    uselheweights = cms.bool(False),
     isWorZMCSample = cms.bool(False)
 )
 
+process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
+    lheinfo = cms.InputTag("externalLHEProducer"),
+    geninfo = cms.InputTag("generator"),
+    uselheweights = cms.bool(False),
+    addqcdpdfweights = cms.bool(False)
+)
+
 process.metfilter = cms.EDFilter("CandViewSelector",
-    src = cms.InputTag("mumet"),
+    src = cms.InputTag("t1mumet"),
     cut = cms.string("et > 200"),
     filter = cms.bool(True)
 )
 
 
 if filterHighMETEvents: 
-    process.treePath = cms.Path(process.goodVertices + process.metfilter + process.tree)
+    process.treePath = cms.Path(process.gentree + process.goodVertices + process.metfilter + process.tree)
 else :
-    process.treePath = cms.Path(process.goodVertices + process.tree)
+    process.treePath = cms.Path(process.gentree + process.goodVertices + process.tree)
 
