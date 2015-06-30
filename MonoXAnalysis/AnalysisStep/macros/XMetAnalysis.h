@@ -20,9 +20,11 @@ class XMetAnalysis {
   XMetAnalysis(TString tag);
   ~XMetAnalysis();
 
-  Int_t Analysis();
+  Int_t AnalysisRun1();
   Int_t StudyQCDKiller();
   Int_t DefineChains();
+
+  //TCut XSecWeight(TString process);
   
   Int_t plot(TString select, 			 
 	     const UInt_t nCut, TString* scanCut, Bool_t* scanReset,

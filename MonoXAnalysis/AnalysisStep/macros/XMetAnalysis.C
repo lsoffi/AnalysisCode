@@ -26,14 +26,14 @@ XMetAnalysis::~XMetAnalysis()
   delete _outfile;
 }
 
-Int_t XMetAnalysis::Analysis()
+Int_t XMetAnalysis::AnalysisRun1()
 {
 
   // Processes to use
   vector<TString> locProcesses;
 
   // Data
-  locProcesses.push_back("data"); //labelProc.push_back("Data");
+  locProcesses.push_back("data");
 
   // Signal
   const UInt_t nSpin=2;
@@ -44,8 +44,7 @@ Int_t XMetAnalysis::Analysis()
   for(UInt_t iS=0 ; iS<nSpin ; iS++) {
     for(UInt_t iM=0 ; iM<nMass ; iM++) {
       nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
-      locProcesses.push_back(nameProcess);
-      //labelProc.push_back("DM "+nameSpin[iS]+" M="+nameMass[iM]);
+      locProcesses.push_back(nameProcess); 
     }
   }
 
@@ -76,21 +75,21 @@ Int_t XMetAnalysis::Analysis()
   locProcesses.push_back("wj_sr_corr_DD"); 
 
   // Selections and variables
-  /*
   const UInt_t nS=3;
   TString select[nS] = {"1jet","2jet","3jet"};
-  const UInt_t nCut=5;
-  TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
-  Bool_t  scanReset[nCut] = {true,false,false,false,false};
-  */
-
-  // FIXME
+  /*
   const UInt_t nS=1;
   TString select[nS] = {"monojet"};
+  */
 
+  const UInt_t nCut=5;
+  TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
+  Bool_t  scanReset[nCut] = {true,true,true,true,true};
+  /*
   const UInt_t nCut=1;
   TString scanCut[  nCut] = {"NoJmCut"};
   Bool_t  scanReset[nCut] = {true};
+  */
 
   const UInt_t nV=1;
   TString var[nV]    = {"t1mumet"};
@@ -102,7 +101,7 @@ Int_t XMetAnalysis::Analysis()
 
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
 
-    //select, nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, vector<TString> locProcesses, vector<TString> labelProc
+    //select, nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, vector<TString> locProcesses
     plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
 
   }
@@ -112,11 +111,6 @@ Int_t XMetAnalysis::Analysis()
 
 Int_t XMetAnalysis::StudyQCDKiller()
 {
-
-  // STYLE
-  //gROOT->Reset();
-  //loadPresentationStyle();
-  //gROOT->ForceStyle();
 
   // Processes to use
   vector<TString> locProcesses;
@@ -187,7 +181,7 @@ Int_t XMetAnalysis::plot(TString select,
   TString nameDir, locVar, variable;
   Int_t color;
   TH1F *hTemp, *hSRDD, *hTemp_cr_d, *hTemp_cr_mc,
-    *hTemp_sr_mc_num, *hTemp_sr_mc_den;
+    *hTemp_num, *hTemp_den;
   pair<Double_t, Double_t> intErr;
   //
   for(UInt_t iP=0 ; iP<nP ; iP++) {
@@ -308,7 +302,7 @@ Int_t XMetAnalysis::plot(TString select,
   //
   // DD scale-factor-like
   TString myNum[nDD]    = {"znn","wjets"};
-  TString myDen[nDD]    = {"zll","wj_cr_MC"};
+  TString myDen[nDD]    = {"zn_cr_MC","wj_cr_MC"};
   // DD corrected-like
   TString myDD[nDD]     = {"zn","wj"};
   TString myCorr[nCorr] = {"_","_corr_"};
@@ -353,16 +347,16 @@ Int_t XMetAnalysis::plot(TString select,
 	  // Method2: SF-like
 	  else {
 	    hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
-	    hTemp_sr_mc_num = mapHistos[myNum[iDD]][scanCut[iCut]][var[iV]];
-	    hTemp_sr_mc_den = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
-	    if(!hTemp_cr_d || !hTemp_sr_mc_num || !hTemp_sr_mc_den) continue;
+	    hTemp_num = mapHistos[myNum[iDD]][scanCut[iCut]][var[iV]];
+	    hTemp_den = mapHistos[myDen[iDD]][scanCut[iCut]][var[iV]];
+	    if(!hTemp_cr_d || !hTemp_num || !hTemp_den) continue;
 	    //
 	    hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
 	    theSF.first = 1.0;
 	    theSF.second= 1.0;
-	    if(hTemp_sr_mc_num && hTemp_sr_mc_den) {
-	      theNum = Integrate(hTemp_sr_mc_num);
-	      theDen = Integrate(hTemp_sr_mc_den);
+	    if(hTemp_num && hTemp_den) {
+	      theNum = Integrate(hTemp_num);
+	      theDen = Integrate(hTemp_den);
 	      theSF.first  = theDen.first!=0 ? theNum.first / theDen.first : 1.0;
 	    }
 	    else {
@@ -406,7 +400,7 @@ Int_t XMetAnalysis::plot(TString select,
     // Write 1 column title per scanned cut
     (*_outlog) << setw(14) << "Process" ;
     for(UInt_t iCut=0; iCut<nCut; iCut++) {
-      (*_outlog) << setw(29) << scanCut[iCut] ;
+      (*_outlog) << setw(23) << scanCut[iCut] ;
     }
     (*_outlog) << endl;
 
@@ -425,14 +419,14 @@ Int_t XMetAnalysis::plot(TString select,
 		 << locProcesses[iP]+" "+var[iV]
 		 << endl;
 	  }
-	  (*_outlog) << setw(14) << "ERROR" ;
+	  (*_outlog) << setw(23) << "ERROR" ;
 	  continue;
 	}
 	else {
 	  intErr = Integrate(hTemp);
-	  (*_outlog) << setw(14) << intErr.first 
+	  (*_outlog) << setw(10) << intErr.first 
 		     << setw(5)  << "+/-"
-		     << setw(10) << intErr.second;
+		     << setw(8) << intErr.second;
 	}
       } // end loop:cuts
       (*_outlog) << endl;
@@ -623,12 +617,39 @@ Int_t XMetAnalysis::DefineChains()
   const UInt_t nMass=9;
   TString nameSpin[nSpin] = {"V","AV"};
   TString nameMass[nMass] = {"0p1","1","10","100","200","300","400","700","1000"};
+  // FIXME
+  /*
+  Double_t dmXSec[nMass][nSpin] 
+    = { {,},
+	{,},
+	{,},
+	{,},
+	{,},
+	{,},
+	{,},
+	{,},
+	{,} };
+  //
+  Int_t dmNGen[nMass][nSpin] 
+    = { {64436,65480},
+	{40433,43034},
+	{44266,39712},
+	{41514,43225},
+	{48028,43699},
+	{45040,47848},
+	{45546,47770},
+	{52487,46773},
+	{44781,46569} };
+  */
+  //
   TString nameProcess;
   for(UInt_t iS=0 ; iS<nSpin ; iS++) {
     for(UInt_t iM=0 ; iM<nMass ; iM++) {
       nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
       _mapProcess[nameProcess] = XMetProcess(nameProcess, kBlack, "tree_"+nameProcess+".root");
       _mapProcess[nameProcess].AddDir("signal");
+      //_mapProcess[nameProcess].SetXSec(dmXSec[iM][iS]); // FIXME
+      //_mapProcess[nameProcess].SetNGen(dmNGen[iM][iS]);
     }
   }
 
@@ -646,10 +667,8 @@ Int_t XMetAnalysis::DefineChains()
   _mapProcess["vv"].AddDir("dibosons");
   /// data-driven (no corr)
   _mapProcess["zn_cr_DA"].AddDir("met");
-  //_mapProcess["zn_cr_MC"].AddDir("bkgz"); // useful only for corrected-like method
   _mapProcess["zn_cr_MC"].AddDir("zll");
   _mapProcess["wj_cr_DA"].AddDir("met");
-  //_mapProcess["wj_cr_MC"].AddDir("bkgw"); // useful only for corrected-like method
   _mapProcess["wj_cr_MC"].AddDir("wjets");
   /// data-driven (corr)
   _mapProcess["zn_cr_corr_DA"].AddDir("met");
@@ -665,7 +684,7 @@ Int_t XMetAnalysis::DefineChains()
   // Add the files to the chains
   for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++ ) {
     _itProcess->second.SetNameTree("tree/tree");
-    //_itProcess->second.SetNameFile("reducedtree.root");
+    //_itProcess->second.SetNameFile("reducedtree.root"); // FIXME
     _itProcess->second.SetPath(_path);
     _itProcess->second.AddTrees();
   }
