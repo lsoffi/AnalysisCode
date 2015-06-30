@@ -13,18 +13,28 @@ class XMetProcess {
   XMetProcess();
   XMetProcess(TString nameProcess, Int_t col);
   XMetProcess(TString nameProcess, Int_t col, TString nameFile);
+  XMetProcess(TString nameProcess, Int_t col, TString nameFile, 
+	      Double_t xsec, Int_t ngen);
   ~XMetProcess();
 
-  // Setters
+  // Adders
   Int_t AddDir(TString dir);
+  Int_t AddTrees();
+
+  // Setters
   Int_t SetNameTree(TString nameTree);
   Int_t SetNameFile(TString nameFile);
   Int_t SetPath(TString path);
-  Int_t AddTrees();
+  Int_t SetXSec(Double_t xsec);
+  Int_t SetWeight(Double_t w);
+  Int_t SetNGen(Int_t ngen);
 
   // Getters
-  Int_t   GetColor();
-  TString GetNameFile();
+  Int_t    GetColor();
+  TString  GetNameFile();
+  Double_t GetXSec();
+  Double_t GetWeight();
+  Int_t    GetNGen();
 
   // Analysis tools
   Int_t Skim(TString select, TCut cut, Bool_t reset);
@@ -33,16 +43,17 @@ class XMetProcess {
  private:
   TChain* _chain;
   vector<TString> _dir;
-  Int_t _col;
 
-  TString _path;
-  TString _nameFile;
-  TString _nameProcess;
+  TString  _path, _nameFile, _nameProcess;
+  Double_t _xsec, _weight;
+  Int_t    _ngen, _col;
 
   map<TString, TEntryList*> _mapSkim;
   map<TString, TEntryList*>::iterator _itmapSkim;
 };
 
+
+// Destructor //
 XMetProcess::~XMetProcess()
 {
   /*
@@ -53,6 +64,7 @@ XMetProcess::~XMetProcess()
   */
 }
 
+// Constructors //
 XMetProcess::XMetProcess()
 {
   _nameProcess = "";
@@ -60,55 +72,53 @@ XMetProcess::XMetProcess()
   _nameFile = "";
   _col = kBlack;
   _chain = new TChain();
+  _xsec=1;
+  _weight=1;
+  _ngen=1;
 }
 
 XMetProcess::XMetProcess(TString nameProcess, Int_t col)
 {
   _nameProcess = nameProcess;
+  _path = "";
+  _nameFile = "";
   _col = col;
   _chain = new TChain();
+  _xsec=1;
+  _weight=1;
+  _ngen=1;
 }
 
 XMetProcess::XMetProcess(TString nameProcess, Int_t col, TString nameFile)
 {
   _nameProcess = nameProcess;
+  _path = "";
   _nameFile = nameFile;
   _col = col;
   _chain = new TChain();
+  _xsec=1;
+  _weight=1;
+  _ngen=1;
 }
 
+XMetProcess::XMetProcess(TString nameProcess, Int_t col, TString nameFile, 
+			 Double_t xsec, Int_t ngen)
+{
+  _nameProcess = nameProcess;
+  _path = "";
+  _nameFile = nameFile;
+  _col = col;
+  _chain = new TChain();
+  _xsec=xsec;
+  _ngen=ngen;
 
+  _weight = ngen!=0 ? (1000.0*xsec)/ngen : 1.0;
+}
+
+// Adders //
 Int_t XMetProcess::AddDir(TString dir)
 {
   _dir.push_back(dir);
-  return 0;
-}
-
-Int_t XMetProcess::GetColor()
-{
-  return _col;
-}
-
-TString XMetProcess::GetNameFile()
-{
-  return _nameFile;
-}
-
-Int_t XMetProcess::SetNameTree(TString nameTree)
-{
-  _chain->SetName(nameTree);
-  return 0;
-}
-
-Int_t XMetProcess::SetPath(TString path)
-{
-  _path = path;
-  return 0;
-}
-
-Int_t XMetProcess::SetNameFile(TString nameFile)
-{
-  _nameFile = nameFile;
   return 0;
 }
 
@@ -127,6 +137,70 @@ Int_t XMetProcess::AddTrees()
   return 0;
 }
 
+// Getters //
+Double_t XMetProcess::GetXSec()
+{
+  return _xsec;
+}
+
+Double_t XMetProcess::GetWeight()
+{
+  return _weight;
+}
+
+Int_t XMetProcess::GetNGen()
+{
+  return _ngen;
+}
+
+Int_t XMetProcess::GetColor()
+{
+  return _col;
+}
+
+TString XMetProcess::GetNameFile()
+{
+  return _nameFile;
+}
+
+// Setters //
+Int_t XMetProcess::SetNameTree(TString nameTree)
+{
+  _chain->SetName(nameTree);
+  return 0;
+}
+
+Int_t XMetProcess::SetPath(TString path)
+{
+  _path = path;
+  return 0;
+}
+
+Int_t XMetProcess::SetNameFile(TString nameFile)
+{
+  _nameFile = nameFile;
+  return 0;
+}
+
+Int_t XMetProcess::SetXSec(Double_t xsec)
+{
+  _xsec = xsec;
+  return 0;
+}
+
+Int_t XMetProcess::SetWeight(Double_t w)
+{
+  _weight = w;
+  return 0;
+}
+
+Int_t XMetProcess::SetNGen(Int_t ngen)
+{
+  _ngen=ngen;
+  return 0;
+}
+
+// Analysis tools //
 Int_t XMetProcess::Skim(TString select, TCut cut, Bool_t reset)
 {
   if(reset) _chain->SetEntryList(0);
