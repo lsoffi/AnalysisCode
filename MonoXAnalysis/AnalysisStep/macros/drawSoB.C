@@ -2,8 +2,15 @@
 
 vector<Int_t> findIdx(TString name);
 
-Int_t drawSoB(TString prefix="v34_AN_DD", TString postfix="JetMetCut", TString var="mumet")
+Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var="t1mumet")
 {
+
+  ofstream outlog("plots/soverb/"+prefix+"_"+postfix+"/eff_"+prefix+"_"+postfix+".txt");
+
+  outlog << setw(10) << "Selection"
+	 << setw(14) << "Variable"
+	 << setw(12) << "Cut"
+
 
   // GET INPUTS //
   const UInt_t nSrc=3;
@@ -13,7 +20,7 @@ Int_t drawSoB(TString prefix="v34_AN_DD", TString postfix="JetMetCut", TString v
   TString tag[nSrc];
   TString pathFile;
   for(UInt_t iSrc=0 ; iSrc<nSrc; iSrc++) {
-    tag[iSrc]  = prefix+"_"+metRange[iSrc]+"_"+postfix;
+    tag[iSrc]  = prefix+metRange[iSrc]+postfix;
     pathFile = "plots/"+tag[iSrc]+"/plots_"+tag[iSrc]+".root";
     cout << "- Open file: " << pathFile << " ... " ;
     file[iSrc] = new TFile(pathFile,"read");
@@ -25,11 +32,11 @@ Int_t drawSoB(TString prefix="v34_AN_DD", TString postfix="JetMetCut", TString v
   vector<TString> signal, background;
 
   // Backgrounds: MC + W DD
-  background.push_back("zll"); 
-  background.push_back("wjets"); 
-  background.push_back("ttbar"); 
-  background.push_back("top"); 
-  background.push_back("vv"); 
+  //background.push_back("zll"); 
+  //background.push_back("wjets"); 
+  //background.push_back("ttbar"); 
+  //background.push_back("top"); 
+  //background.push_back("vv"); 
   background.push_back("qcd"); 
   //
   // W DD
@@ -78,10 +85,14 @@ Int_t drawSoB(TString prefix="v34_AN_DD", TString postfix="JetMetCut", TString v
   //const UInt_t nSig=3+(nSpin*nMass); // ZNN:MC,DD,DDcorr;DM
   //const UInt_t nBkgOut=4; // QCD, SumBkg, SumBkg(W=DD), SumBkg(W=DDcorr) // FIXME
   //TString bkgout[nBkgOut] = {"QCD","SumBkg","SumBkgWDD","SumBkgWDDc"}; // FIXME
-  const UInt_t nBkgOut=2; // QCD, SumBkg
-  TString bkgout[nBkgOut] = {"QCD","SumBkg"};
+
+  //const UInt_t nBkgOut=2; // QCD, SumBkg
+  //TString bkgout[nBkgOut] = {"QCD","SumBkg"};
+  const UInt_t nBkgOut=1; // QCD
+  TString bkgout[nBkgOut] = {"QCD"};
   vector<Int_t> idxBkg;
-  Double_t theS, theB, theSoB;
+  Double_t theS, theB, theSoB, totS, totB, effS, effB;
+  theS = theB = theSoB = totS = totB = effS = effB = 0;
 
   // Define S/B histograms
   cout << "- Define S/B histograms" << endl;
@@ -162,8 +173,20 @@ Int_t drawSoB(TString prefix="v34_AN_DD", TString postfix="JetMetCut", TString v
 	cout << "---- Fill histogram: " << endl;
 	for(UInt_t iS=0 ; iS<nSig ; iS++) {
 	  for(UInt_t iB=0 ; iB<nBkgOut ; iB++) {
+
+	    // get yields
 	    theS = vIntegral[iCut][iSrc][iSel][0][iS];
 	    theB = vIntegral[iCut][iSrc][iSel][1][iB];
+
+	    // compute also efficiencies
+	    if(iCut==0) {
+	      totS = theS;
+	      totB = theB;
+	    }
+	    effS = totS!=0 ? theS / totS : -1;
+	    effB = totB!=0 ? theB / totB : -1;
+
+	    // compute S/B
 	    theSoB = theB!=0 ? theS / theB : -999;
 	    hSoB[iCut][iS][iB]->Fill( jetBinX[iSel] , metBinY[iSrc] , theSoB );
 	    cout << hSoB[iCut][iS][iB]->GetName() 
@@ -202,7 +225,8 @@ Int_t drawSoB(TString prefix="v34_AN_DD", TString postfix="JetMetCut", TString v
 	setStyle(c[iCut][iS][iB]);
 	c[iCut][iS][iB]->cd();
 
-	hSoB[iCut][iS][iB]->Draw("colztexte");
+	//hSoB[iCut][iS][iB]->Draw("colztexte");
+	hSoB[iCut][iS][iB]->Draw("colztext");
       }
     }
   }

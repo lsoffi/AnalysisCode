@@ -70,42 +70,59 @@ Int_t rocCurve(TString _tag="",
   // Selections and variables
   const UInt_t nWd=2; // forward/backward cumulative distribution
   const UInt_t nS=5;  // selections
-  const UInt_t nV=7;  // variables
+  const UInt_t nV=5;  // variables
   const UInt_t nGZ=2;  // full/zoomed
 
   TGraph* gRoc[nS][nV][nWd][nGZ];
-  TH1F*   hBoS[nS][nV];
+  //TH1F*   hBoS[nS][nV];
 
   TString tzoom[nGZ] = {"_full", "_zoom"}; 
   TString wd[nWd]    = {"upcut","lowcut"};
   TString wdT[nWd]   = {"upper","lower"};
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
-			"jetjetdphi","jetmetdphimin",
-			"dphiJ1J3","dphiJ2J3"};
+			"jetjetdphi","jetmetdphimin"};
+  //"dphiJ1J3","dphiJ2J3"};
 
   Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kMagenta};
+
+  const UInt_t nCut=1;
+  TString scanCut[  nCut] = {"1"};
 
   Int_t  wpQCD_bin,wpZNN_bin;
   Float_t wpQCD_cut,wpZNN_cut;
   Float_t effQCD_wpQCD, effZNN_wpQCD, effQCD_wpZNN, effZNN_wpZNN;
   Float_t yieldQCD, yieldZNN;
-  Float_t theBos, error;
+  //Float_t theBos, error;
 
   yieldQCD = yieldZNN = -1;
   wpQCD_bin = wpZNN_bin = wpQCD_cut = wpZNN_cut = -1;
   effQCD_wpQCD = effZNN_wpQCD = effQCD_wpZNN = effZNN_wpZNN = -1;
+
+  cout << "- Ready to loop over selections and variables" << endl;
   
   for(UInt_t iS=0 ; iS<nS ; iS++) {
+    
+    cout << "-- selection: " << select[iS] << endl;
+
     for(UInt_t iV=0 ; iV<nV ; iV++) {
 
+      cout << "--- variable: " << var[iV] << endl;
+
       // Get input QCD and Znn distributions from the file
-      TH1F* h_qcd = (TH1F*) file->Get("h_"+var[iV]+"_qcd_"+select[iS]);
-      TH1F* h_znn = (TH1F*) file->Get("h_"+var[iV]+"_znn_"+select[iS]);
+      TString nameQCD = "h_"+var[iV]+"_qcd_"+select[iS]+"_"+scanCut[0];
+      cout << "--- getting: " << nameQCD ;
+      TH1F* h_qcd = (TH1F*) file->Get(nameQCD);
+      cout << "... done!" << endl;
+
+      TString nameZnn = "h_"+var[iV]+"_znn_"+select[iS]+"_"+scanCut[0];
+      cout << "--- getting: " << nameQCD ;
+      TH1F* h_znn = (TH1F*) file->Get(nameZnn);
+      cout << "... done!" << endl;
 
       // B/S histogram
-      hBoS[iS][iV] = (TH1F*)h_znn->Clone("hBoS_"+var[iV]+"_"+select[iS]);
-      hBoS[iS][iV]->Reset();
+      //hBoS[iS][iV] = (TH1F*)h_znn->Clone("hBoS_"+var[iV]+"_"+select[iS]);
+      //hBoS[iS][iV]->Reset();
 
       // Check that the histograms were found
       if(!h_qcd) {
@@ -119,6 +136,7 @@ Int_t rocCurve(TString _tag="",
       if(!h_qcd || !h_znn) return -1;
 
       // Print the integral of the histograms
+      cout << "--- going to print the fucking integral." << endl;
       yieldQCD = h_qcd->Integral();
       yieldZNN = h_znn->Integral();
       if(unity && yieldQCD!=0) h_qcd->Scale(1/yieldQCD);
@@ -153,10 +171,10 @@ Int_t rocCurve(TString _tag="",
 	  }
 
 	  // B/S profile
-	  error  = 0;
-	  theBos = calcBoS(yieldZNN, yieldQCD, yCum_znn[iB], yCum_qcd[iB], error);
-	  hBoS[iS][iV]->SetBinContent(iB, theBos);
-	  hBoS[iS][iV]->SetBinError(  iB, error);
+	  //error  = 0;
+	  //theBos = calcBoS(yieldZNN, yieldQCD, yCum_znn[iB], yCum_qcd[iB], error);
+	  //hBoS[iS][iV]->SetBinContent(iB, theBos);
+	  //hBoS[iS][iV]->SetBinError(  iB, error);
 
 	  // Find bin index corresponding to requested QCD/ZNN efficiency (wpQCD/wpZNN)
 	  if(iB>0) {
@@ -274,6 +292,7 @@ Int_t rocCurve(TString _tag="",
   else if(_tag.Contains("MetFrom250to350")) metCut = "MetFrom250to350";
 
   // Print BoS plots
+  /*
   for(UInt_t iS=0 ; iS<nS ; iS++) {
     for(UInt_t iV=0 ; iV<nV ; iV++) {
 
@@ -291,6 +310,7 @@ Int_t rocCurve(TString _tag="",
 	cRoc.Print("plots/"+_tag+"/bos_"+select[iS]+".pdf","Title:"+var[iV]);
     }
   }
+  */
 
   // Put several killers per plot
   for(UInt_t iGZ=0 ; iGZ<nGZ ; iGZ++) {
