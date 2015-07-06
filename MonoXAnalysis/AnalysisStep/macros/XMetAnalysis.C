@@ -51,8 +51,8 @@ Int_t XMetAnalysis::AnalysisAN15()
   locProcesses.push_back("qcd"); 
 
   // Selections and variables
-  const UInt_t nS=3;
-  TString select[nS] = {"1jet","2jet","3jet"};
+  const UInt_t nS=4;
+  TString select[nS] = {"1jet","2jet","3jet","4jet"};
 
   /*
   const UInt_t nS=1;
@@ -62,7 +62,7 @@ Int_t XMetAnalysis::AnalysisAN15()
   const UInt_t nCut=5;
   TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
   Bool_t  scanReset[nCut] = {true,true,true,true,true};
-
+  
   /*
   const UInt_t nCut=1;
   TString scanCut[  nCut] = {"NoJmCut"};
@@ -172,26 +172,32 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   locProcesses.push_back("qcd"); 
 
   // Selections and variables
-  const UInt_t nS=5;
-  TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
+  const UInt_t nS=6;
+  TString select[nS] = {"alljets","monojet","1jet","2jet","3jet","4jet"};
 
   const UInt_t nCut=4;
   TString scanCut[  nCut] = {"Met200", "MetFrom200to250", "MetFrom250to350", "Met350"};
   Bool_t  scanReset[nCut] = {true,true,true,true};
 
-  const UInt_t nV=5;
+  const UInt_t nV=4;
+  TString var[nV] = {"alphat","jetjetdphi","jetmetdphimin","leadjetmetdphi"};
+
+  /*
+  const UInt_t nV=7;
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
-			"jetjetdphi","jetmetdphimin"};
-			//"dphiJ1J3","dphiJ2J3"};
+			"jetjetdphi","jetmetdphimin",
+			"dphiJ1J3","dphiJ2J3"};
+  */
+
   //
   //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50, 50, 50};
   //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500, 500, 500};
   //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000, 1000, 1000};
   //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000, 5000, 5000};
-  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000, 10000};//, 10000, 10000};
+  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000};//, 10000};//, 10000, 10000};
   //
-  Float_t xFirst[nV] = {0,  0,  0,  0,   0  };//, 0  , 0};
-  Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};//, 3.2, 3.2};
+  Float_t xFirst[nV] = {0,  0,  0,  0};//,   0  };//, 0  , 0};
+  Float_t xLast[nV]  = {2,  3.2, 3.2, 3.2};//, 3.2, 3.2};
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
@@ -325,6 +331,7 @@ Int_t XMetAnalysis::plot(TString select,
 	if(var[iV].Contains("phi"))  locVar = "abs("+var[iV]+")";
 	if(     var[iV]=="dphiJ1J3") locVar = "abs(signaljetphi-thirdjetphi)";
 	else if(var[iV]=="dphiJ2J3") locVar = "abs(secondjetphi-thirdjetphi)";
+	else if(var[iV]=="leadjetmetdphi") locVar = "abs(signaljetphi-t1mumetphi)";
 
 	_mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
 	if(verbose>1) cout << "--- drew variable: " << locVar << endl;
@@ -650,6 +657,12 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   }
   else if(select.Contains("3jet")) {
     jetBin = "njets==3";
+    jetID  = jetID1*jetID2*jetID3;
+    dphi   = "abs(jetjetdphi) < 2.5";
+    alphat = "alphat>0.55";
+  }
+  else if(select.Contains("4jet")) {
+    jetBin = "njets>=4";
     jetID  = jetID1*jetID2*jetID3;
     dphi   = "abs(jetjetdphi) < 2.5";
     alphat = "alphat>0.55";
