@@ -7,24 +7,14 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 
   ofstream outlog("plots/soverb/"+prefix+"_"+postfix+"/eff_"+prefix+"_"+postfix+".txt");
 
-  outlog << setw(9) << "MET"
-	 << setw(7) << "#Jets"
-	 << setw(5) << "Cut";
-
-  /*
-  for(UInt_t iSrc=0 ; iSrc<nSrc ; iSrc++) {
-    for(UInt_t iSel=0 ; iSel<nSel ; iSel++) {
-      for(UInt_t iCut=0 ; iCut<nCut ; iCut++) {
-	for(UInt_t iS=0 ; iS<nSig ; iS++) {
-	  for(UInt_t iB=0 ; iB<nBkgOut ; iB++) {
-
-  */
+  outlog << setw(10) << "Selection"
+	 << setw(14) << "Variable"
+	 << setw(12) << "Cut"
 
 
   // GET INPUTS //
   const UInt_t nSrc=3;
   TString metRange[nSrc] = {"MetFrom200to250","MetFrom250to350","Met350"};
-  TString shortRange[nSrc]={"200-250","250-350",">350"};
 
   TFile* file[nSrc];
   TString tag[nSrc];
@@ -55,7 +45,6 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 
   // Signal + Irreducible Bkg
   signal.push_back("znn"); 
-  //signal.push_back("wjets");
   //signal.push_back("zn_sr_DD"); // FIXME
   //signal.push_back("zn_sr_corr_DD"); // FIXME
   //
@@ -80,11 +69,9 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   // Selections and variables
   const UInt_t nSel=3;
   TString sel[nSel] = {"1jet","2jet","3jet"};
-  TString shortsel[nSel] = {"1","2","3"};
 
   const UInt_t nCut=5;
   TString cut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
-  TString shortcut[nCut]={"No","0.2","0.4","0.6","0.8"};
 
   // Loop over input files to get inputs
   TString nameH;
@@ -104,21 +91,9 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   const UInt_t nBkgOut=1; // QCD
   TString bkgout[nBkgOut] = {"QCD"};
   vector<Int_t> idxBkg;
-  Double_t theS, theB, theSoB, totS, totB;
-  theS = theB = theSoB = totS = totB = 0;
+  Double_t theS, theB, theSoB, totS, totB, effS, effB;
+  theS = theB = theSoB = totS = totB = effS = effB = 0;
 
-  Double_t effS[nSig], effB[nBkgOut];
-
-  for(UInt_t iS=0 ; iS<nSig ; iS++) {\
-    outlog << setw(12) << signal[iS];
-  }
- 
-  for(UInt_t iB=0 ; iB<nBkgOut ; iB++) {
-    outlog << setw(12) << bkgout[iB];
-  }
-
-  outlog << endl;
- 
   // Define S/B histograms
   cout << "- Define S/B histograms" << endl;
   TString nameSoB, titleSoB;
@@ -162,11 +137,6 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	     << sel[iSel] << " " 
 	     << cut[iCut] << endl;
 
-	outlog << setw(9) << shortRange[iSrc]
-	       << setw(7) << shortsel[iSel]
-	       << setw(5) << shortcut[iCut];
-
-
 	// Signal
 	cout << "---- Look at signals: " ;
 	for(UInt_t iS=0 ; iS<nSig ; iS++) {
@@ -175,14 +145,12 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	  integral = hTemp->Integral(0, hTemp->GetNbinsX() + 1);
 	  vIntegral[iCut][iSrc][iSel][0].push_back(integral);
 	  cout << "#Int(" << nameH << ")=" << integral << " | ";
-	  effS[iS]=0;
 	}// end loop:signal
 	cout << endl << "---- ...done!" << endl;
 
 	// Background: initialize output sums
 	for(UInt_t iB=0 ; iB<nBkgOut ; iB++) {
 	  vIntegral[iCut][iSrc][iSel][1].push_back(0);
-	  effB[iB]=0;
 	}
 
 	// Background: Loop over input bkg
@@ -203,20 +171,20 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	
 	// Fill histogram
 	cout << "---- Fill histogram: " << endl;
-
 	for(UInt_t iS=0 ; iS<nSig ; iS++) {
-
-	  // Compute signal informations
-	  theS = vIntegral[iCut][iSrc][iSel][0][iS];
-	  if(iCut==0) totS = theS;
-	  effS[iS] = totS!=0 ? theS / totS : -1;
-
 	  for(UInt_t iB=0 ; iB<nBkgOut ; iB++) {
 
-	    // compute background informations
+	    // get yields
+	    theS = vIntegral[iCut][iSrc][iSel][0][iS];
 	    theB = vIntegral[iCut][iSrc][iSel][1][iB];
-	    if(iCut==0) totB = theB;
-	    effB[iB] = totB!=0 ? theB / totB : -1;
+
+	    // compute also efficiencies
+	    if(iCut==0) {
+	      totS = theS;
+	      totB = theB;
+	    }
+	    effS = totS!=0 ? theS / totS : -1;
+	    effB = totB!=0 ? theB / totB : -1;
 
 	    // compute S/B
 	    theSoB = theB!=0 ? theS / theB : -999;
@@ -228,16 +196,6 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 		 << ") | " ;
 	  }
 	}
-
-	// put efficiencies in the outlog
-	for(UInt_t iS=0 ; iS<nSig ; iS++) {
-	  outlog << setw(12) << effS[iS];
-	}
-	for(UInt_t iB=0 ; iB<nBkgOut ; iB++) {
-	  outlog << setw(12) << effB[iB];
-	}
-	outlog << endl;
-
 	cout << endl << "---- ...done!" << endl;
 
       }// end loop:scanned cuts
