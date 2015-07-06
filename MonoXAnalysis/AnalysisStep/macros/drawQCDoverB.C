@@ -1,11 +1,11 @@
 #include "myIncludes.h"
 
-vector<Int_t> findIdx(TString name);
+vector<Int_t> findIdx(vector<TString> name, UInt_t iB);
 
 Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var="t1mumet")
 {
 
-  ofstream outlog("plots/soverb/"+prefix+"_"+postfix+"/eff_"+prefix+"_"+postfix+".txt");
+  ofstream outlog("plots/soverb/"+prefix+"_"+postfix+"/qcdoverb_"+prefix+"_"+postfix+".txt");
 
   outlog << setw(9) << "MET"
 	 << setw(7) << "#Jets"
@@ -43,10 +43,11 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 
   // Backgrounds: MC + W DD
   //background.push_back("zll"); 
-  //background.push_back("wjets"); 
-  //background.push_back("ttbar"); 
+  background.push_back("znn"); 
+  background.push_back("wjets"); 
+  background.push_back("ttbar"); 
   //background.push_back("top"); 
-  //background.push_back("vv"); 
+  background.push_back("vv"); 
   background.push_back("qcd"); 
   //
   // W DD
@@ -54,7 +55,8 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   //background.push_back("wj_sr_corr_DD"); // FIXME
 
   // Signal + Irreducible Bkg
-  signal.push_back("znn"); 
+  signal.push_back("qcd"); 
+  //signal.push_back("znn"); 
   //signal.push_back("wjets");
   //signal.push_back("zn_sr_DD"); // FIXME
   //signal.push_back("zn_sr_corr_DD"); // FIXME
@@ -102,7 +104,8 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   //const UInt_t nBkgOut=2; // QCD, SumBkg
   //TString bkgout[nBkgOut] = {"QCD","SumBkg"};
   const UInt_t nBkgOut=1; // QCD
-  TString bkgout[nBkgOut] = {"QCD"};
+  //TString bkgout[nBkgOut] = {"QCD"};
+  TString bkgout[nBkgOut] = {"SumBkg"};
   vector<Int_t> idxBkg;
   Double_t theS, theB, theSoB, totS, totB;
   theS = theB = theSoB = totS = totB = 0;
@@ -193,11 +196,13 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	  integral = hTemp->Integral(0, hTemp->GetNbinsX() + 1);
 	  cout << "#Int(" << nameH << ")=" << integral << " | ";
 
-	  idxBkg = findIdx(background[iB]);
+	  // Decide on backgrounds
+	  idxBkg = findIdx(background,iB);
 	  for(UInt_t i=0 ; i<idxBkg.size() ; i++) {
 	    if(idxBkg[i]<0 || idxBkg[i]>=(Int_t)nBkgOut) continue;
 	    vIntegral[iCut][iSrc][iSel][1][idxBkg[i]] += integral;
 	  }
+
 	}// end loop:backgrounds
 	cout << endl << "---- ...done!" << endl;
 	
@@ -249,7 +254,7 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 
 
   // DRAW HISTOGRAMS //
-  TFile *outfile = new TFile("plots/soverb/"+prefix+"_"+postfix+"/sob_"+prefix+"_"+postfix+".root","recreate");
+  TFile *outfile = new TFile("plots/soverb/"+prefix+"_"+postfix+"/qcdoverb"+prefix+"_"+postfix+".root","recreate");
   outfile->cd();
   //
   TCanvas *c[nCut][nSig][nBkgOut];
@@ -283,7 +288,7 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	TString pdfp = "";
 	if(iCut==0 && iS==0 && iB==0) pdfp = "(";
 	else if(iCut==nCut-1 && iS==nSig-1 && iB==nBkgOut-1) pdfp = ")";
-	c[iCut][iS][iB]->Print("plots/soverb/"+prefix+"_"+postfix+"/sob_"+prefix+"_"+postfix+".pdf"+pdfp, pdftitle);
+	c[iCut][iS][iB]->Print("plots/soverb/"+prefix+"_"+postfix+"/qcdoverb"+prefix+"_"+postfix+".pdf"+pdfp, pdftitle);
       }
     }
   }
@@ -296,7 +301,7 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	TString pdfp = "";
 	if(iS==0 && iB==0) pdfp = "(";
 	else if(iS==nSig-1 && iB==nBkgOut-1) pdfp = ")";
-	c[iCut][iS][iB]->Print("plots/soverb/"+prefix+"_"+postfix+"/sob_"+prefix+"_"+cut[iCut]+"_"+postfix+".pdf"+pdfp, pdftitle);
+	c[iCut][iS][iB]->Print("plots/soverb/"+prefix+"_"+postfix+"/qcdoverb"+prefix+"_"+cut[iCut]+"_"+postfix+".pdf"+pdfp, pdftitle);
       }
     }
   }
@@ -309,7 +314,7 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	TString pdfp = "";
 	if(iCut==0 && iS==0) pdfp = "(";
 	else if(iCut==nCut-1 && iS==nSig-1) pdfp = ")";
-	c[iCut][iS][iB]->Print("plots/soverb/"+prefix+"_"+postfix+"/sob_"+prefix+"_"+bkgout[iB]+"_"+postfix+".pdf"+pdfp, pdftitle);
+	c[iCut][iS][iB]->Print("plots/soverb/"+prefix+"_"+postfix+"/qcdoverb"+prefix+"_"+bkgout[iB]+"_"+postfix+".pdf"+pdfp, pdftitle);
       }
     }
   }
@@ -322,7 +327,7 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	TString pdfp = "";
 	if(iCut==0 && iB==0) pdfp = "(";
 	else if(iCut==nCut-1 && iB==nBkgOut-1) pdfp = ")";
-	c[iCut][iS][iB]->Print("plots/soverb/"+prefix+"_"+postfix+"/sob_"+prefix+"_"+signal[iS]+"_"+postfix+".pdf"+pdfp, pdftitle);
+	c[iCut][iS][iB]->Print("plots/soverb/"+prefix+"_"+postfix+"/qcdoverb"+prefix+"_"+signal[iS]+"_"+postfix+".pdf"+pdfp, pdftitle);
       }
     }
   }
@@ -334,29 +339,29 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   return 0;
 }
 
-vector<Int_t> findIdx(TString name)
+vector<Int_t> findIdx(vector<TString> name, UInt_t iB)
 {
 
   vector<Int_t> res;
 
-  if(name.Contains("DD")) {
-    if(name.Contains("corr")) {
+  if(name[iB].Contains("DD")) {
+    if(name[iB].Contains("corr")) {
       res.push_back(3);
     }
     else {
       res.push_back(2);
     }
   }
-  else if(name=="qcd") {
+  else if(name[iB]=="qcd") {
     res.push_back(0);
     res.push_back(1);
     res.push_back(2);
     res.push_back(3);
   }
   else {
-    res.push_back(1);
-    res.push_back(2);
-    res.push_back(3);
+    for(UInt_t i=0 ; i<name.size() ; i++) {
+      res.push_back(i);
+    }
   }
 
   return res;
