@@ -46,28 +46,29 @@ Int_t XMetAnalysis::AnalysisAN15()
   //locProcesses.push_back("zll"); 
   locProcesses.push_back("wjets"); 
   locProcesses.push_back("ttbar"); 
-  //locProcesses.push_back("top"); 
+  locProcesses.push_back("top"); 
   locProcesses.push_back("vv"); 
   locProcesses.push_back("qcd"); 
 
   // Selections and variables
-  /*
   const UInt_t nS=3;
   TString select[nS] = {"1jet","2jet","3jet"};
-  */
-  const UInt_t nS=1;
-  TString select[nS] = {"monojet"};
 
   /*
+  const UInt_t nS=1;
+  TString select[nS] = {"monojet"};
+  */
+
   const UInt_t nCut=5;
   TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
   Bool_t  scanReset[nCut] = {true,true,true,true,true};
-  */
 
+  /*
   const UInt_t nCut=1;
   TString scanCut[  nCut] = {"NoJmCut"};
   //TString scanCut[  nCut] = {"JetMet0p4"}; // fixme
   Bool_t  scanReset[nCut] = {true};
+  */
 
   const UInt_t nV=1;
   TString var[nV]    = {"t1mumet"};
@@ -174,23 +175,23 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   const UInt_t nS=5;
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet"};
 
-  const UInt_t nCut=1;
-  TString scanCut[  nCut] = {"1"};
-  Bool_t  scanReset[nCut] = {true};
+  const UInt_t nCut=4;
+  TString scanCut[  nCut] = {"Met200", "MetFrom200to250", "MetFrom250to350", "Met350"};
+  Bool_t  scanReset[nCut] = {true,true,true,true};
 
-  const UInt_t nV=7;
+  const UInt_t nV=5;
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
-			"jetjetdphi","jetmetdphimin",
-			"dphiJ1J3","dphiJ2J3"};
+			"jetjetdphi","jetmetdphimin"};
+			//"dphiJ1J3","dphiJ2J3"};
   //
   //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50, 50, 50};
   //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500, 500, 500};
   //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000, 1000, 1000};
   //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000, 5000, 5000};
-  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000, 10000, 10000, 10000};
+  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000, 10000};//, 10000, 10000};
   //
-  Float_t xFirst[nV] = {0,  0,  0,  0,   0  , 0  , 0};
-  Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2, 3.2, 3.2};
+  Float_t xFirst[nV] = {0,  0,  0,  0,   0  };//, 0  , 0};
+  Float_t xLast[nV]  = {2,  1,  1,  3.2, 3.2};//, 3.2, 3.2};
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
@@ -284,7 +285,9 @@ Int_t XMetAnalysis::plot(TString select,
     //
     else if(_isAN15 && nameDir.Contains("znn")) { //fixme: remove when we get real znn mc
       region = "zfromw";
+      weight *= "0.75";
     }
+    //
     else {region = "signal";}
     
     ////////////////////////////////////
@@ -554,8 +557,9 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
     leptons *= "(wmt > 50 && wmt < 100 && abs(mu1eta) < 2.4 && mu1pt > 20 && mu1id == 1)";
   }
   else if(region.Contains("zfromw")) {
-    leptons = "nelectrons == 0 && ntaus == 0 && nmuons == 1";
-    leptons *= "(abs(l1id) == 13 || abs(l2id) == 13) && mu1pt>20 && mu1id == 1";    
+    //leptons = "nelectrons == 0 && ntaus == 0 && nmuons == 1";
+    leptons = "nelectrons == 0";
+    leptons *= "(abs(l1id) == 13 || abs(l2id) == 13)";
   }
   else if(region.Contains("signal")) {
     leptons = "nelectrons == 0 && ntaus == 0 && nmuons == 0";
@@ -573,13 +577,17 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(_isAN15)        metID = "";
   //
   TCut metCut="";
-  if(_tag.Contains("NoMetCut"))    metCut = "";
-  else if(_tag.Contains("Met200")) metCut = "t1mumet>200";
-  else if(_tag.Contains("Met250")) metCut = "t1mumet>250";
-  else if(_tag.Contains("Met350")) metCut = "t1mumet>350";
-  else if(_tag.Contains("MetFrom0to200"))   metCut = "t1mumet<=200";
-  else if(_tag.Contains("MetFrom200to250")) metCut = "t1mumet>200 && t1mumet<=250";
-  else if(_tag.Contains("MetFrom250to350")) metCut = "t1mumet>250 && t1mumet<=350";
+  const UInt_t nIn=2;
+  TString inputs[nIn] = {_tag, select};
+  for(UInt_t in=0 ; in<nIn ; in++) {
+    if(inputs[in].Contains("NoMetCut"))    metCut = "";
+    else if(inputs[in].Contains("Met200")) metCut = "t1mumet>200";
+    else if(inputs[in].Contains("Met250")) metCut = "t1mumet>250";
+    else if(inputs[in].Contains("Met350")) metCut = "t1mumet>350";
+    else if(inputs[in].Contains("MetFrom0to200"))   metCut = "t1mumet<=200";
+    else if(inputs[in].Contains("MetFrom200to250")) metCut = "t1mumet>200 && t1mumet<=250";
+    else if(inputs[in].Contains("MetFrom250to350")) metCut = "t1mumet>250 && t1mumet<=350";
+  }
 
   // JETS
   TCut jetID1, jetID2, jetID3, jetIDMult, jetIDMono;
@@ -650,15 +658,12 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   // QCD Killer
   TCut noqcd="";
   //
-  if(select.Contains("dphi"))          noqcd *= dphi;
-  if(select.Contains("alphat"))        noqcd *= alphat;
-  if(select.Contains("apcjetmetmax"))  noqcd *= apcjetmetmax;
-  if(select.Contains("JetMet"))        noqcd *= jmdphi;
-  //
-  if(_tag.Contains("dphi"))          noqcd *= dphi;
-  if(_tag.Contains("alphat"))        noqcd *= alphat;
-  if(_tag.Contains("apcjetmetmax"))  noqcd *= apcjetmetmax;
-  if(_tag.Contains("JetMet"))        noqcd *= jmdphi;
+  for(UInt_t in=0 ; in<nIn ; in++) {
+    if(inputs[in].Contains("dphi"))          noqcd *= dphi;
+    if(inputs[in].Contains("alphat"))        noqcd *= alphat;
+    if(inputs[in].Contains("apcjetmetmax"))  noqcd *= apcjetmetmax;
+    if(inputs[in].Contains("JetMet"))        noqcd *= jmdphi;
+  }
 
   return (trig*metCut*metID*leptons*photons*jetID*jetBin*noqcd);
 
@@ -681,7 +686,7 @@ Int_t XMetAnalysis::DefineChainsAN15()
   _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3,"reducedtreewithwgt.root");
   _mapProcess["qcd"  ] = XMetProcess("qcd",   kRed,      "reducedtreewithwgt.root");
   _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "reducedtreewithwgt.root");
-  //_mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "reducedtreewithwgt.root");
+  _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "reducedtreewithwgt.root");
 
   // Sub-directories in _path
   //
@@ -691,7 +696,7 @@ Int_t XMetAnalysis::DefineChainsAN15()
   //_mapProcess["zll"].AddDir("zll");
   _mapProcess["wjets"].AddDir("wln");
   _mapProcess["ttbar"].AddDir("ttbar");
-  //_mapProcess["top"].AddDir("singletop");
+  _mapProcess["top"].AddDir("top");
   _mapProcess["qcd"].AddDir("qcd");
   _mapProcess["vv"].AddDir("dibosons");
   //
