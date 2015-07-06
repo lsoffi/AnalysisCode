@@ -43,6 +43,7 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 
   // Backgrounds: MC + W DD
   //background.push_back("zll"); 
+  //background.push_back("znn"); 
   //background.push_back("wjets"); 
   //background.push_back("ttbar"); 
   //background.push_back("top"); 
@@ -54,6 +55,7 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   //background.push_back("wj_sr_corr_DD"); // FIXME
 
   // Signal + Irreducible Bkg
+  //signal.push_back("qcd"); 
   signal.push_back("znn"); 
   //signal.push_back("wjets");
   //signal.push_back("zn_sr_DD"); // FIXME
@@ -78,9 +80,9 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   const UInt_t nBkgIn = background.size();
 
   // Selections and variables
-  const UInt_t nSel=3;
-  TString sel[nSel] = {"1jet","2jet","3jet"};
-  TString shortsel[nSel] = {"1","2","3"};
+  const UInt_t nSel=4;
+  TString sel[nSel] = {"1jet","2jet","3jet","4jet"};
+  TString shortsel[nSel] = {"1","2","3","4"};
 
   const UInt_t nCut=5;
   TString cut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
@@ -102,7 +104,8 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   //const UInt_t nBkgOut=2; // QCD, SumBkg
   //TString bkgout[nBkgOut] = {"QCD","SumBkg"};
   const UInt_t nBkgOut=1; // QCD
-  TString bkgout[nBkgOut] = {"QCD"};
+  //TString bkgout[nBkgOut] = {"QCD"};
+  TString bkgout[nBkgOut] = {"SumBkg"};
   vector<Int_t> idxBkg;
   Double_t theS, theB, theSoB, totS, totB;
   theS = theB = theSoB = totS = totB = 0;
@@ -126,11 +129,11 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   //
   // bins
   const UInt_t nBinsMet = 4;
-  const UInt_t nBinsJet = 4;
+  const UInt_t nBinsJet = 5;
   Float_t metBins[nBinsMet] = {200, 250, 350, 450};
-  Float_t jetBins[nBinsJet] = {0.5, 1.5, 2.5, 3.5};
+  Float_t jetBins[nBinsJet] = {0.5, 1.5, 2.5, 3.5, 4.5};
   //
-  Float_t jetBinX[nSel]  = {1, 2, 3};
+  Float_t jetBinX[nSel]  = {1, 2, 3, 4};
   Float_t metBinY[nSrc]  = {225, 300, 400};
   // 
   // Loop over histograms to declare/define them
@@ -352,6 +355,9 @@ vector<Int_t> findIdx(TString name)
     res.push_back(1);
     res.push_back(2);
     res.push_back(3);
+  }
+  else if(name=="SumBkg") {
+    res.push_back(0);
   }
   else {
     res.push_back(1);
