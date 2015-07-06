@@ -2,7 +2,7 @@
 
 vector<Int_t> findIdx(vector<TString> name, UInt_t iB);
 
-Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var="t1mumet")
+Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var="t1mumet", TString option="text")
 {
 
   ofstream outlog("plots/soverb/"+prefix+"_"+postfix+"/qcdoverb_"+prefix+"_"+postfix+".txt");
@@ -10,16 +10,6 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   outlog << setw(9) << "MET"
 	 << setw(7) << "#Jets"
 	 << setw(5) << "Cut";
-
-  /*
-  for(UInt_t iSrc=0 ; iSrc<nSrc ; iSrc++) {
-    for(UInt_t iSel=0 ; iSel<nSel ; iSel++) {
-      for(UInt_t iCut=0 ; iCut<nCut ; iCut++) {
-	for(UInt_t iS=0 ; iS<nSig ; iS++) {
-	  for(UInt_t iB=0 ; iB<nBkgOut ; iB++) {
-
-  */
-
 
   // GET INPUTS //
   const UInt_t nSrc=3;
@@ -61,28 +51,18 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   //signal.push_back("zn_sr_DD"); // FIXME
   //signal.push_back("zn_sr_corr_DD"); // FIXME
   //
-  // Signal
-  /* // FIXME
-  const UInt_t nSpin=2;
-  const UInt_t nMass=9;
-  TString nameSpin[nSpin] = {"V","AV"};
-  TString nameMass[nMass] = {"0p1","1","10","100","200","300","400","700","1000"};
-  TString nameProcess;
-  for(UInt_t iS=0 ; iS<nSpin ; iS++) {
-    for(UInt_t iM=0 ; iM<nMass ; iM++) {
-      nameProcess = "dm_"+nameSpin[iS]+"_"+nameMass[iM];
-      signal.push_back(nameProcess);
-    }
-  }
-  */
 
   const UInt_t nSig = signal.size();
   const UInt_t nBkgIn = background.size();
 
   // Selections and variables
+  //const UInt_t nSel=4;
+  //TString sel[nSel] = {"1jet","2jet","3jet","4jet"};
+  //TString shortsel[nSel] = {"1","2","3","4"};
+
   const UInt_t nSel=3;
-  TString sel[nSel] = {"1jet","2jet","3jet"};
-  TString shortsel[nSel] = {"1","2","3"};
+  TString sel[nSel] = {"2jet","3jet","4jet"};
+  TString shortsel[nSel] = {"2","3","4"};
 
   const UInt_t nCut=5;
   TString cut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
@@ -129,11 +109,14 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   //
   // bins
   const UInt_t nBinsMet = 4;
-  const UInt_t nBinsJet = 4;
   Float_t metBins[nBinsMet] = {200, 250, 350, 450};
-  Float_t jetBins[nBinsJet] = {0.5, 1.5, 2.5, 3.5};
   //
-  Float_t jetBinX[nSel]  = {1, 2, 3};
+  //const UInt_t nBinsJet = 5;
+  //Float_t jetBins[nBinsJet] = {0.5, 1.5, 2.5, 3.5, 4.5};
+  const UInt_t nBinsJet = 4;
+  Float_t jetBins[nBinsJet] = {1.5, 2.5, 3.5, 4.5};
+  //
+  Float_t jetBinX[nSel]  = {2, 3, 4};
   Float_t metBinY[nSrc]  = {225, 300, 400};
   // 
   // Loop over histograms to declare/define them
@@ -273,7 +256,8 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
 	c[iCut][iS][iB]->cd();
 
 	//hSoB[iCut][iS][iB]->Draw("colztexte");
-	hSoB[iCut][iS][iB]->Draw("colztext");
+	//hSoB[iCut][iS][iB]->Draw("colztext");
+	hSoB[iCut][iS][iB]->Draw(option);
       }
     }
   }
