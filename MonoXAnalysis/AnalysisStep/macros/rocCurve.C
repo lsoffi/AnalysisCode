@@ -70,17 +70,18 @@ Int_t rocCurve(TString _tag="",
   // Selections and variables
   const UInt_t nWd=2; // forward/backward cumulative distribution
   const UInt_t nS=6;  // selections
-  const UInt_t nV=3;  // variables
   const UInt_t nGZ=2;  // full/zoomed
-
-  TGraph* gRoc[nS][nV][nWd][nGZ];
-  //TH1F*   hBoS[nS][nV];
 
   TString tzoom[nGZ] = {"_full", "_zoom"}; 
   TString wd[nWd]    = {"upcut","lowcut"};
   TString wdT[nWd]   = {"upper","lower"};
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet","4jet"};
-  TString var[nV]    = {"alphat","jetjetdphi","jetmetdphimin"};//, "leadjetmetdphi"};
+
+  //const UInt_t nV=3;  // variables
+  //TString var[nV]    = {"alphat","jetjetdphi","jetmetdphimin"};//, "leadjetmetdphi"};
+  const UInt_t nV=2;  // variables
+  TString var[nV]    = {"jetmetdphimin","incjetmetdphimin"};
+  UInt_t idxWd[nV]   = {1,1};
 
   /*
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
@@ -88,7 +89,10 @@ Int_t rocCurve(TString _tag="",
 			"dphiJ1J3","dphiJ2J3"};
   */
 
-  Int_t colors[nV]   = {kBlack, kBlue, kRed};//, kGreen+2};
+  Int_t colors[nV]   = {kBlack, kBlue};//, kRed};//, kGreen+2};
+
+  TGraph* gRoc[nS][nV][nWd][nGZ];
+  //TH1F*   hBoS[nS][nV];
 
   /*
   const UInt_t nCut=1;
@@ -319,18 +323,18 @@ Int_t rocCurve(TString _tag="",
 	}
 	*/
 
-	if(gRoc[iS][0][1][iGZ]->GetN()>0) gRoc[iS][0][1][iGZ]->Draw("AL"); // alphat
+	if(gRoc[iS][0][idxWd[0]][iGZ]->GetN()>0) gRoc[iS][0][idxWd[0]][iGZ]->Draw("AL"); // alphat
 	//else if(gRoc[iS][1][1][iGZ]->GetN()>0) gRoc[iS][1][1][iGZ]->Draw("AL");  // apcjetmetmax
 	//else if(gRoc[iS][2][1][iGZ]->GetN()>0) gRoc[iS][2][1][iGZ]->Draw("AL");  // apcjetmetmin
-	else if(gRoc[iS][1][0][iGZ]->GetN()>0) gRoc[iS][1][0][iGZ]->Draw("AL");  // jetjetdphi
-	else if(gRoc[iS][2][1][iGZ]->GetN()>0) gRoc[iS][2][1][iGZ]->Draw("AL");  // jetmetdphimin
+	else if(gRoc[iS][1][idxWd[1]][iGZ]->GetN()>0) gRoc[iS][1][idxWd[1]][iGZ]->Draw("AL");  // jetjetdphi
+	//else if(gRoc[iS][2][1][iGZ]->GetN()>0) gRoc[iS][2][1][iGZ]->Draw("AL");  // jetmetdphimin
 	//else if(gRoc[iS][3][0][iGZ]->GetN()>0) gRoc[iS][3][0][iGZ]->Draw("AL");  // leadjetmetdphi
 
-	if(gRoc[iS][0][1][iGZ]->GetN()>0) gRoc[iS][0][1][iGZ]->Draw("L"); // alphat
+	if(gRoc[iS][0][idxWd[0]][iGZ]->GetN()>0) gRoc[iS][0][idxWd[0]][iGZ]->Draw("L"); // alphat
 	//if(gRoc[iS][1][1][iGZ]->GetN()>0) gRoc[iS][1][1][iGZ]->Draw("L");  // apcjetmetmax
 	//if(gRoc[iS][2][1][iGZ]->GetN()>0) gRoc[iS][2][1][iGZ]->Draw("L");  // apcjetmetmin
-	if(gRoc[iS][1][0][iGZ]->GetN()>0) gRoc[iS][1][0][iGZ]->Draw("L");  // jetjetdphi
-	if(gRoc[iS][2][1][iGZ]->GetN()>0) gRoc[iS][2][1][iGZ]->Draw("L");  // jetmetdphimin
+	if(gRoc[iS][1][idxWd[1]][iGZ]->GetN()>0) gRoc[iS][1][idxWd[1]][iGZ]->Draw("L");  // jetjetdphi
+	//if(gRoc[iS][2][1][iGZ]->GetN()>0) gRoc[iS][2][1][iGZ]->Draw("L");  // jetmetdphimin
 	//if(gRoc[iS][3][0][iGZ]->GetN()>0) gRoc[iS][3][0][iGZ]->Draw("L");  // leadjetmetdphi
 
 	TLegend* leg;
