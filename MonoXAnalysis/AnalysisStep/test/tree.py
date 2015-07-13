@@ -131,12 +131,14 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     t1mumet = cms.InputTag("t1mumet"),
     t1phmet = cms.InputTag("t1phmet"),
     triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
+    objects        = cms.InputTag("selectedPatTrigger"),
     xsec = cms.double(32.293),
     cleanMuonJet = cms.bool(True),
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
     uselheweights = cms.bool(False),
     isWorZMCSample = cms.bool(False)
+    verbose        = cms.int32(0),
 )
 
 process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",

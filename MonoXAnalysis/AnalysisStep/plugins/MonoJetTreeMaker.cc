@@ -72,6 +72,7 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
 
         void findFirstNonPhotonMother(const reco::Candidate*, int &, int &);
+        std::string concatenate(std::vector<std::string> vstring);
 
         // InputTags
         edm::InputTag pileupInfoTag;
@@ -97,9 +98,11 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         edm::InputTag t1mumetTag;
         edm::InputTag t1phmetTag;
         edm::InputTag triggerResultsTag;
+        edm::InputTag _IT_trg_obj;
 
         // Tokens
         edm::EDGetTokenT<edm::TriggerResults> triggerResultsToken;
+        edm::EDGetTokenT<pat::TriggerObjectStandAloneCollection> trgObjectsToken_;
         edm::EDGetTokenT<std::vector<PileupSummaryInfo> >  pileupInfoToken;
         edm::EDGetTokenT<GenEventInfoProduct> genevtInfoToken;
         edm::EDGetTokenT<std::vector<reco::Vertex> > verticesToken;
@@ -147,6 +150,15 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         double   zmass, zpt, zeta, zphi, wmt, emumass, emupt, emueta, emuphi, zeemass, zeept, zeeeta, zeephi, wemt;
         double   loosephpt, loosepheta, loosephphi, loosephsieie, loosephrndiso;
         double   xsec, wgt, kfact, puwgt, weight;
+        int32_t  _verbose;
+
+        // Trigger objects
+        Int_t _trig_obj_n;
+        std::vector< double > _trig_obj_pt, _trig_obj_eta, _trig_obj_phi;
+        std::vector< std::string > _trig_obj_col, _trig_obj_lab;
+        std::vector< std::string > _trig_obj_path_FF, _trig_obj_path_FT, 
+          _trig_obj_path_TF, _trig_obj_path_TT ;
+        std::vector< std::vector<int> > _trig_obj_ids;
 
         struct PatJetPtSorter {
             bool operator() (const pat::Jet& i, const pat::Jet& j) {
@@ -198,6 +210,7 @@ MonoJetTreeMaker::MonoJetTreeMaker(const edm::ParameterSet& iConfig):
     t1mumetTag(iConfig.getParameter<edm::InputTag>("t1mumet")),
     t1phmetTag(iConfig.getParameter<edm::InputTag>("t1phmet")),
     triggerResultsTag(iConfig.getParameter<edm::InputTag>("triggerResults")),
+    _IT_trg_obj(iConfig.getParameter<edm::InputTag>("objects")),
     isWorZMCSample(iConfig.existsAs<bool>("isWorZMCSample") ? iConfig.getParameter<bool>("isWorZMCSample") : false),
     isSignalSample(iConfig.existsAs<bool>("isSignalSample") ? iConfig.getParameter<bool>("isSignalSample") : false),
     cleanMuonJet(iConfig.existsAs<bool>("cleanMuonJet") ? iConfig.getParameter<bool>("cleanMuonJet") : false),
@@ -205,11 +218,13 @@ MonoJetTreeMaker::MonoJetTreeMaker(const edm::ParameterSet& iConfig):
     cleanPhotonJet(iConfig.existsAs<bool>("cleanPhotonJet") ? iConfig.getParameter<bool>("cleanPhotonJet") : false),
     uselheweights(iConfig.existsAs<bool>("uselheweights") ? iConfig.getParameter<bool>("uselheweights") : false),
     xsec(iConfig.getParameter<double>("xsec")),
-    kfact((iConfig.existsAs<double>("kfactor") ? iConfig.getParameter<double>("kfactor") : 1.0))
+    kfact((iConfig.existsAs<double>("kfactor") ? iConfig.getParameter<double>("kfactor") : 1.0)),
+    _verbose((iConfig.existsAs<int32_t>("verbose") ? iConfig.getParameter<int32_t>("verbose") : 0))
 {
 
     // Token consumes instructions
     triggerResultsToken = consumes<edm::TriggerResults> (triggerResultsTag); 
+    trgObjectsToken_   = consumes<pat::TriggerObjectStandAloneCollection>(_IT_trg_obj);
     pileupInfoToken = consumes<std::vector<PileupSummaryInfo> > (pileupInfoTag);
     genevtInfoToken = consumes<GenEventInfoProduct> (genevtInfoTag);
     verticesToken = consumes<std::vector<reco::Vertex> > (verticesTag);
@@ -248,6 +263,9 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     // Get handles to all the requisite collections
     Handle<TriggerResults> triggerResultsH;
     iEvent.getByToken(triggerResultsToken, triggerResultsH);
+
+    edm::Handle<pat::TriggerObjectStandAloneCollection> H_trg_obj;
+    iEvent.getByToken(trgObjectsToken_, H_trg_obj);
 
     Handle<vector<PileupSummaryInfo> > pileupInfoH;
     iEvent.getByToken(pileupInfoToken, pileupInfoH);
@@ -371,6 +389,103 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         if (i == 27 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel  = 1; // Single electron trigger
         if (i == 28 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel  = 1; // Single electron trigger
     }
+
+    // Trigger objects
+    if(!H_trg_obj.isValid()) {
+      if(_verbose>0) cout << "Missing collection : " << _IT_trg_obj << " ... skip entry !" << endl;
+      return;
+    }
+
+    const edm::TriggerNames & triggerNames = iEvent.triggerNames(*triggerResultsH);
+    string trgColl,trgFiltStr,trgPathsFFStr;
+    vector<int> trgIds;
+    vector<string> trgFilt, trgPathsFF, trgPathsFT, trgPathsTF, trgPathsTT;
+    bool isNone, isL3, isLF, isBoth;
+
+    for (pat::TriggerObjectStandAlone obj : *H_trg_obj) { // note: not "const &" since we want to call unpackPathNames
+      
+      obj.unpackPathNames(triggerNames);
+      
+      // pt,eta,phi
+      if(_verbose>1) cout << "\tTrigger object:  pt " << obj.pt() << ", eta " << obj.eta() << ", phi " << obj.phi() << endl;
+      //
+      _trig_obj_pt.push_back( obj.pt());
+      _trig_obj_eta.push_back(obj.eta());
+      _trig_obj_phi.push_back(obj.phi());
+      
+      // Collection
+      trgColl = obj.collection();
+      if(_verbose>1) cout << "\t   Collection: " << trgColl << endl;
+      //
+      _trig_obj_col.push_back(trgColl);
+      
+      // Trigger Filter Ids
+      if(_verbose>1) cout << "\t   Type IDs:   ";
+      trgIds = obj.filterIds();
+      //
+      _trig_obj_ids.push_back(trgIds);
+      //
+      for (unsigned h = 0; h < trgIds.size(); ++h) {
+	if(_verbose>1) cout << " " << trgIds[h] ;
+      }
+      if(_verbose>1) cout << endl;
+      
+      // Trigger filters
+      if(_verbose>1) cout << "\t   Filters:    ";
+      trgFilt = obj.filterLabels();
+      for (unsigned h = 0; h < trgFilt.size(); ++h) {
+	if(_verbose>1) cout << " " << trgFilt[h];
+	trgFiltStr += trgFilt[h]+"_%_" ;
+      }
+      if(_verbose>1) cout << endl;
+      _trig_obj_lab.push_back(trgFiltStr);
+      
+      // Trigger paths
+      trgPathsFF = obj.pathNames(false,false);
+      trgPathsFT = obj.pathNames(false,true);
+      trgPathsTF = obj.pathNames(true,false);
+      trgPathsTT = obj.pathNames(true,true);
+      //
+      _trig_obj_path_FT.push_back(concatenate(trgPathsFT));
+      _trig_obj_path_TF.push_back(concatenate(trgPathsTF));
+      _trig_obj_path_TT.push_back(concatenate(trgPathsTT));
+      //
+      if(_verbose>1) cout << "\t   Paths (" << trgPathsFF.size()<<"/"<<trgPathsTT.size()<<"):    ";
+      //
+      
+      // Loop over all associated paths
+      for (unsigned h = 0, n = trgPathsFF.size(); h < n; ++h) {
+	
+	trgPathsFFStr += trgPathsFF[h]+"_%_";      
+	
+	isNone = obj.hasPathName( trgPathsFF[h], false, false ); 
+	isL3   = obj.hasPathName( trgPathsFF[h], false, true ); 
+	isLF   = obj.hasPathName( trgPathsFF[h], true, false ); 
+	isBoth = obj.hasPathName( trgPathsFF[h], true, true ); 
+	
+	if(_verbose>1) {
+	  cout << "   " << trgPathsFF[h];
+	  if (isBoth)  cout << "(L,3)";
+	  if (isL3 && !isBoth)  cout << "(*,3)";
+	  if (isLF && !isBoth)  cout << "(L,*)";
+	  if (isNone && !isBoth && !isL3 && !isLF)  cout << "(*,*)";
+	}
+      }
+      if(_verbose>1) cout << endl;
+      //
+      _trig_obj_path_FF.push_back(trgPathsFFStr);
+      
+      // Clear vectors
+      trgIds.clear();
+      trgFilt.clear(); 
+      trgFiltStr="";
+      trgColl="";
+      trgPathsFFStr="";
+      
+      // Increment trigger object index
+      _trig_obj_n++ ;
+    }  
+    //////////// END TRIGGER OBJECTS //////////////
 
     // Pileup info -- Will need to the updated to the Run-II specifications
     nvtx   = verticesH->size();
@@ -978,6 +1093,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 void MonoJetTreeMaker::beginJob() {
     edm::Service<TFileService> fs;
     tree = fs->make<TTree>("tree"       , "tree");
+    int buffersize = 32000; // trig_obj vectors
     // Run, Lumi, Event info
     tree->Branch("event"                , &event                , "event/i");
     tree->Branch("run"                  , &run                  , "run/i");
@@ -1003,6 +1119,18 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("hltsinglemu"          , &hltsinglemu          , "hltsinglemu/i");
     tree->Branch("hltdoubleel"          , &hltdoubleel          , "hltdoubleel/i");
     tree->Branch("hltsingleel"          , &hltsingleel          , "hltsingleel/i");
+    // Trigger objects
+    tree->Branch("trig_obj_n",&_trig_obj_n,"trig_obj_n/I");
+    tree->Branch("trig_obj_pt","std::vector<double>",&_trig_obj_pt,buffersize);
+    tree->Branch("trig_obj_eta","std::vector<double>",&_trig_obj_eta,buffersize);
+    tree->Branch("trig_obj_phi","std::vector<double>",&_trig_obj_phi,buffersize);
+    tree->Branch("trig_obj_col","std::vector<std::string>",&_trig_obj_col,buffersize);
+    tree->Branch("trig_obj_ids","std::vector<std::vector<std::int>>",&_trig_obj_ids,buffersize);
+    tree->Branch("trig_obj_lab", "std::vector<std::string>",&_trig_obj_lab, buffersize);
+    tree->Branch("trig_obj_path_FF","std::vector<std::string>",&_trig_obj_path_FF,buffersize);
+    tree->Branch("trig_obj_path_FT","std::vector<std::string>",&_trig_obj_path_FT,buffersize);
+    tree->Branch("trig_obj_path_TF","std::vector<std::string>",&_trig_obj_path_TF,buffersize);
+    tree->Branch("trig_obj_path_TT","std::vector<std::string>",&_trig_obj_path_TT,buffersize);
     // Object counts
     tree->Branch("nmuons"               , &nmuons               , "nmuons/i");
     tree->Branch("nelectrons"           , &nelectrons           , "nelectrons/i");
@@ -1203,6 +1331,20 @@ void MonoJetTreeMaker::beginRun(edm::Run const& iRun, edm::EventSetup const& iSe
             }
         }
     }
+
+    // Trigger objects
+    _trig_obj_n = 0;
+    _trig_obj_pt.clear();
+    _trig_obj_eta.clear();
+    _trig_obj_phi.clear();
+    _trig_obj_col.clear();
+    _trig_obj_lab.clear();
+    _trig_obj_ids.clear();
+    _trig_obj_path_FF.clear();
+    _trig_obj_path_FT.clear();
+    _trig_obj_path_TF.clear();
+    _trig_obj_path_TT.clear();
+
 }
 
 void MonoJetTreeMaker::endRun(edm::Run const&, edm::EventSetup const&) {
@@ -1236,6 +1378,16 @@ void MonoJetTreeMaker::findFirstNonPhotonMother(const reco::Candidate *particle,
     }
     return;
 }
+
+std::string MonoJetTreeMaker::concatenate(std::vector<std::string> vstring)
+{
+    std::string result;
+    for(UInt_t i=0 ; i<vstring.size() ; i++) {
+      result += vstring[i]+"_%_";
+    }
+    return result;
+}
+
 
 DEFINE_FWK_MODULE(MonoJetTreeMaker);
 
