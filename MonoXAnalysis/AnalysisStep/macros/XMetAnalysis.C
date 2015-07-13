@@ -58,10 +58,15 @@ Int_t XMetAnalysis::AnalysisAN15()
   const UInt_t nS=1;
   TString select[nS] = {"monojet"};
   */
-
+  /*
   const UInt_t nCut=5;
   TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
-  Bool_t  scanReset[nCut] = {true,true,true,true,true};
+  Bool_t  scanReset[nCut] = {true,false,false,false,false};
+  */
+  const UInt_t nCut=5;
+  TString scanCut[nCut] = {"JetMet0p4","JetMet0p45",
+			   "JetMet0p5","JetMet0p55","JetMet0p6"};
+  Bool_t  scanReset[nCut] = {true,false,false,false,false};
   
   /*
   const UInt_t nCut=1;
@@ -179,25 +184,23 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   TString scanCut[  nCut] = {"Met200", "MetFrom200to250", "MetFrom250to350", "Met350"};
   Bool_t  scanReset[nCut] = {true,true,true,true};
 
-  const UInt_t nV=4;
-  TString var[nV] = {"alphat","jetjetdphi","jetmetdphimin","leadjetmetdphi"};
+  const UInt_t nV=2;
+  TString var[nV] = {"jetmetdphimin", "incjetmetdphimin"};
+  UInt_t  nBins[nV]  = {10000, 10000};
+  Float_t xFirst[nV] = {0,  0};
+  Float_t xLast[nV]  = {3.2, 3.2};
 
   /*
   const UInt_t nV=7;
   TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
 			"jetjetdphi","jetmetdphimin",
 			"dphiJ1J3","dphiJ2J3"};
-  */
 
-  //
-  //UInt_t  nBins[nV]  = {40, 50, 50, 50,  50, 50, 50};
-  //UInt_t  nBins[nV]  = {400, 500, 500, 500, 500, 500, 500};
-  //UInt_t  nBins[nV]  = {800, 1000, 1000, 1000,  1000, 1000, 1000};
-  //UInt_t  nBins[nV]  = {4000, 5000, 5000, 5000,  5000, 5000, 5000};
   UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000};//, 10000};//, 10000, 10000};
-  //
   Float_t xFirst[nV] = {0,  0,  0,  0};//,   0  };//, 0  , 0};
   Float_t xLast[nV]  = {2,  3.2, 3.2, 3.2};//, 3.2, 3.2};
+  */
+
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
@@ -626,10 +629,13 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   TCut apcjetmetmax="apcjetmetmax>0.55";
 
   TCut jmdphi="";
-  if(     select.Contains("JetMet0p2")) jmdphi = "abs(jetmetdphimin)>0.2";
-  else if(select.Contains("JetMet0p4")) jmdphi = "abs(jetmetdphimin)>0.4";
-  else if(select.Contains("JetMet0p6")) jmdphi = "abs(jetmetdphimin)>0.6";
-  else if(select.Contains("JetMet0p8")) jmdphi = "abs(jetmetdphimin)>0.8";
+  if(     select.Contains("JetMet0p2"))  jmdphi = "abs(jetmetdphimin)>0.2";
+  if(select.Contains("JetMet0p4"))  jmdphi = "abs(jetmetdphimin)>0.4";
+  if(select.Contains("JetMet0p45")) jmdphi = "abs(jetmetdphimin)>0.45";
+  if(select.Contains("JetMet0p5"))  jmdphi = "abs(jetmetdphimin)>0.5";
+  if(select.Contains("JetMet0p55")) jmdphi = "abs(jetmetdphimin)>0.55";
+  if(select.Contains("JetMet0p6"))  jmdphi = "abs(jetmetdphimin)>0.6";
+  if(select.Contains("JetMet0p8"))  jmdphi = "abs(jetmetdphimin)>0.8";
   
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
