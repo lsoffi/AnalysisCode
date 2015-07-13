@@ -64,9 +64,15 @@ Int_t drawSoB(TString prefix="v3_AN15_JetMet_", TString postfix="", TString var=
   TString sel[nSel] = {"2jet","3jet","4jet"};
   TString shortsel[nSel] = {"2","3","4"};
 
+  /*
   const UInt_t nCut=5;
   TString cut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
   TString shortcut[nCut]={"No","0.2","0.4","0.6","0.8"};
+  */
+  const UInt_t nCut=5;
+  TString cut[nCut] = {"JetMet0p4","JetMet0p45",
+		       "JetMet0p5","JetMet0p55","JetMet0p6"};
+  TString shortcut[nCut]={"0.4","0.45","0.5","0.55","0.6"};
 
   // Loop over input files to get inputs
   TString nameH;
