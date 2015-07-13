@@ -31,6 +31,9 @@ isMC = True
 # Filter on high MET events
 filterHighMETEvents = False
 
+# Filter on triggered events
+filterOnHLT = True
+
 # Define the input source
 process.source = cms.Source("PoolSource", 
     fileNames = cms.untracked.vstring('/store/mc/RunIISpring15DR74/QCD_Pt_800to1000_TuneCUETP8M1_13TeV_pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v2/00000/04DC7D13-1E0C-E511-847C-00A0D1EE923C.root')
@@ -44,7 +47,13 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 if isMC:
     process.GlobalTag.globaltag = 'MCRUN2_74_V9::All'   # for Simulation
 else:
-    process.GlobalTag.globaltag = 'MCRUN2_74_V9::All'   # for Data (for now set to the MC tag)
+    process.GlobalTag.globaltag = 'GR_P_V54::All'       # for Data
+
+# Set the process for reading MET filter flags from TriggerResults
+if isMC:
+    metFilterProcess = "PAT"
+else :
+    metFilterProcess = "RECO"
 
 # Select good primary vertices
 process.goodVertices = cms.EDFilter("VertexSelector",
@@ -66,6 +75,7 @@ for idmod in ele_id_modules:
 for idmod in ph_id_modules:
     setupAllVIDIdsInModule(process,idmod,setupVIDPhotonSelection)
 
+# Create a set of objects to read from
 process.selectedObjects = cms.EDProducer("PFCleaner",
     vertices = cms.InputTag("goodVertices"),
     pfcands = cms.InputTag("packedPFCandidates"),
@@ -102,10 +112,7 @@ process.t1phmet = cms.EDProducer("CandCorrectedMETProducer",
     cands = cms.VInputTag(cms.InputTag("selectedObjects", "photons")) 
 )
 
-# Remove MC matching when running on data
-if not isMC:
-    runOnData(process)
-
+# Make the tree 
 process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     pileup = cms.InputTag("addPileupInfo"),
     genevt = cms.InputTag("generator"),
@@ -132,15 +139,19 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     t1phmet = cms.InputTag("t1phmet"),
     triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
     objects        = cms.InputTag("selectedPatTrigger"),
+    filterResults = cms.InputTag("TriggerResults", "", metFilterProcess),
+    hcalnoise = cms.InputTag("hcalnoise"),
     xsec = cms.double(32.293),
     cleanMuonJet = cms.bool(True),
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
+    applyHLTFilter = cms.bool(filterOnHLT),
     uselheweights = cms.bool(False),
     isWorZMCSample = cms.bool(False)
     verbose        = cms.int32(0),
 )
 
+# Tree for the generator weights
 process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
     lheinfo = cms.InputTag("externalLHEProducer"),
     geninfo = cms.InputTag("generator"),
@@ -148,15 +159,21 @@ process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
     addqcdpdfweights = cms.bool(False)
 )
 
+# MET filter
 process.metfilter = cms.EDFilter("CandViewSelector",
     src = cms.InputTag("t1mumet"),
     cut = cms.string("et > 200"),
     filter = cms.bool(True)
 )
 
-
+# Set up the path
 if filterHighMETEvents: 
-    process.treePath = cms.Path(process.gentree + process.goodVertices + process.metfilter + process.tree)
+    if (isMC):
+        process.treePath = cms.Path(process.gentree + process.goodVertices + process.metfilter + process.tree)
+    else :
+        process.treePath = cms.Path(                  process.goodVertices + process.metfilter + process.tree)
 else :
-    process.treePath = cms.Path(process.gentree + process.goodVertices + process.tree)
-
+    if (isMC):
+        process.treePath = cms.Path(process.gentree + process.goodVertices                     + process.tree)
+    else :
+        process.treePath = cms.Path(process.gentree + process.goodVertices + process.metfilter + process.tree)
