@@ -1436,6 +1436,19 @@ void MonoJetTreeMaker::beginRun(edm::Run const& iRun, edm::EventSetup const& iSe
     bool changedConfig = false;
     hltConfig.init(iRun, iSetup, triggerResultsTag.process(), changedConfig);
 
+    for (size_t i = 0; i < triggerPathsVector.size(); i++) {
+        triggerPathsMap[triggerPathsVector[i]] = -1;
+    }
+
+    for(size_t i = 0; i < triggerPathsVector.size(); i++){
+        TPRegexp pattern(triggerPathsVector[i]);
+        for(size_t j = 0; j < hltConfig.triggerNames().size(); j++){
+            std::string pathName = hltConfig.triggerNames()[j];
+            if(TString(pathName).Contains(pattern)){
+                triggerPathsMap[triggerPathsVector[i]] = j;
+            }
+        }
+    }
 
     // Trigger objects
     _trig_obj_n = 0;
