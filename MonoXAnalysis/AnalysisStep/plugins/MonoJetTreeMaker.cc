@@ -270,6 +270,9 @@ MonoJetTreeMaker::~MonoJetTreeMaker() {
 }
 
 void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+
+    if(_verbose>3) std::cout << "- analyze(...) starts" << std::endl;
+
     using namespace edm;
     using namespace reco;
     using namespace std;
@@ -365,7 +368,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     run   = iEvent.id().run();
     lumi  = iEvent.luminosityBlock();
 
-   // Trigger info
+    // Trigger info
     hltmet90        = 0;
     hltmet120       = 0;
     hltmetwithmu90  = 0;
@@ -434,7 +437,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     if (hltsinglemu     == 1) triggered = true;
     if (hltdoubleel     == 1) triggered = true;
     if (hltsingleel     == 1) triggered = true;
-    if (!triggered) return;
+    //if (!triggered) return;
     if (applyHLTFilter && !triggered) return;
 
     // MET filter info
@@ -1170,10 +1173,15 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     }
 
     tree->Fill();
+
+    if(_verbose>3) std::cout << "-- tree is filled" << std::endl;
 }
 
 
 void MonoJetTreeMaker::beginJob() {
+
+    if(_verbose>3) std::cout << "- beginJob() starts" << std::endl;
+
     edm::Service<TFileService> fs;
     tree = fs->make<TTree>("tree"       , "tree");
     int buffersize = 32000; // trig_obj vectors
@@ -1382,6 +1390,8 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("i3pt"                 , &i3pt                 , "i3pt/D");
     tree->Branch("i3eta"                , &i3eta                , "i3eta/D");
     tree->Branch("i3phi"                , &i3phi                , "i3phi/D");
+
+    if(_verbose>3) std::cout << "- beginJob() ends" << std::endl;
 }
 
 void MonoJetTreeMaker::endJob() {
