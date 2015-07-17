@@ -74,6 +74,7 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
 
         void findFirstNonPhotonMother(const reco::Candidate*, int &, int &);
         std::string concatenate(std::vector<std::string> vstring);
+        void Init();
 
         // InputTags
         edm::InputTag pileupInfoTag;
@@ -272,6 +273,7 @@ MonoJetTreeMaker::~MonoJetTreeMaker() {
 void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
     if(_verbose>3) std::cout << "- analyze(...) starts" << std::endl;
+    Init();
 
     using namespace edm;
     using namespace reco;
@@ -1531,6 +1533,23 @@ void MonoJetTreeMaker::fillDescriptions(edm::ConfigurationDescriptions& descript
     edm::ParameterSetDescription desc;
     desc.setUnknown();
     descriptions.addDefault(desc);
+}
+
+void MonoJetTreeMaker::Init()
+{
+
+  _trig_obj_n = 0;
+  _trig_obj_pt.clear();
+  _trig_obj_eta.clear();
+  _trig_obj_phi.clear();
+  _trig_obj_col.clear();
+  _trig_obj_lab.clear();
+  _trig_obj_ids.clear();
+  _trig_obj_path_FF.clear();
+  _trig_obj_path_FT.clear();
+  _trig_obj_path_TF.clear();
+  _trig_obj_path_TT.clear();
+
 }
 
 DEFINE_FWK_MODULE(MonoJetTreeMaker);
