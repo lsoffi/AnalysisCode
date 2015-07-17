@@ -77,7 +77,6 @@ class TreeDumper : public edm::EDAnalyzer {
         edm::InputTag triggerResultsTag;
         edm::InputTag filterResultsTag;
         edm::InputTag hcalnoiseTag;
-        edm::InputTag hcalnoiseresultTag;
         edm::InputTag verticesTag;
         edm::InputTag muonsTag;
         edm::InputTag electronsTag;
@@ -103,7 +102,6 @@ class TreeDumper : public edm::EDAnalyzer {
         edm::EDGetTokenT<edm::TriggerResults>             triggerResultsToken;
         edm::EDGetTokenT<edm::TriggerResults>             filterResultsToken;
         edm::EDGetTokenT<HcalNoiseSummary>                hcalnoiseToken;
-        edm::EDGetTokenT<bool>                            hcalnoiseresultToken;
         edm::EDGetTokenT<std::vector<reco::Vertex> >      verticesToken;
         edm::EDGetTokenT<edm::View<pat::Muon> >           muonsToken;
         edm::EDGetTokenT<edm::View<pat::Electron> >       electronsToken;
@@ -136,7 +134,7 @@ class TreeDumper : public edm::EDAnalyzer {
 
         uint32_t event, run, lumi;
         uint8_t  hltmet90, hltmet120, hltmetwithmu90, hltmetwithmu120, hltmetwithmu170, hltmetwithmu300, hltjetmet90, hltjetmet120, hltphoton165, hltphoton175, hltdoublemu, hltsinglemu, hltdoubleel, hltsingleel;
-        uint8_t  flagcsctight, flaghbhenoise, flaghcallaser, flagecaltrig, flageebadsc, flagecallaser, flagtrkfail, flagtrkpog, flaghnoiseloose, flaghnoisetight, flaghnoisehilvl, flaghnoiseresult;
+        uint8_t  flagcsctight, flaghbhenoise, flaghcallaser, flagecaltrig, flageebadsc, flagecallaser, flagtrkfail, flagtrkpog, flaghnoiseloose, flaghnoisetight, flaghnoisehilvl;
         uint8_t  nvtx, puobs, putrue; 
 
         double   pfmet, pfmetphi, t1pfmet, t1pfmetphi, mumet, mumetphi, t1mumet, t1mumetphi;
@@ -198,7 +196,6 @@ TreeDumper::TreeDumper(const edm::ParameterSet& iConfig):
     triggerResultsTag(iConfig.getParameter<edm::InputTag>("triggerResults")),
     filterResultsTag(iConfig.getParameter<edm::InputTag>("filterResults")),
     hcalnoiseTag(iConfig.getParameter<edm::InputTag>("hcalnoise")),
-    hcalnoiseresultTag(iConfig.getParameter<edm::InputTag>("hcalnoiseresult")),
     verticesTag(iConfig.getParameter<edm::InputTag>("vertices")),
     muonsTag(iConfig.getParameter<edm::InputTag>("muons")),
     electronsTag(iConfig.getParameter<edm::InputTag>("electrons")),
@@ -230,7 +227,6 @@ TreeDumper::TreeDumper(const edm::ParameterSet& iConfig):
     triggerResultsToken      = consumes<edm::TriggerResults>             (triggerResultsTag); 
     filterResultsToken       = consumes<edm::TriggerResults>             (filterResultsTag); 
     hcalnoiseToken           = consumes<HcalNoiseSummary>                (hcalnoiseTag); 
-    hcalnoiseresultToken     = consumes<bool>                            (hcalnoiseresultTag); 
     verticesToken            = consumes<std::vector<reco::Vertex> >      (verticesTag);
     muonsToken               = consumes<edm::View<pat::Muon> >           (muonsTag); 
     electronsToken           = consumes<edm::View<pat::Electron> >       (electronsTag); 
@@ -275,9 +271,6 @@ void TreeDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
 
     Handle<HcalNoiseSummary> hcalnoiseH;
     iEvent.getByToken(hcalnoiseToken, hcalnoiseH);
-
-    Handle<bool> hcalnoiseresultH;
-    iEvent.getByToken(hcalnoiseresultToken, hcalnoiseresultH);
 
     Handle<vector<Vertex> > verticesH;
     iEvent.getByToken(verticesToken, verticesH);
@@ -429,11 +422,9 @@ void TreeDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     flaghnoiseloose  = 0;
     flaghnoisetight  = 0;
     flaghnoisehilvl  = 0;
-    flaghnoiseresult = 0;
     if (hcalnoiseH->passLooseNoiseFilter()    ) flaghnoiseloose  = 1; 
     if (hcalnoiseH->passTightNoiseFilter()    ) flaghnoisetight  = 1; 
     if (hcalnoiseH->passHighLevelNoiseFilter()) flaghnoisehilvl  = 1; 
-    if (*hcalnoiseresultH                     ) flaghnoiseresult = 1;
 
     // Which MET filters passed
     for (size_t i = 0; i < filterPathsVector.size(); i++) {
@@ -849,7 +840,6 @@ void TreeDumper::beginJob() {
     tree->Branch("flaghnoiseloose"      , &flaghnoiseloose      , "flaghnoiseloose/b");
     tree->Branch("flaghnoisetight"      , &flaghnoisetight      , "flaghnoisetight/b");
     tree->Branch("flaghnoisehilvl"      , &flaghnoisehilvl      , "flaghnoisehilvl/b");
-    tree->Branch("flaghnoiseresult"     , &flaghnoiseresult     , "flaghnoiseresult/b");
     // Object counts
     tree->Branch("nmuons"               , &nmuons               , "nmuons/b");
     tree->Branch("nelectrons"           , &nelectrons           , "nelectrons/b");
@@ -957,8 +947,8 @@ void TreeDumper::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup) {
     triggerPathsVector.push_back("HLT_PFMET300_NoiseCleaned");
     triggerPathsVector.push_back("HLT_MonoCentralPFJet80_PFMETNoMu90_NoiseCleaned_PFMHTNoMu90_IDTight");
     triggerPathsVector.push_back("HLT_MonoCentralPFJet80_PFMETNoMu120_NoiseCleaned_PFMHTNoMu120_IDTight");
-    triggerPathsVector.push_back("HLT_Photon165");
-    triggerPathsVector.push_back("HLT_Photon175_HE10");
+    triggerPathsVector.push_back("HLT_Photon165_HE10");
+    triggerPathsVector.push_back("HLT_Photon175");
     triggerPathsVector.push_back("HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ");
     triggerPathsVector.push_back("HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ");
     triggerPathsVector.push_back("HLT_IsoMu17_eta2p1");

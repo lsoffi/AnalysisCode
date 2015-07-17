@@ -1173,6 +1173,8 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         loosephrndiso = (*rndgammaisoH)[loosephotonvector[0]];
     }
 
+    //if (abs(l1id) != 13 || abs(l2id) != 13) return;
+
     tree->Fill();
 
     if(_verbose>3) std::cout << "-- tree is filled" << std::endl;
@@ -1199,6 +1201,7 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("puobs"                , &puobs                , "puobs/I");
     tree->Branch("putrue"               , &putrue               , "putrue/I");
     tree->Branch("nvtx"                 , &nvtx                 , "nvtx/i");
+
     // Triggers
     tree->Branch("hltmet90"             , &hltmet90             , "hltmet90/i");
     tree->Branch("hltmet120"            , &hltmet120            , "hltmet120/i");
@@ -1206,14 +1209,14 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("hltmetwithmu120"      , &hltmetwithmu120      , "hltmetwithmu120/b");
     tree->Branch("hltmetwithmu170"      , &hltmetwithmu170      , "hltmetwithmu170/b");
     tree->Branch("hltmetwithmu300"      , &hltmetwithmu300      , "hltmetwithmu300/b");
-    tree->Branch("hltjetmet90"          , &hltjetmet90          , "hltjetmet90/i");
-    tree->Branch("hltjetmet120"         , &hltjetmet120         , "hltjetmet120/i");
-    tree->Branch("hltphoton165"         , &hltphoton165         , "hltphoton165/i");
-    tree->Branch("hltphoton175"         , &hltphoton175         , "hltphoton175/i");
-    tree->Branch("hltdoublemu"          , &hltdoublemu          , "hltdoublemu/i");
-    tree->Branch("hltsinglemu"          , &hltsinglemu          , "hltsinglemu/i");
-    tree->Branch("hltdoubleel"          , &hltdoubleel          , "hltdoubleel/i");
-    tree->Branch("hltsingleel"          , &hltsingleel          , "hltsingleel/i");
+    tree->Branch("hltjetmet90"          , &hltjetmet90          , "hltjetmet90/b");
+    tree->Branch("hltjetmet120"         , &hltjetmet120         , "hltjetmet120/b");
+    tree->Branch("hltphoton165"         , &hltphoton165         , "hltphoton165/b");
+    tree->Branch("hltphoton175"         , &hltphoton175         , "hltphoton175/b");
+    tree->Branch("hltdoublemu"          , &hltdoublemu          , "hltdoublemu/b");
+    tree->Branch("hltsinglemu"          , &hltsinglemu          , "hltsinglemu/b");
+    tree->Branch("hltdoubleel"          , &hltdoubleel          , "hltdoubleel/b");
+    tree->Branch("hltsingleel"          , &hltsingleel          , "hltsingleel/b");
 
     // Trigger objects
     tree->Branch("trig_obj_n",&_trig_obj_n,"trig_obj_n/I");
@@ -1229,17 +1232,17 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("trig_obj_path_TT","std::vector<std::string>",&_trig_obj_path_TT,buffersize);
 
     // MET filters
-    tree->Branch("flagcsctight"         , &flagcsctight         , "flagcsctight/i");
-    tree->Branch("flaghbhenoise"        , &flaghbhenoise        , "flaghbhenoise/i");
-    tree->Branch("flaghcallaser"        , &flaghcallaser        , "flaghcallaser/i");
-    tree->Branch("flagecaltrig"         , &flagecaltrig         , "flagecaltrig/i");
-    tree->Branch("flageebadsc"          , &flageebadsc          , "flageebadsc/i");
-    tree->Branch("flagecallaser"        , &flagecallaser        , "flagecallaser/i");
-    tree->Branch("flagtrkfail"          , &flagtrkfail          , "flagtrkfail/i");
-    tree->Branch("flagtrkpog"           , &flagtrkpog           , "flagtrkpog/i");
-    tree->Branch("flaghnoiseloose"      , &flaghnoiseloose      , "flaghnoiseloose/i");
-    tree->Branch("flaghnoisetight"      , &flaghnoisetight      , "flaghnoisetight/i");
-    tree->Branch("flaghnoisehilvl"      , &flaghnoisehilvl      , "flaghnoisehilvl/i");
+    tree->Branch("flagcsctight"         , &flagcsctight         , "flagcsctight/b");
+    tree->Branch("flaghbhenoise"        , &flaghbhenoise        , "flaghbhenoise/b");
+    tree->Branch("flaghcallaser"        , &flaghcallaser        , "flaghcallaser/b");
+    tree->Branch("flagecaltrig"         , &flagecaltrig         , "flagecaltrig/b");
+    tree->Branch("flageebadsc"          , &flageebadsc          , "flageebadsc/b");
+    tree->Branch("flagecallaser"        , &flagecallaser        , "flagecallaser/b");
+    tree->Branch("flagtrkfail"          , &flagtrkfail          , "flagtrkfail/b");
+    tree->Branch("flagtrkpog"           , &flagtrkpog           , "flagtrkpog/b");
+    tree->Branch("flaghnoiseloose"      , &flaghnoiseloose      , "flaghnoiseloose/b");
+    tree->Branch("flaghnoisetight"      , &flaghnoisetight      , "flaghnoisetight/b");
+    tree->Branch("flaghnoisehilvl"      , &flaghnoisehilvl      , "flaghnoisehilvl/b");
 
     // Object counts
     tree->Branch("nmuons"               , &nmuons               , "nmuons/i");
@@ -1407,8 +1410,8 @@ void MonoJetTreeMaker::beginRun(edm::Run const& iRun, edm::EventSetup const& iSe
     triggerPathsVector.push_back("HLT_PFMET300_NoiseCleaned");
     triggerPathsVector.push_back("HLT_MonoCentralPFJet80_PFMETNoMu90_NoiseCleaned_PFMHTNoMu90_IDTight");
     triggerPathsVector.push_back("HLT_MonoCentralPFJet80_PFMETNoMu120_NoiseCleaned_PFMHTNoMu120_IDTight");
-    triggerPathsVector.push_back("HLT_Photon165");
-    triggerPathsVector.push_back("HLT_Photon175_HE10");
+    triggerPathsVector.push_back("HLT_Photon165_HE10");
+    triggerPathsVector.push_back("HLT_Photon175");
     triggerPathsVector.push_back("HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ");
     triggerPathsVector.push_back("HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ");
     triggerPathsVector.push_back("HLT_IsoMu17_eta2p1");
