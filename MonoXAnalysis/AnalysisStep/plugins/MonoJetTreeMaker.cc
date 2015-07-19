@@ -1203,8 +1203,8 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("nvtx"                 , &nvtx                 , "nvtx/i");
 
     // Triggers
-    tree->Branch("hltmet90"             , &hltmet90             , "hltmet90/i");
-    tree->Branch("hltmet120"            , &hltmet120            , "hltmet120/i");
+    tree->Branch("hltmet90"             , &hltmet90             , "hltmet90/b");
+    tree->Branch("hltmet120"            , &hltmet120            , "hltmet120/b");
     tree->Branch("hltmetwithmu90"       , &hltmetwithmu90       , "hltmetwithmu90/b");
     tree->Branch("hltmetwithmu120"      , &hltmetwithmu120      , "hltmetwithmu120/b");
     tree->Branch("hltmetwithmu170"      , &hltmetwithmu170      , "hltmetwithmu170/b");
