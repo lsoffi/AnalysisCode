@@ -1,4 +1,5 @@
 #include "myIncludes.h"
+#include "tdrstyle.h"
 
 Double_t evaluate(double *x, double *par);
 Double_t evaluate2(double *x, double *par);
@@ -97,6 +98,8 @@ Int_t myTrigger(TString resultName="v1_test",
 
   TString nameF[nF]={"denom","num"};
   TString nameP[nP]={"MET90","MET120"};
+  TString namePath[nP]={"HLT_PFMETNoMu90_NoiseCleaned_PFMHTNoMu90_IDTight",
+			"HLT_PFMETNoMu120_NoiseCleaned_PFMHTNoMu120_IDTight"};
   TString nameS[nS]={"L1","MET","METClean","METJetID","MHT","PFMHT","PFMET","bit"};
 
   for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
@@ -502,14 +505,34 @@ Int_t myTrigger(TString resultName="v1_test",
   TH1F *hNum, *hDen;
   TEfficiency *pEff;
 
-  TF1 *f2 = new TF1("fit2",evaluate2,50,900,3);
+  TF1 *f2 = new TF1("fit2",evaluate2,50,1000,3);
   f2->SetParName(0, "midpoint");
   f2->SetParName(1, "steepness");
   f2->SetParName(2, "max");
   f2->SetParameter(0, 120);
-  f2->SetParameter(1, 0.1);
+  f2->SetParameter(1, 0.06);
   f2->SetParameter(2, 1);
-  f2->SetParLimits(2, 0.8, 1);
+  f2->SetParLimits(2, 0.99, 1);
+
+  // Set style //
+  /*
+  gROOT->Reset();
+  gROOT->SetStyle("Plain");
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
+  gStyle->SetTitleXOffset(1.2);
+  gStyle->SetTitleYOffset(0.01);
+  gStyle->SetLabelOffset(0.005, "XYZ");
+  gStyle->SetTitleSize(0.07, "XYZ");
+  gStyle->SetTitleFont(22,"X");
+  gStyle->SetTitleFont(22,"Y");
+  gStyle->SetPadBottomMargin(0.13);
+  gStyle->SetPadLeftMargin(0.15);
+  gStyle->SetPadRightMargin(0.15);
+  gStyle->SetHistLineWidth(2);
+  */
+  setTDRStyle();
+  //gROOT->ForceStyle();
 
   // Loop over histograms
   for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
@@ -524,10 +547,10 @@ Int_t myTrigger(TString resultName="v1_test",
 	if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen) ) {
 	  pEff = new TEfficiency(*hNum,*hDen);
 	  pEff->SetNameTitle( "t_"+TString(hNum->GetName()) , 
-			      hNum->GetTitle() );
+			      namePath[iP] );
 
 	  if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
-	    pEff->Fit(f2);
+	    pEff->Fit(f2,"R"); // use function's definition Range
 	  }
 
 	  pEff->Write();
