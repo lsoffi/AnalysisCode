@@ -4,12 +4,14 @@
 Double_t evaluate(double *x, double *par);
 Double_t evaluate2(double *x, double *par);
 Double_t ApproxErf(Double_t arg);
-
+Double_t dichotomy(double eff, double a0, double b0, double relErr,
+		   TF1 f, bool verbose);
 
 Int_t myTrigger(TString resultName="v1_test", 
 		TString json="DCS",
 		TString binning="regular",
-		TString offlineSel="TightMuon")
+		TString offlineSel="TightMuon",
+		TString fitfunc="sigmoid")
 {
 
   // External configuration
@@ -17,6 +19,9 @@ Int_t myTrigger(TString resultName="v1_test",
   // Define JSON file
   bool applyJson=false;
   map<int, vector<pair<int, int> > > jsonMap;
+
+  Bool_t useSigmoid = fitfunc.Contains("sigmoid");
+  Bool_t useCB = fitfunc.Contains("CB");
 
   if(json=="DCS") {
     applyJson = true;
@@ -82,10 +87,13 @@ Int_t myTrigger(TString resultName="v1_test",
   float xlow_reg[ nV] = {100, 100, 100, 0};
   float xup_reg[  nV] = {900, 900, 900, 1};
 
-  const UInt_t xbins[nV]    = {19, 19, 19, 27};
+  const UInt_t xbins[nV]    = {21, 21, 21, 27};
 
-  float bins_met[]  = {100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 
-		       200, 220, 250, 300, 350, 400, 500, 650, 1000};
+  float bins_met[]  = {50,  75,  100, 110, 120, 
+		       130, 140, 150, 160, 170, 
+		       180, 190, 200, 220, 250, 
+		       300, 350, 400, 500, 650, 
+		       1000};
 
   float bins_nhef[] = {0.00, 0.02, 0.04, 0.06, 0.08, 
 		       0.10, 0.12, 0.14, 0.16, 0.18,
@@ -474,6 +482,16 @@ Int_t myTrigger(TString resultName="v1_test",
       }
     }
 
+    /*
+    // serial trigger
+    for(UInt_t iP=0 ; iP<nP ; iP++) {
+      for(UInt_t iS=0 ; iS<nS ; iS++) {
+	if(iS==0 || iS==nS-1) _serial[iP][iS] = _pass[iP][iS];
+	else _serial[iP][iS] = _serial[iP][iS-1] && _pass[iP][iS];
+      }
+    }
+    */
+
     // FILL HISTOGRAMS //
     for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
       for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
@@ -505,17 +523,32 @@ Int_t myTrigger(TString resultName="v1_test",
   TH1F *hNum, *hDen;
   TEfficiency *pEff;
 
-  TF1 *f2 = new TF1("fit2",evaluate2,50,1000,3);
+  TF1 *f1 = new TF1("fit",evaluate,0,1000,5);
+  f1->SetParName(0, "m0");
+  f1->SetParName(1, "sigma");
+  f1->SetParName(2, "alpha");
+  f1->SetParName(3, "n");
+  f1->SetParName(4, "norm");
+  f1->SetParameter(0, 120);
+  f1->SetParameter(1, 1);
+  f1->SetParameter(2, 1);
+  f1->SetParameter(3, 5);
+  f1->SetParameter(4, 1);
+  f1->SetParLimits(1, 0.01, 50);
+  f1->SetParLimits(2, 0.01, 8);
+  f1->SetParLimits(3, 1.1, 35);
+  f1->SetParLimits(4, 0.6, 1);
+  
+  TF1 *f2 = new TF1("fit2",evaluate2,0,1000,3);
   f2->SetParName(0, "midpoint");
   f2->SetParName(1, "steepness");
   f2->SetParName(2, "max");
   f2->SetParameter(0, 120);
   f2->SetParameter(1, 0.06);
   f2->SetParameter(2, 1);
-  f2->SetParLimits(2, 0.99, 1);
+  f2->SetParLimits(2, 0.995, 1);
 
   // Set style //
-  /*
   gROOT->Reset();
   gROOT->SetStyle("Plain");
   gStyle->SetPadTickX(1);
@@ -530,9 +563,8 @@ Int_t myTrigger(TString resultName="v1_test",
   gStyle->SetPadLeftMargin(0.15);
   gStyle->SetPadRightMargin(0.15);
   gStyle->SetHistLineWidth(2);
-  */
   setTDRStyle();
-  //gROOT->ForceStyle();
+  gROOT->ForceStyle();
 
   // Loop over histograms
   for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
@@ -550,8 +582,13 @@ Int_t myTrigger(TString resultName="v1_test",
 			      namePath[iP] );
 
 	  if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
-	    pEff->Fit(f2,"R"); // use function's definition Range
+	    if(useSigmoid) pEff->Fit(f2,"R"); // use function's definition Range
+	    else if(useCB) pEff->Fit(f1,"R"); // use function's definition Range
 	  }
+	  
+	  Double_t eff95=0; 
+	  if(useSigmoid) eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f2, true);
+	  else if(useCB) eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f1, true);
 
 	  pEff->Write();
 	  TCanvas c("c","c",0,0,600,600);
@@ -567,7 +604,8 @@ Int_t myTrigger(TString resultName="v1_test",
 	  Float_t globalEff = nTot!=0 ? nPass/nTot : -1.0;
 	  TString s_globalEff = "#epsilon = "+TString(Form("%.1f",100*globalEff))+" %";
 
-	  /*
+	  TString s_eff95 = "#epsilon = 95% @ "+TString(Form("%.0f", eff95))+" GeV";
+
 	  TPaveText *pt2 = new TPaveText(0.58,0.15,0.85,0.22,"brNDC"); 
 	  pt2->SetLineColor(1);
 	  pt2->SetTextColor(1);
@@ -575,9 +613,9 @@ Int_t myTrigger(TString resultName="v1_test",
 	  pt2->SetTextSize(0.03);
 	  pt2->SetFillColor(kWhite);
 	  pt2->SetShadowColor(kWhite);
-	  pt2->AddText(s_globalEff);
+	  //pt2->AddText(s_globalEff);
+	  pt2->AddText(s_eff95);
 	  pt2->Draw();
-	  */
 	
 	  //c.Print("results/"+resultName+"/"+TString(hNum->GetName())+".png","png");
 	  c.Print("results/"+resultName+"/"+TString(hNum->GetName())+".pdf","pdf");
@@ -663,3 +701,54 @@ Double_t evaluate2(double *x, double *par)
 { 
   return par[2] / (1 + TMath::Exp(-par[1]*(x[0] - par[0])));
 } 
+
+Double_t dichotomy(double eff, double a0, double b0, double relErr,
+		   TF1 f, bool verbose) 
+{
+  
+  double dicho, effApprox, a, b;
+  
+  if(a0<b0) {
+    a = a0;
+    b = b0;
+  } else if(a0>b0) {
+    a = b0;
+    b = a0;
+  }
+  else {
+    cout << "PLEASE CHOOSE DIFFERENT VALUES FOR a AND b" << endl;
+    return -999;
+  }
+
+  // Test bounds
+  if( (f.Eval(a) > eff) || (f.Eval(b) < eff) ) {
+    cout << "Bounds not large enough : eff(a)=" << f.Eval(a) 
+	 << " ; eff(b)=" << f.Eval(b) << " ; tested eff=" << eff
+	 << endl;
+    return -999;
+  }
+
+  do {
+    dicho = (a+b)/2 ;
+    effApprox = f.Eval(dicho);
+
+    if( effApprox < eff ) {
+      a = dicho;
+    } else {
+      b = dicho;
+    }
+  }
+  while( (fabs(effApprox-eff) / eff) > relErr );
+
+  if(verbose) {
+    cout << "relative precision asked (" << relErr*100 << " %) reached !"
+	 << endl
+	 << "found value of eT : " << dicho << " GeV" 
+	 << endl
+      //<< "efficiency value : " << 100*efficiency(dicho,mean,sigma,alpha,n,norm) << " %"
+	 << endl;
+  }
+
+  return dicho;
+
+}
