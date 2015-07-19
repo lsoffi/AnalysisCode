@@ -12,6 +12,7 @@
 #include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
+#include "FWCore/Common/interface/TriggerNames.h"
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h" 
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
@@ -163,12 +164,19 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         int32_t  _verbose;
 
         // Trigger objects
+        TString _trig_pass;
+        Int_t _trig_n;
+        //
         Int_t _trig_obj_n;
         std::vector< double > _trig_obj_pt, _trig_obj_eta, _trig_obj_phi;
         std::vector< std::string > _trig_obj_col, _trig_obj_lab;
         std::vector< std::string > _trig_obj_path_FF, _trig_obj_path_FT, 
           _trig_obj_path_TF, _trig_obj_path_TT ;
         std::vector< std::vector<int> > _trig_obj_ids;
+
+        // Jet informations
+        std::vector< double > _jet_pt, _jet_eta, _jet_phi, 
+	  _jet_CHfrac, _jet_NHfrac, _jet_EMfrac, _jet_CEMfrac;
 
         struct PatJetPtSorter {
             bool operator() (const pat::Jet& i, const pat::Jet& j) {
@@ -472,13 +480,27 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         if (i == 7  && filterResultsH->accept(filterPathsMap[filterPathsVector[i]])) flagtrkpog    = 1; // trkPOGFilters
     }
 
+    // Trigger paths
+    _trig_pass = "";
+    _trig_n    = 0;
+    TString path="";
+    //
+    const edm::TriggerNames & triggerNames = iEvent.triggerNames(*filterResultsH);
+    for (int iHLT = 0 ; iHLT<static_cast<int>(filterResultsH->size()); ++iHLT) {	
+      if (filterResultsH->accept (iHLT)) {
+	path = TString(triggerNames.triggerName(iHLT));
+	_trig_pass += "_%_"+path ;
+	_trig_n++ ;
+      }
+    }
+
     // Trigger objects
     if(!H_trg_obj.isValid()) {
       if(_verbose>0) cout << "Missing collection : " << _IT_trg_obj << " ... skip entry !" << endl;
       return;
     }
 
-    const edm::TriggerNames & triggerNames = iEvent.triggerNames(*triggerResultsH);
+    //const edm::TriggerNames & triggerNames = iEvent.triggerNames(*triggerResultsH);
     string trgColl,trgFiltStr,trgPathsFFStr;
     vector<int> trgIds;
     vector<string> trgFilt, trgPathsFF, trgPathsFT, trgPathsTF, trgPathsTT;
@@ -696,7 +718,18 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     njets     = 0;
     nbjets    = 0;
     for (size_t i = 0; i < jets.size(); i++) {
-        if (jets[i].pt() > 30) njets++;
+
+        if (jets[i].pt() > 30) { 
+	  njets++;
+	  _jet_pt     .push_back(jets[i].pt());
+	  _jet_eta    .push_back(jets[i].eta());
+	  _jet_phi    .push_back(jets[i].phi());
+	  _jet_CHfrac .push_back(jets[i].chargedHadronEnergyFraction());
+	  _jet_NHfrac .push_back(jets[i].neutralHadronEnergyFraction());
+	  _jet_EMfrac .push_back(jets[i].neutralEmEnergyFraction());
+	  _jet_CEMfrac.push_back(jets[i].chargedEmEnergyFraction());
+	}
+
         if (jets[i].pt() > 30 && jets[i].bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.814) nbjets++;
     }
 
@@ -1219,6 +1252,9 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("hltsingleel"          , &hltsingleel          , "hltsingleel/b");
 
     // Trigger objects
+    tree->Branch("trig_pass",&_trig_pass);
+    tree->Branch("trig_n",&_trig_n,"trig_n/I");  
+    //
     tree->Branch("trig_obj_n",&_trig_obj_n,"trig_obj_n/I");
     tree->Branch("trig_obj_pt","std::vector<double>",&_trig_obj_pt,buffersize);
     tree->Branch("trig_obj_eta","std::vector<double>",&_trig_obj_eta,buffersize);
@@ -1230,6 +1266,15 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("trig_obj_path_FT","std::vector<std::string>",&_trig_obj_path_FT,buffersize);
     tree->Branch("trig_obj_path_TF","std::vector<std::string>",&_trig_obj_path_TF,buffersize);
     tree->Branch("trig_obj_path_TT","std::vector<std::string>",&_trig_obj_path_TT,buffersize);
+
+    // Jet vectors
+    tree->Branch("jet_pt" ,"std::vector<double>",&_jet_pt ,buffersize);
+    tree->Branch("jet_eta","std::vector<double>",&_jet_eta,buffersize);
+    tree->Branch("jet_phi","std::vector<double>",&_jet_phi,buffersize);
+    tree->Branch("jet_CHfrac", "std::vector<double>",&_jet_CHfrac, buffersize);
+    tree->Branch("jet_NHfrac", "std::vector<double>",&_jet_NHfrac, buffersize);
+    tree->Branch("jet_EMfrac", "std::vector<double>",&_jet_EMfrac, buffersize);
+    tree->Branch("jet_CEMfrac","std::vector<double>",&_jet_CEMfrac,buffersize);
 
     // MET filters
     tree->Branch("flagcsctight"         , &flagcsctight         , "flagcsctight/b");
@@ -1455,6 +1500,9 @@ void MonoJetTreeMaker::beginRun(edm::Run const& iRun, edm::EventSetup const& iSe
     }
 
     // Trigger objects
+    _trig_pass = "";
+    _trig_n    = 0;
+    //
     _trig_obj_n = 0;
     _trig_obj_pt.clear();
     _trig_obj_eta.clear();
@@ -1466,6 +1514,16 @@ void MonoJetTreeMaker::beginRun(edm::Run const& iRun, edm::EventSetup const& iSe
     _trig_obj_path_FT.clear();
     _trig_obj_path_TF.clear();
     _trig_obj_path_TT.clear();
+
+    // jets
+    _jet_pt     .clear(); 
+    _jet_eta    .clear(); 
+    _jet_phi    .clear(); 
+    _jet_CHfrac .clear(); 
+    _jet_NHfrac .clear(); 
+    _jet_EMfrac .clear(); 
+    _jet_CEMfrac.clear(); 
+
 
     // MET filter Paths
     filterPathsVector.push_back("Flag_CSCTightHaloFilter");
