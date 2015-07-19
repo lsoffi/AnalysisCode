@@ -1,5 +1,4 @@
 #include "myIncludes.h"
-#include "tdrstyle.h"
 
 Double_t evaluate(double *x, double *par);
 Double_t evaluate2(double *x, double *par);
@@ -57,8 +56,9 @@ Int_t myTrigger(TString resultName="v1_test",
   // Trigger outputs
   double _hlt_pt[nS], _hlt_phi[nS];
   bool _pass[nP][nS];
-  double _thresh[nP][nS] = { {50, 65, 55, 55, 65,  90,  90, 0},
-			     {50, 80, 70, 70, 80, 120, 120, 0} };
+  bool _serial[nP][nS];
+  double _thresh[nP][nS] = { {60, 65, 55, 55, 65,  90,  90, 0},
+			     {60, 80, 70, 70, 80, 120, 120, 0} };
   TString _myCol[nS] = {"hltL1extraParticles:MET:HLT", 
 			"hltMet::HLT", 
 			"hltMetClean::HLT",
@@ -482,7 +482,6 @@ Int_t myTrigger(TString resultName="v1_test",
       }
     }
 
-    /*
     // serial trigger
     for(UInt_t iP=0 ; iP<nP ; iP++) {
       for(UInt_t iS=0 ; iS<nS ; iS++) {
@@ -490,18 +489,28 @@ Int_t myTrigger(TString resultName="v1_test",
 	else _serial[iP][iS] = _serial[iP][iS-1] && _pass[iP][iS];
       }
     }
-    */
 
     // FILL HISTOGRAMS //
     for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
       for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
 	for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 
-	  // denominator
-	  h[iV][0][iP][iS]->Fill(_var[iV]);
+	  /*
+	  // conditional denominator (eff1)
+	  if(iS==0 || iS==nS-1) { // L1 or entire path
+	    h[iV][0][iP][iS]->Fill(_var[iV]);
+	  }
+	  else { // intermediate HLT filters
+	    if(_serial[iP][iS-1]) // events that fire up to step iS-1
+	      h[iV][0][iP][iS]->Fill(_var[iV]);
+	  }
+	  */
 
+	  // denominator (eff2)
+	  h[iV][0][iP][iS]->Fill(_var[iV]);
+	  
 	  // numerator
-	  if(_pass[iP][iS]) { // event fired step iS of path iP
+	  if(_serial[iP][iS]) { // event fired step iS of path iP
 	    h[iV][1][iP][iS]->Fill(_var[iV]);
 	  }
 
@@ -538,6 +547,7 @@ Int_t myTrigger(TString resultName="v1_test",
   f1->SetParLimits(2, 0.01, 8);
   f1->SetParLimits(3, 1.1, 35);
   f1->SetParLimits(4, 0.6, 1);
+  f1->SetLineWidth(2);
   
   TF1 *f2 = new TF1("fit2",evaluate2,0,1000,3);
   f2->SetParName(0, "midpoint");
@@ -547,22 +557,10 @@ Int_t myTrigger(TString resultName="v1_test",
   f2->SetParameter(1, 0.06);
   f2->SetParameter(2, 1);
   f2->SetParLimits(2, 0.995, 1);
+  f2->SetLineWidth(2);
 
   // Set style //
   gROOT->Reset();
-  gROOT->SetStyle("Plain");
-  gStyle->SetPadTickX(1);
-  gStyle->SetPadTickY(1);
-  gStyle->SetTitleXOffset(1.2);
-  gStyle->SetTitleYOffset(0.01);
-  gStyle->SetLabelOffset(0.005, "XYZ");
-  gStyle->SetTitleSize(0.07, "XYZ");
-  gStyle->SetTitleFont(22,"X");
-  gStyle->SetTitleFont(22,"Y");
-  gStyle->SetPadBottomMargin(0.13);
-  gStyle->SetPadLeftMargin(0.15);
-  gStyle->SetPadRightMargin(0.15);
-  gStyle->SetHistLineWidth(2);
   setTDRStyle();
   gROOT->ForceStyle();
 
@@ -587,8 +585,10 @@ Int_t myTrigger(TString resultName="v1_test",
 	  }
 	  
 	  Double_t eff95=0; 
-	  if(useSigmoid) eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f2, true);
-	  else if(useCB) eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f1, true);
+	  if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
+	    if(useSigmoid) eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f2, true);
+	    else if(useCB) eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f1, true);
+	  }
 
 	  pEff->Write();
 	  TCanvas c("c","c",0,0,600,600);
@@ -615,7 +615,10 @@ Int_t myTrigger(TString resultName="v1_test",
 	  pt2->SetShadowColor(kWhite);
 	  //pt2->AddText(s_globalEff);
 	  pt2->AddText(s_eff95);
-	  pt2->Draw();
+	  if( nameV[iV].Contains("met") || 
+	      nameV[iV].Contains("pt") ) {
+	    pt2->Draw();
+	  }
 	
 	  //c.Print("results/"+resultName+"/"+TString(hNum->GetName())+".png","png");
 	  c.Print("results/"+resultName+"/"+TString(hNum->GetName())+".pdf","pdf");
@@ -639,6 +642,7 @@ Int_t myTrigger(TString resultName="v1_test",
       }
     }
   }
+
 
   outfile->Write();
 
