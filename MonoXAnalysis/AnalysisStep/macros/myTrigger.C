@@ -9,8 +9,8 @@ Double_t dichotomy(double eff, double a0, double b0, double relErr,
 Int_t myTrigger(TString resultName="v1_test", 
 		TString json="DCS",
 		TString binning="regular",
-		TString offlineSel="TightMuon",
-		TString fitfunc="sigmoid")
+		TString offlineSel="TightMuon")
+		//TString fitfunc="sigmoid")
 {
 
   // External configuration
@@ -19,8 +19,8 @@ Int_t myTrigger(TString resultName="v1_test",
   bool applyJson=false;
   map<int, vector<pair<int, int> > > jsonMap;
 
-  Bool_t useSigmoid = fitfunc.Contains("sigmoid");
-  Bool_t useCB = fitfunc.Contains("CB");
+  //Bool_t useSigmoid = fitfunc.Contains("sigmoid");
+  //Bool_t useCB = fitfunc.Contains("CB");
 
   if(json=="DCS") {
     applyJson = true;
@@ -69,6 +69,11 @@ Int_t myTrigger(TString resultName="v1_test",
 			"bit"};
   double _var[nV] = {0, 0, 0, 0};
 
+  Int_t color[nS] = {kBlack, kBlue+2, kBlue, kCyan+2, kGreen+2, kRed+2, kRed, kRed};
+  Int_t style[nS] = {kOpenSquare, 
+		     kOpenTriangleUp, kOpenTriangleDown, 
+		     kFullTriangleUp, kFullTriangleDown, 
+		     kOpenCircle, kFullCircle, kFullCircle};
 
   ////////////////
   // HISTOGRAMS //
@@ -109,6 +114,7 @@ Int_t myTrigger(TString resultName="v1_test",
   TString namePath[nP]={"HLT_PFMETNoMu90_NoiseCleaned_PFMHTNoMu90_IDTight",
 			"HLT_PFMETNoMu120_NoiseCleaned_PFMHTNoMu120_IDTight"};
   TString nameS[nS]={"L1","MET","METClean","METJetID","MHT","PFMHT","PFMET","bit"};
+  TString nameStep[nS]={"L1","MET","Cleaned MET", "JetID-cleaned MET", "MHT", "PFMHTNoMu", "PFMETNoMu", "Full path"};
 
   for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
     for(UInt_t iF=0 ; iF<nF ; iF++) { // num/den
@@ -419,6 +425,7 @@ Int_t myTrigger(TString resultName="v1_test",
 
     if(offlineSel=="TightMuon") {
       if(ntightmuons==0) continue;
+      if(!hltsinglemu) continue;
     }
 
     // print out every 1000 events
@@ -530,40 +537,47 @@ Int_t myTrigger(TString resultName="v1_test",
   outfile->cd();
 
   TH1F *hNum, *hDen;
-  TEfficiency *pEff;
 
-  TF1 *f1 = new TF1("fit",evaluate,0,1000,5);
-  f1->SetParName(0, "m0");
-  f1->SetParName(1, "sigma");
-  f1->SetParName(2, "alpha");
-  f1->SetParName(3, "n");
-  f1->SetParName(4, "norm");
-  f1->SetParameter(0, 120);
-  f1->SetParameter(1, 1);
-  f1->SetParameter(2, 1);
-  f1->SetParameter(3, 5);
-  f1->SetParameter(4, 1);
-  f1->SetParLimits(1, 0.01, 50);
-  f1->SetParLimits(2, 0.01, 8);
-  f1->SetParLimits(3, 1.1, 35);
-  f1->SetParLimits(4, 0.6, 1);
-  f1->SetLineWidth(2);
+  const UInt_t nFunc=2;
+  TF1 *f[nFunc];
+  TString nameFunc[nFunc] = {"cb","sigmoid"};
+  TEfficiency *pEff[nFunc][nV][nP][nS];
+  TF1* fitEff[nFunc][nV][nP][nS];
+
+  f[0] = new TF1(nameFunc[0],evaluate,0,1000,5);
+  f[0]->SetParName(0, "m0");
+  f[0]->SetParName(1, "sigma");
+  f[0]->SetParName(2, "alpha");
+  f[0]->SetParName(3, "n");
+  f[0]->SetParName(4, "norm");
+  f[0]->SetParameter(0, 120);
+  f[0]->SetParameter(1, 1);
+  f[0]->SetParameter(2, 1);
+  f[0]->SetParameter(3, 5);
+  f[0]->SetParameter(4, 1);
+  f[0]->SetParLimits(1, 0.01, 50);
+  f[0]->SetParLimits(2, 0.01, 8);
+  f[0]->SetParLimits(3, 1.1, 35);
+  f[0]->SetParLimits(4, 0.6, 1);
+  f[0]->SetLineWidth(2);
   
-  TF1 *f2 = new TF1("fit2",evaluate2,0,1000,3);
-  f2->SetParName(0, "midpoint");
-  f2->SetParName(1, "steepness");
-  f2->SetParName(2, "max");
-  f2->SetParameter(0, 120);
-  f2->SetParameter(1, 0.06);
-  f2->SetParameter(2, 1);
-  f2->SetParLimits(2, 0.995, 1);
-  f2->SetLineWidth(2);
+  f[1] = new TF1(nameFunc[1],evaluate2,0,1000,3);
+  f[1]->SetParName(0, "midpoint");
+  f[1]->SetParName(1, "steepness");
+  f[1]->SetParName(2, "max");
+  f[1]->SetParameter(0, 120);
+  f[1]->SetParameter(1, 0.06);
+  f[1]->SetParameter(2, 1);
+  f[1]->SetParLimits(2, 0.995, 1);
+  f[1]->SetLineWidth(2);
 
   // Set style //
   gROOT->Reset();
   setTDRStyle();
   gROOT->ForceStyle();
 
+  Double_t eff95=0; 
+	  
   // Loop over histograms
   for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
     for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
@@ -573,39 +587,51 @@ Int_t myTrigger(TString resultName="v1_test",
 	hDen = h[iV][0][iP][iS];
 	hNum = h[iV][1][iP][iS];
 
-	// Produce TEfficiency and fit it
-	if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen) ) {
-	  pEff = new TEfficiency(*hNum,*hDen);
-	  pEff->SetNameTitle( "t_"+TString(hNum->GetName()) , 
-			      namePath[iP] );
+	for(UInt_t iFunc=0 ; iFunc<nFunc ; iFunc++) {
 
-	  if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
-	    if(useSigmoid) pEff->Fit(f2,"R"); // use function's definition Range
-	    else if(useCB) pEff->Fit(f1,"R"); // use function's definition Range
-	  }
-	  
-	  Double_t eff95=0; 
-	  if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
-	    if(useSigmoid) eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f2, true);
-	    else if(useCB) eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f1, true);
-	  }
+	  // Produce TEfficiency and fit it
+	  if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen) ) {
+	    pEff[iFunc][iV][iP][iS] = new TEfficiency(*hNum,*hDen);
+	    pEff[iFunc][iV][iP][iS]->
+	      SetNameTitle( "t_"+TString(hNum->GetName())+nameFunc[iFunc], 
+			    namePath[iP] );
 
-	  pEff->Write();
+	    if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
+
+	      pEff[iFunc][iV][iP][iS]->Fit(f[iFunc],"R");
+
+	      eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f[iFunc], true);
+
+	      fitEff[iFunc][iV][iP][iS] = 
+		(TF1*)(pEff[iFunc][iV][iP][iS]->GetListOfFunctions()->FindObject(nameFunc[iFunc]));
+
+	      fitEff[iFunc][iV][iP][iS]->SetLineColor(  color[iS]);
+	      fitEff[iFunc][iV][iP][iS]->SetMarkerColor(color[iS]);
+	      fitEff[iFunc][iV][iP][iS]->SetMarkerStyle(style[iS]);
+	      
+	    }
+	  }
+	
+	  pEff[iFunc][iV][iP][iS]->SetLineColor(  color[iS]);
+	  pEff[iFunc][iV][iP][iS]->SetMarkerColor(color[iS]);
+	  pEff[iFunc][iV][iP][iS]->SetMarkerStyle(style[iS]);
+
+	  pEff[iFunc][iV][iP][iS]->Write();
 	  TCanvas c("c","c",0,0,600,600);
-	  pEff->Draw("AP");
-
+	  pEff[iFunc][iV][iP][iS]->Draw("AP");
+	
 	  gStyle->SetStatX(0.85);
 	  gStyle->SetStatY(0.4);
 	  gStyle->SetStatW(0.2);
 	  gStyle->SetStatH(0.1);
-
+	
 	  Float_t nPass = (Float_t)hNum->Integral();
 	  Float_t nTot  = (Float_t)hDen ->Integral();
 	  Float_t globalEff = nTot!=0 ? nPass/nTot : -1.0;
 	  TString s_globalEff = "#epsilon = "+TString(Form("%.1f",100*globalEff))+" %";
-
+	
 	  TString s_eff95 = "#epsilon = 95% @ "+TString(Form("%.0f", eff95))+" GeV";
-
+	
 	  TPaveText *pt2 = new TPaveText(0.58,0.15,0.85,0.22,"brNDC"); 
 	  pt2->SetLineColor(1);
 	  pt2->SetTextColor(1);
@@ -621,7 +647,7 @@ Int_t myTrigger(TString resultName="v1_test",
 	  }
 	
 	  //c.Print("results/"+resultName+"/"+TString(hNum->GetName())+".png","png");
-	  c.Print("results/"+resultName+"/"+TString(hNum->GetName())+".pdf","pdf");
+	  c.Print("results/"+resultName+"/"+TString(hNum->GetName())+"_"+nameFunc[iFunc]+".pdf","pdf");
 	  
 	}
 	// end TEfficiency
@@ -642,6 +668,89 @@ Int_t myTrigger(TString resultName="v1_test",
       }
     }
   }
+
+
+
+  // PRODUCE PLOTS //
+  const UInt_t nSPlot = 7;
+  UInt_t idxSPlot[  nSPlot] = {0,1,2,3,4,5,7};
+  UInt_t idxFitStep[nSPlot] = {1,1,1,0,0,0,0};
+
+  const UInt_t nVPlot = 2;
+  UInt_t idxVPlot[nVPlot] = {0,1};
+
+  gStyle->SetOptStat(0);
+
+  TCanvas *cMerge;
+
+  TString namePlot;
+
+  for(UInt_t iP=0 ; iP<nP ; iP++) {
+    for(UInt_t iVPlot=0 ; iVPlot<nVPlot ; iVPlot++) {
+      
+      UInt_t iV=idxVPlot[iVPlot];
+      
+      namePlot = "plot_"+nameV[iV]+"_"+nameP[iP];
+      cMerge = new TCanvas("c_"+namePlot,"c_"+namePlot,0,0,600,600);
+      gStyle->SetOptStat(0);
+      gPad->SetLogx();
+      gPad->RangeAxis(0,0,300,1.05); // xmin, ymin, xmax, ymax
+
+      TLegend *leg = new TLegend(0.50,0.50,0.70,0.70);
+      leg->SetFillColor(kWhite);
+      leg->SetBorderSize(1);
+      
+      for(UInt_t iSPlot=0 ; iSPlot<nSPlot ; iSPlot++) {
+	UInt_t iS = idxSPlot[iSPlot];
+	UInt_t iF = idxFitStep[iSPlot];
+
+	if(iSPlot==0) pEff[iF][iV][iP][iS]->Draw();
+	else          pEff[iF][iV][iP][iS]->Draw("SAME");
+	leg->AddEntry(pEff[iF][iV][iP][iS], nameStep[iS],"P");
+      }
+
+      leg->Draw();
+      cMerge->Update();
+      cMerge->Print("results/"+resultName+"/"+namePlot+".pdf","pdf");
+    }
+  }
+
+
+  // Fit only 3 stages: L1, CaloMHT, entire path
+  const UInt_t nSPlotLess = 3;
+  UInt_t idxSPlotLess[  nSPlotLess] = {0,4,7};
+  UInt_t idxFitStepLess[nSPlotLess] = {1,1,0};
+
+  for(UInt_t iP=0 ; iP<nP ; iP++) {
+    for(UInt_t iVPlot=0 ; iVPlot<nVPlot ; iVPlot++) {
+      
+      UInt_t iV=idxVPlot[iVPlot];
+      
+      namePlot = "plot3stages_"+nameV[iV]+"_"+nameP[iP];
+      cMerge = new TCanvas("c_"+namePlot,"c_"+namePlot,0,0,600,600);
+      gStyle->SetOptStat(0);
+      gPad->SetLogx();
+      gPad->RangeAxis(0,0,300,1.05); // xmin, ymin, xmax, ymax
+
+      TLegend *leg = new TLegend(0.50,0.50,0.70,0.70);
+      leg->SetFillColor(kWhite);
+      leg->SetBorderSize(1);
+      
+      for(UInt_t iSPlot=0 ; iSPlot<nSPlotLess ; iSPlot++) {
+	UInt_t iS = idxSPlotLess[iSPlot];
+	UInt_t iF = idxFitStepLess[iSPlot];
+
+	if(iSPlot==0) pEff[iF][iV][iP][iS]->Draw();
+	else          pEff[iF][iV][iP][iS]->Draw("SAME");
+	leg->AddEntry(pEff[iF][iV][iP][iS], nameStep[iS],"P");
+      }
+
+      leg->Draw();
+      cMerge->Update();
+      cMerge->Print("results/"+resultName+"/"+namePlot+".pdf","pdf");
+    }
+  }
+
 
 
   outfile->Write();
