@@ -1,5 +1,8 @@
 #include "myIncludes.h"
 
+//           run        lumi    events
+typedef map< int , map< int , vector<int> > > MAP_RLE;
+
 Double_t evaluate(double *x, double *par);
 Double_t evaluate2(double *x, double *par);
 Double_t ApproxErf(Double_t arg);
@@ -18,6 +21,7 @@ Int_t myTrigger(TString resultName="v1_test",
   // Define JSON file
   bool applyJson=false;
   map<int, vector<pair<int, int> > > jsonMap;
+  MAP_RLE mapRunLumiEvents;
 
   //Bool_t useSigmoid = fitfunc.Contains("sigmoid");
   //Bool_t useCB = fitfunc.Contains("CB");
@@ -44,7 +48,7 @@ Int_t myTrigger(TString resultName="v1_test",
   // Define trigger interpretation //
   ///////////////////////////////////
 
-  const UInt_t nV=4; // mumet, t1mumet, signaljetpt, signaljetNHfrac
+  const UInt_t nV=6; // mumet, t1mumet, pfmet, t1pfmet, signaljetpt, signaljetNHfrac
   const UInt_t nF=2; // denom, num
   const UInt_t nP=2; // 90GeV, 120GeV
   const UInt_t nS=8; // L1, MET, METClean, METJetID, MHT, PFMHT, PFMET, HLT bit
@@ -59,6 +63,7 @@ Int_t myTrigger(TString resultName="v1_test",
   bool _serial[nP][nS];
   double _thresh[nP][nS] = { {60, 65, 55, 55, 65,  90,  90, 0},
 			     {60, 80, 70, 70, 80, 120, 120, 0} };
+
   TString _myCol[nS] = {"hltL1extraParticles:MET:HLT", 
 			"hltMet::HLT", 
 			"hltMetClean::HLT",
@@ -67,7 +72,8 @@ Int_t myTrigger(TString resultName="v1_test",
 			"hltPFMHTNoMuTightID::HLT",
 			"hltPFMETNoMuProducer::HLT",
 			"bit"};
-  double _var[nV] = {0, 0, 0, 0};
+
+  double _var[nV] = {0, 0, 0, 0, 0, 0};
 
   Int_t color[nS] = {kBlack, kBlue+2, kBlue, kCyan+2, kGreen+2, kRed+2, kRed, kRed};
   Int_t style[nS] = {kOpenSquare, 
@@ -82,17 +88,19 @@ Int_t myTrigger(TString resultName="v1_test",
   TH1F* h[nV][nF][nP][nS];
 
   TString name, title;
-  TString nameV[nV]={"mumet","t1mumet","signaljetpt","signaljetNHfrac"};
+  TString nameV[nV]={"mumet","t1mumet","pfmet","t1pfmet","signaljetpt","signaljetNHfrac"};
   TString nameAxis[nV]={"Reco PFMETNoMu [GeV]",
 			"Type1 PFMETNoMu [GeV]",
+			"Reco PFMET [GeV]",
+			"Type1 PFMET",
 			"Leading PFJet p_{T}",
 			"Leading PFJet NHEF"};
 
-  int   xbins_reg[nV] = {40,  40,  40,  50};
-  float xlow_reg[ nV] = {100, 100, 100, 0};
-  float xup_reg[  nV] = {900, 900, 900, 1};
+  int   xbins_reg[nV] = {40,  40,  40,  40,  40,  50};
+  float xlow_reg[ nV] = {100, 100, 100, 100, 100, 0};
+  float xup_reg[  nV] = {900, 900, 900, 900, 900, 1};
 
-  const UInt_t xbins[nV]    = {21, 21, 21, 27};
+  const UInt_t xbins[nV]    = {21, 21, 21, 21, 21, 27};
 
   float bins_met[]  = {50,  75,  100, 110, 120, 
 		       130, 140, 150, 160, 170, 
@@ -107,7 +115,7 @@ Int_t myTrigger(TString resultName="v1_test",
 		       0.55, 0.60, 0.65, 0.70, 0.80,
 		       0.90, 1.00};
   
-  float* v_xlow[nV] = {bins_met , bins_met , bins_met , bins_nhef};
+  float* v_xlow[nV] = {bins_met , bins_met , bins_met , bins_met , bins_met , bins_nhef};
 
   TString nameF[nF]={"denom","num"};
   TString nameP[nP]={"MET90","MET120"};
@@ -222,6 +230,8 @@ Int_t myTrigger(TString resultName="v1_test",
 
   ch->SetBranchStatus("mumet", 1);
   ch->SetBranchStatus("t1mumet", 1);
+  ch->SetBranchStatus("pfmet", 1);
+  ch->SetBranchStatus("t1pfmet", 1);
   ch->SetBranchStatus("signaljetpt", 1);
   ch->SetBranchStatus("signaljetNHfrac", 1);
 
@@ -273,6 +283,8 @@ Int_t myTrigger(TString resultName="v1_test",
   // x-axis variables
   ch->SetBranchAddress("mumet", &mumet); // , &b_mumet);
   ch->SetBranchAddress("t1mumet", &t1mumet); // , &b_mumet);
+  ch->SetBranchAddress("pfmet", &pfmet); // , &b_pfmet);
+  ch->SetBranchAddress("t1pfmet", &t1pfmet); // , &b_pfmet);
   ch->SetBranchAddress("signaljetpt", &signaljetpt); // , &b_signaljetpt);
   ch->SetBranchAddress("signaljetNHfrac", &signaljetNHfrac); // , &b_signaljetNHfrac);
 
@@ -423,9 +435,18 @@ Int_t myTrigger(TString resultName="v1_test",
       }
     }
 
-    if(offlineSel=="TightMuon") {
+    mapRunLumiEvents[run][lumi].push_back(event);
+
+    if(offlineSel.Contains("TightMuon")) {
       if(ntightmuons==0) continue;
-      if(!hltsinglemu) continue;
+    }
+
+    if(offlineSel.Contains("HLTMu")) {
+      if(!hltsinglemu) continue;      
+    }
+
+    if(offlineSel.Contains("HLTDiMu")) {
+      if(!hltdoublemu) continue;      
     }
 
     // print out every 1000 events
@@ -440,8 +461,10 @@ Int_t myTrigger(TString resultName="v1_test",
     // get x-axis variables //
     _var[0] = mumet;
     _var[1] = t1mumet;
-    _var[2] = signaljetpt;
-    _var[3] = signaljetNHfrac;
+    _var[2] = pfmet;
+    _var[3] = t1pfmet;
+    _var[4] = signaljetpt;
+    _var[5] = signaljetNHfrac;
 
 
     // PROCESS TRIGGER OBJECTS //
