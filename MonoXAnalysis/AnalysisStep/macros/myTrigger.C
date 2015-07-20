@@ -499,6 +499,10 @@ Int_t myTrigger(TString resultName="v1_test",
 
     // FILL HISTOGRAMS //
     for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
+
+      // forget about energy fractions if MET<=200
+      if(nameV[iV].Contains("frac") && mumet<=200) continue;
+
       for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
 	for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 
@@ -594,7 +598,7 @@ Int_t myTrigger(TString resultName="v1_test",
 	    pEff[iFunc][iV][iP][iS] = new TEfficiency(*hNum,*hDen);
 	    pEff[iFunc][iV][iP][iS]->
 	      SetNameTitle( "t_"+TString(hNum->GetName())+nameFunc[iFunc], 
-			    namePath[iP] );
+			    namePath[iP]+";"+nameAxis[iV]+";Efficiency" );
 
 	    if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
 
@@ -695,6 +699,7 @@ Int_t myTrigger(TString resultName="v1_test",
       gStyle->SetOptStat(0);
       gPad->SetLogx();
       gPad->RangeAxis(0,0,300,1.05); // xmin, ymin, xmax, ymax
+      gPad->Update();
 
       TLegend *leg = new TLegend(0.50,0.50,0.70,0.70);
       leg->SetFillColor(kWhite);
