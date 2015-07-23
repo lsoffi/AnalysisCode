@@ -3,6 +3,29 @@
 //           run        lumi    events
 typedef map< int , map< int , vector<int> > > MAP_RLE;
 
+struct STEP{
+  double  T; // threshold
+  TString c; // collection
+  TString n; // name
+  TString t; // title
+
+  Int_t   C; // color
+  Int_t   S; // style
+  
+  double pt;
+  double phi;
+  bool   pass;
+  bool   serial;
+};
+
+struct PATH{
+  TString nameP;
+  TString namePath;
+  UInt_t nSteps;
+  vector<STEP> steps;
+};
+
+pair<Int_t, Int_t> getStyle(TString name);
 Double_t evaluate(double *x, double *par);
 Double_t evaluate2(double *x, double *par);
 Double_t ApproxErf(Double_t arg);
@@ -50,44 +73,157 @@ Int_t myTrigger(TString resultName="v1_test",
 
   const UInt_t nV=6; // mumet, t1mumet, pfmet, t1pfmet, signaljetpt, signaljetNHfrac
   const UInt_t nF=2; // denom, num
-  const UInt_t nP=2; // 90GeV, 120GeV
-  const UInt_t nS=8; // L1, MET, METClean, METJetID, MHT, PFMHT, PFMET, HLT bit
+  const UInt_t nP=6; // PFMNoMu90,120; PFM90,120; PFM170; CM200;
+  UInt_t nS;
+
+  // PFMNoMu: L1, MET, METClean, METJetID, MHT, PFMHT, PFMET, HLT bit
+  // PFM:     L1, MET, METClean, METJetID, MHT, PFMHT, PFMET, HLT bit
+  // PFM170:  L1, MET, METClean, METJetID, PFMET
+  // CM200 :  L1, MET, METClean, METJetID
+
+  //TString nameS[nS]={"L1","MET","METClean","METJetID","MHT","PFMHT","PFMET","bit"};
+  //TString nameStep[nS]={"L1","MET","Cleaned MET", "JetID-cleaned MET", "MHT", "PFMHTNoMu", "PFMETNoMu", "Full path"};
+  /*
+  const UInt_t nS[nP] = {8,8,8,8,5,4};
+
+  vector<TString> _myCol[nP];
+  vector<double>  _thresh[nP];
+  */
+
+  STEP s_L1ETM60 ={.T=60,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
+
+  // PFMNoMu90
+  STEP s_MET65   ={.T=65,.c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
+  STEP s_METC55  ={.T=55,.c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};      
+  STEP s_METJ55  ={.T=55,.c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_MHT65   ={.T=65,.c="hltMht::HLT",               .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_MuMHT90 ={.T=90,.c="hltPFMHTNoMuTightID::HLT",  .n="PFMHT",.t="PFMHTNoMu",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  STEP s_MuMET90 ={.T=90,.c="hltPFMETNoMuProducer::HLT", .n="PFMET",.t="PFMETNoMu",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  STEP s_bMuPFM90={.T=0, .c="hltmet90",                  .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+
+  // PFMNoMu120
+  STEP s_MET80    ={.T=80, .c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_METC70   ={.T=70, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_METJ70   ={.T=70, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_MHT80    ={.T=80, .c="hltMht::HLT",               .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_MuMHT120 ={.T=120,.c="hltPFMHTNoMuTightID::HLT",  .n="PFMHT",.t="PFMHTNoMu",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_MuMET120 ={.T=120,.c="hltPFMETNoMuProducer::HLT", .n="PFMET",.t="PFMETNoMu",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_bMuPFM120={.T=0,  .c="hltmet120",                 .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+
+  // PFM90
+  STEP s_MET70   ={.T=70,.c="hltMet::HLT",          .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
+  STEP s_MHT70   ={.T=70,.c="hltMht::HLT",          .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_PFMHT90 ={.T=90,.c="hltPFMHTTightID::HLT", .n="PFMHT",.t="PFMHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  STEP s_PFMET90 ={.T=90,.c="hltPFMETProducer::HLT",.n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  STEP s_bPFM90  ={.T=0, .c="hltmetwithmu90",       .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+
+  // PFM120
+  STEP s_MET90   ={.T=90,.c="hltMet::HLT",            .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
+  STEP s_MHT90   ={.T=90,.c="hltMht::HLT",            .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_PFMHT120={.T=120,.c="hltPFMHTTightID::HLT", .n="PFMHT",.t="PFMHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  STEP s_PFMET120={.T=120,.c="hltPFMETProducer::HLT",.n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  STEP s_bPFM120 ={.T=0, .c="hltmetwithmu120",       .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+
+  // PFMET170
+  //STEP s_MET90   ={.T=90, .c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_METC80  ={.T=80, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_METJ80  ={.T=80, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_PFMET170={.T=170,.c="hltPFMETProducer::HLT",     .n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_bMET170 ={.T=0,  .c="hltmetwithmu170",           .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+
+  // CaloMET200
+  STEP s_MET210  ={.T=210, .c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_METC200 ={.T=200, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  //STEP s_bMET170 ={.T=0,   .c="hltmetwithmu170",           .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+
+  PATH myPaths[nP];
+  vector<STEP> vStepEmpty;
+  myPaths[0]={.nameP="PFMNoMu90",.namePath="HLT_PFMETNoMu90_NoiseCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
+  myPaths[0].steps.clear();
+  myPaths[0].steps.push_back(s_L1ETM60);
+  myPaths[0].steps.push_back(s_MET65);
+  myPaths[0].steps.push_back(s_METC55);
+  myPaths[0].steps.push_back(s_METJ55);
+  myPaths[0].steps.push_back(s_MHT65);
+  myPaths[0].steps.push_back(s_MuMHT90);
+  myPaths[0].steps.push_back(s_MuMET90);
+  myPaths[0].steps.push_back(s_bMuPFM90);
+
+  myPaths[1]={.nameP="PFMNoMu120",.namePath="HLT_PFMETNoMu120_NoiseCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
+  myPaths[1].steps.clear();
+  myPaths[1].steps.push_back(s_L1ETM60);
+  myPaths[1].steps.push_back(s_MET80);
+  myPaths[1].steps.push_back(s_METC70);
+  myPaths[1].steps.push_back(s_METJ70);
+  myPaths[1].steps.push_back(s_MHT80);
+  myPaths[1].steps.push_back(s_MuMHT120);
+  myPaths[1].steps.push_back(s_MuMET120);
+  myPaths[1].steps.push_back(s_bMuPFM120);
+
+  myPaths[2]={.nameP="PFM90",.namePath="HLT_PFMET90_PFMHT90_IDTight",.nSteps=6,.steps=vStepEmpty};
+  myPaths[2].steps.clear();
+  myPaths[2].steps.push_back(s_L1ETM60);
+  myPaths[2].steps.push_back(s_MET70);
+  myPaths[2].steps.push_back(s_MHT70);
+  myPaths[2].steps.push_back(s_PFMHT90);
+  myPaths[2].steps.push_back(s_PFMET90);
+  myPaths[2].steps.push_back(s_bPFM90);
+
+  myPaths[3]={.nameP="PFM120",.namePath="HLT_PFMET120_PFMHT120_IDTight",.nSteps=6,.steps=vStepEmpty};
+  myPaths[3].steps.clear();
+  myPaths[3].steps.push_back(s_L1ETM60);
+  myPaths[3].steps.push_back(s_MET90);
+  myPaths[3].steps.push_back(s_MHT90);
+  myPaths[3].steps.push_back(s_PFMHT120);
+  myPaths[3].steps.push_back(s_PFMET120);
+  myPaths[3].steps.push_back(s_bPFM120);
+
+  myPaths[4]={.nameP="PFMET170",.namePath="HLT_PFMET170_NoiseCleaned",.nSteps=6,.steps=vStepEmpty};
+  myPaths[4].steps.clear();
+  myPaths[4].steps.push_back(s_L1ETM60);
+  myPaths[4].steps.push_back(s_MET90);
+  myPaths[4].steps.push_back(s_METC80);
+  myPaths[4].steps.push_back(s_METJ80);
+  myPaths[4].steps.push_back(s_PFMET170);
+  myPaths[4].steps.push_back(s_bMET170);
+
+  myPaths[5]={.nameP="CaloMET200",.namePath="HLT_CaloMET200_NoiseCleaned",.nSteps=3,.steps=vStepEmpty};
+  myPaths[5].steps.clear();
+  myPaths[5].steps.push_back(s_L1ETM60);
+  myPaths[5].steps.push_back(s_MET210);
+  myPaths[5].steps.push_back(s_METC200);
+
+  // Set style per step in all paths
+  pair<Int_t, Int_t> theStyle = make_pair(0,0);
+
+  for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
+    nS = myPaths[iP].nSteps;
+    for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
+      theStyle = getStyle(myPaths[iP].steps[iS].n);
+      myPaths[iP].steps[iS].C = theStyle.first;
+      myPaths[iP].steps[iS].S = theStyle.second;
+    }
+  }
+  // end set style
 
   // Trigger inputs //
   double _toPt, _toEta, _toPhi;
   TString _toCol, _toLab, _toPathFF, _toPathFT, _toPathTF, _toPathTT;
 
   // Trigger outputs
-  double _hlt_pt[nS], _hlt_phi[nS];
-  bool _pass[nP][nS];
-  bool _serial[nP][nS];
-  double _thresh[nP][nS] = { {60, 65, 55, 55, 65,  90,  90, 0},
-			     {60, 80, 70, 70, 80, 120, 120, 0} };
-
-  TString _myCol[nS] = {"hltL1extraParticles:MET:HLT", 
-			"hltMet::HLT", 
-			"hltMetClean::HLT",
-			"hltMetCleanUsingJetID::HLT",
-			"hltMht::HLT",
-			"hltPFMHTNoMuTightID::HLT",
-			"hltPFMETNoMuProducer::HLT",
-			"bit"};
-
-  double _var[nV] = {0, 0, 0, 0, 0, 0};
-
-  Int_t color[nS] = {kBlack, kBlue+2, kBlue, kCyan+2, kGreen+2, kRed+2, kRed, kRed};
-  Int_t style[nS] = {kOpenSquare, 
-		     kOpenTriangleUp, kOpenTriangleDown, 
-		     kFullTriangleUp, kFullTriangleDown, 
-		     kOpenCircle, kFullCircle, kFullCircle};
-
+  //vector<double> _hlt_pt[nP], _hlt_phi[nP];
+  //vector<bool>   _pass[nP];
+  //vector<bool>   _serial[nP][nS];
+  TString theColl, theStep;
+  bool fired;
+  
   ////////////////
   // HISTOGRAMS //
   ////////////////
 
-  TH1F* h[nV][nF][nP][nS];
+  vector<TH1F*> h[nV][nF][nP];
 
-  TString name, title;
+  TString hname, title;
   TString nameV[nV]={"mumet","t1mumet","pfmet","t1pfmet","signaljetpt","signaljetNHfrac"};
   TString nameAxis[nV]={"Reco PFMETNoMu [GeV]",
 			"Type1 PFMETNoMu [GeV]",
@@ -118,40 +254,48 @@ Int_t myTrigger(TString resultName="v1_test",
   float* v_xlow[nV] = {bins_met , bins_met , bins_met , bins_met , bins_met , bins_nhef};
 
   TString nameF[nF]={"denom","num"};
-  TString nameP[nP]={"MET90","MET120"};
-  TString namePath[nP]={"HLT_PFMETNoMu90_NoiseCleaned_PFMHTNoMu90_IDTight",
-			"HLT_PFMETNoMu120_NoiseCleaned_PFMHTNoMu120_IDTight"};
-  TString nameS[nS]={"L1","MET","METClean","METJetID","MHT","PFMHT","PFMET","bit"};
-  TString nameStep[nS]={"L1","MET","Cleaned MET", "JetID-cleaned MET", "MHT", "PFMHTNoMu", "PFMETNoMu", "Full path"};
+
+  TH1F* hTemp;
+
+  cout << "- Declare histograms" << endl;
 
   for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
     for(UInt_t iF=0 ; iF<nF ; iF++) { // num/den
       for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
+
+	nS = myPaths[iP].nSteps;
+	cout << "---- path: " << myPaths[iP].nameP << " ; nS=" << nS << endl;
+
 	for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 
-	  name  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+nameP[iP]+"_"+nameS[iS];
-	  title = nameV[iV]+" "+nameF[iF]+" "+nameP[iP]+" "+nameS[iS];
+	  cout << "----- declare #" << iS << " : ";
+
+	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+myPaths[iP].nameP+"_"+myPaths[iP].steps[iS].n;
+	  title = nameV[iV]+" "+nameF[iF]+" "+myPaths[iP].nameP+" "+myPaths[iP].steps[iS].n;
+
+	  cout << hname << endl;
 
 	  if(binning=="regular") {
-	    h[iV][iF][iP][iS] = 
-	      new TH1F(name, title, xbins_reg[iV], xlow_reg[iV], xup_reg[iV]);
+	    hTemp = new TH1F(hname, title, xbins_reg[iV], xlow_reg[iV], xup_reg[iV]);				    
 	  }
 	  else {
-	    h[iV][iF][iP][iS] = 
-	      new TH1F(name, title, xbins[iV]-1, v_xlow[iV]);
+	    hTemp = new TH1F(hname, title, xbins[iV]-1, v_xlow[iV]);
 	  }
 
-	  setStyle(h[iV][iF][iP][iS], kBlack);
-	  h[iV][iF][iP][iS]->SetXTitle(nameAxis[iV]);
+	  setStyle(hTemp, kBlack);
+	  hTemp->SetXTitle(nameAxis[iV]);
+
+	  h[iV][iF][iP].push_back(hTemp);
 	}
       }
     }
   }
 
-
   ///////////////
   // SET CHAIN //
   ///////////////
+
+  cout << "-Set Chain" << endl;
 
   // branch variables //
   Int_t           trig_obj_n;
@@ -387,6 +531,11 @@ Int_t myTrigger(TString resultName="v1_test",
   bool printOut=false;
   cout << "Start processing: " << entries << " entries." << endl;
 
+  // initialize input variables
+  double _var[nV] = {0, 0, 0, 0, 0, 0};
+
+  cout << "- Start looping over the chain" << endl;
+
   // START LOOP //
   for(UInt_t iE=0 ; iE<entries ; iE++) {
 
@@ -469,11 +618,12 @@ Int_t myTrigger(TString resultName="v1_test",
 
     // PROCESS TRIGGER OBJECTS //
 
-    // initialize trigger outputs
-    for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
-      _hlt_pt[iS] = _hlt_phi[iS] = 0;
-      for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
-	_pass[iP][iS] = false;
+    // initialize trigger output
+    for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
+      nS = myPaths[iP].nSteps;
+      for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
+	myPaths[iP].steps[iS].pt = myPaths[iP].steps[iS].phi = 0;
+	myPaths[iP].steps[iS].pass = false;
       }
     }
     
@@ -487,36 +637,57 @@ Int_t myTrigger(TString resultName="v1_test",
       //
       _toCol    = (TString)(*trig_obj_col)[iObj];
 
-      // loop: steps in paths
-      for(UInt_t iS=0 ; iS<nS ; iS++) {
-	if(_toCol==_myCol[iS]) {
-	  _hlt_pt[iS]  = _toPt;
-	  _hlt_phi[iS] = _toPhi;
-	}
-      } //loop:nS
+      // loop: paths
+      for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
+	nS = myPaths[iP].nSteps;
+	// loop: steps
+	for(UInt_t iS=0 ; iS<nS ; iS++) {
+	  if(_toCol==myPaths[iP].steps[iS].c) {
+	    myPaths[iP].steps[iS].pt  = _toPt;
+	    myPaths[iP].steps[iS].phi = _toPhi;
+	  }
+	} // end loop: steps
+      } // end loop: paths
 
     } // end loop: trigger objects
 
     // trigger outputs
-    for(UInt_t iS=0 ; iS<nS ; iS++) {
-      for(UInt_t iP=0 ; iP<nP ; iP++) {
-	// check trigger objects
-	if(_hlt_pt[iS]>_thresh[iP][iS]) {
-	  _pass[iP][iS] = true;
+    for(UInt_t iP=0 ; iP<nP ; iP++) {
+      //
+      nS = myPaths[iP].nSteps;
+      for(UInt_t iS=0 ; iS<nS ; iS++) {
+	//
+	theColl=myPaths[iP].steps[iS].c;
+	theStep=myPaths[iP].steps[iS].n;
+	fired=false;
+	//
+	if(theStep=="Full") { // check trigger bit
+	  if(     theColl=="hltmet90")        fired=hltmet90;
+	  else if(theColl=="hltmet120")       fired=hltmet120;
+	  else if(theColl=="hltmetwithmu90")  fired=hltmetwithmu90;
+	  else if(theColl=="hltmetwithmu120") fired=hltmetwithmu120;
+	  else if(theColl=="hltmetwithmu170") fired=hltmetwithmu170;
+	  else fired=false;
 	}
-	// check trigger bit
-	if(iS==nS-1) {
-	  if(iP==0 && hltmet90)  _pass[iP][iS]=true;
-	  if(iP==1 && hltmet120) _pass[iP][iS]=true;
+	//
+	else { // check trigger objects
+	  fired = (myPaths[iP].steps[iS].pt>myPaths[iP].steps[iS].T);
 	}
+	//
+	myPaths[iP].steps[iS].pass = fired;
       }
     }
 
     // serial trigger
     for(UInt_t iP=0 ; iP<nP ; iP++) {
+      nS = myPaths[iP].nSteps;
       for(UInt_t iS=0 ; iS<nS ; iS++) {
-	if(iS==0 || iS==nS-1) _serial[iP][iS] = _pass[iP][iS];
-	else _serial[iP][iS] = _serial[iP][iS-1] && _pass[iP][iS];
+	if(iS==0 || iS==nS-1) {
+	  myPaths[iP].steps[iS].serial = myPaths[iP].steps[iS].pass;
+	}
+	else {
+	  myPaths[iP].steps[iS].serial = myPaths[iP].steps[iS-1].serial && myPaths[iP].steps[iS].pass;
+	}
       }
     }
 
@@ -527,6 +698,7 @@ Int_t myTrigger(TString resultName="v1_test",
       if(nameV[iV].Contains("frac") && mumet<=200) continue;
 
       for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
+	nS = myPaths[iP].nSteps;
 	for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 
 	  /*
@@ -544,7 +716,7 @@ Int_t myTrigger(TString resultName="v1_test",
 	  h[iV][0][iP][iS]->Fill(_var[iV]);
 	  
 	  // numerator
-	  if(_serial[iP][iS]) { // event fired step iS of path iP
+	  if(myPaths[iP].steps[iS].serial) { // event fired step iS of path iP
 	    h[iV][1][iP][iS]->Fill(_var[iV]);
 	  }
 
@@ -568,8 +740,11 @@ Int_t myTrigger(TString resultName="v1_test",
   const UInt_t nFunc=2;
   TF1 *f[nFunc];
   TString nameFunc[nFunc] = {"cb","sigmoid"};
-  TEfficiency *pEff[nFunc][nV][nP][nS];
-  TF1* fitEff[nFunc][nV][nP][nS];
+  vector<TEfficiency*> pEff[nFunc][nV][nP];
+  vector<TF1*>         fitEff[nFunc][nV][nP];
+
+  TEfficiency* pEffTemp;
+  TF1* fitEffTemp;
 
   f[0] = new TF1(nameFunc[0],evaluate,0,1000,5);
   f[0]->SetParName(0, "m0");
@@ -608,6 +783,7 @@ Int_t myTrigger(TString resultName="v1_test",
   // Loop over histograms
   for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
     for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
+      nS = myPaths[iP].nSteps;
       for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 	
 	// Get numerator and denominator histos
@@ -618,34 +794,37 @@ Int_t myTrigger(TString resultName="v1_test",
 
 	  // Produce TEfficiency and fit it
 	  if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen) ) {
-	    pEff[iFunc][iV][iP][iS] = new TEfficiency(*hNum,*hDen);
-	    pEff[iFunc][iV][iP][iS]->
+	    pEffTemp = new TEfficiency(*hNum,*hDen);
+	    pEffTemp->
 	      SetNameTitle( "t_"+TString(hNum->GetName())+nameFunc[iFunc], 
-			    namePath[iP]+";"+nameAxis[iV]+";Efficiency" );
+			    myPaths[iP].namePath+";"+nameAxis[iV]+";Efficiency" );
 
 	    if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
 
-	      pEff[iFunc][iV][iP][iS]->Fit(f[iFunc],"R");
+	      pEffTemp->Fit(f[iFunc],"R");
 
 	      eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *f[iFunc], true);
 
-	      fitEff[iFunc][iV][iP][iS] = 
-		(TF1*)(pEff[iFunc][iV][iP][iS]->GetListOfFunctions()->FindObject(nameFunc[iFunc]));
+	      fitEffTemp = 
+		(TF1*)(pEffTemp->GetListOfFunctions()->FindObject(nameFunc[iFunc]));
 
-	      fitEff[iFunc][iV][iP][iS]->SetLineColor(  color[iS]);
-	      fitEff[iFunc][iV][iP][iS]->SetMarkerColor(color[iS]);
-	      fitEff[iFunc][iV][iP][iS]->SetMarkerStyle(style[iS]);
+	      fitEffTemp->SetLineColor(  myPaths[iP].steps[iS].C);
+	      fitEffTemp->SetMarkerColor(myPaths[iP].steps[iS].C);
+	      fitEffTemp->SetMarkerStyle(myPaths[iP].steps[iS].S);
 	      
 	    }
 	  }
-	
-	  pEff[iFunc][iV][iP][iS]->SetLineColor(  color[iS]);
-	  pEff[iFunc][iV][iP][iS]->SetMarkerColor(color[iS]);
-	  pEff[iFunc][iV][iP][iS]->SetMarkerStyle(style[iS]);
 
-	  pEff[iFunc][iV][iP][iS]->Write();
+	  pEffTemp->SetLineColor(  myPaths[iP].steps[iS].C);
+	  pEffTemp->SetMarkerColor(myPaths[iP].steps[iS].C);
+	  pEffTemp->SetMarkerStyle(myPaths[iP].steps[iS].S);
+
+	  pEffTemp->Write();
 	  TCanvas c("c","c",0,0,600,600);
-	  pEff[iFunc][iV][iP][iS]->Draw("AP");
+	  pEffTemp->Draw("AP");
+
+	  pEff[iFunc][iV][iP].push_back(pEffTemp);
+	  fitEff[iFunc][iV][iP].push_back(fitEffTemp);
 	
 	  gStyle->SetStatX(0.85);
 	  gStyle->SetStatY(0.4);
@@ -675,13 +854,11 @@ Int_t myTrigger(TString resultName="v1_test",
 	
 	  //c.Print("results/"+resultName+"/"+TString(hNum->GetName())+".png","png");
 	  c.Print("results/"+resultName+"/"+TString(hNum->GetName())+"_"+nameFunc[iFunc]+".pdf","pdf");
-	  
-	}
-	// end TEfficiency
 
-      }
-    }
-  }
+	} // end loop: fit functions nFunc
+      } // end loop: steps nS
+    } // end loop: paths nP
+  } // end loop: variables nV
   // end loop over histograms
 
 
@@ -689,6 +866,7 @@ Int_t myTrigger(TString resultName="v1_test",
   for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
     for(UInt_t iF=0 ; iF<nF ; iF++) { // num/den
       for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
+	nS = myPaths[iP].nSteps;
 	for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 	  h[iV][iF][iP][iS]->Write();
 	}
@@ -699,12 +877,12 @@ Int_t myTrigger(TString resultName="v1_test",
 
 
   // PRODUCE PLOTS //
-  const UInt_t nSPlot = 7;
-  UInt_t idxSPlot[  nSPlot] = {0,1,2,3,4,5,7};
-  UInt_t idxFitStep[nSPlot] = {1,1,1,0,0,0,0};
+  //const UInt_t nSPlot = 7;
+  //UInt_t idxSPlot[  nSPlot] = {0,1,2,3,4,5,7};
+  //UInt_t idxFitStep[nSPlot] = {1,1,1,0,0,0,0};
 
-  const UInt_t nVPlot = 2;
-  UInt_t idxVPlot[nVPlot] = {0,1};
+  const UInt_t nVPlot = 3;
+  UInt_t idxVPlot[nVPlot] = {0,1,2};
 
   gStyle->SetOptStat(0);
 
@@ -713,11 +891,12 @@ Int_t myTrigger(TString resultName="v1_test",
   TString namePlot;
 
   for(UInt_t iP=0 ; iP<nP ; iP++) {
+
     for(UInt_t iVPlot=0 ; iVPlot<nVPlot ; iVPlot++) {
       
       UInt_t iV=idxVPlot[iVPlot];
       
-      namePlot = "plot_"+nameV[iV]+"_"+nameP[iP];
+      namePlot = "plot_"+nameV[iV]+"_"+myPaths[iP].nameP;
       cMerge = new TCanvas("c_"+namePlot,"c_"+namePlot,0,0,600,600);
       gStyle->SetOptStat(0);
       gPad->SetLogx();
@@ -727,14 +906,21 @@ Int_t myTrigger(TString resultName="v1_test",
       TLegend *leg = new TLegend(0.50,0.50,0.70,0.70);
       leg->SetFillColor(kWhite);
       leg->SetBorderSize(1);
-      
-      for(UInt_t iSPlot=0 ; iSPlot<nSPlot ; iSPlot++) {
-	UInt_t iS = idxSPlot[iSPlot];
-	UInt_t iF = idxFitStep[iSPlot];
 
-	if(iSPlot==0) pEff[iF][iV][iP][iS]->Draw();
-	else          pEff[iF][iV][iP][iS]->Draw("SAME");
-	leg->AddEntry(pEff[iF][iV][iP][iS], nameStep[iS],"P");
+      nS = myPaths[iP].nSteps;
+      for(UInt_t iS=0 ; iS<nS ; iS++) {
+
+	theStep=myPaths[iP].steps[iS].n;
+	UInt_t iF=0;
+	if(theStep=="L1" || 
+	   theStep=="MET" || 
+	   theStep=="METC") {
+	  iF=1;
+	}
+
+	if(iS==0) pEff[iF][iV][iP][iS]->Draw();
+	else      pEff[iF][iV][iP][iS]->Draw("SAME");
+	leg->AddEntry(pEff[iF][iV][iP][iS], myPaths[iP].steps[iS].t,"P");
       }
 
       leg->Draw();
@@ -745,16 +931,16 @@ Int_t myTrigger(TString resultName="v1_test",
 
 
   // Fit only 3 stages: L1, CaloMHT, entire path
-  const UInt_t nSPlotLess = 3;
-  UInt_t idxSPlotLess[  nSPlotLess] = {0,4,7};
-  UInt_t idxFitStepLess[nSPlotLess] = {1,1,0};
+  //const UInt_t nSPlotLess = 3;
+  //UInt_t idxSPlotLess[  nSPlotLess] = {0,4,7};
+  //UInt_t idxFitStepLess[nSPlotLess] = {1,1,0};
 
   for(UInt_t iP=0 ; iP<nP ; iP++) {
     for(UInt_t iVPlot=0 ; iVPlot<nVPlot ; iVPlot++) {
       
       UInt_t iV=idxVPlot[iVPlot];
       
-      namePlot = "plot3stages_"+nameV[iV]+"_"+nameP[iP];
+      namePlot = "plot3stages_"+nameV[iV]+"_"+myPaths[iP].nameP;
       cMerge = new TCanvas("c_"+namePlot,"c_"+namePlot,0,0,600,600);
       gStyle->SetOptStat(0);
       gPad->SetLogx();
@@ -763,14 +949,23 @@ Int_t myTrigger(TString resultName="v1_test",
       TLegend *leg = new TLegend(0.50,0.50,0.70,0.70);
       leg->SetFillColor(kWhite);
       leg->SetBorderSize(1);
-      
-      for(UInt_t iSPlot=0 ; iSPlot<nSPlotLess ; iSPlot++) {
-	UInt_t iS = idxSPlotLess[iSPlot];
-	UInt_t iF = idxFitStepLess[iSPlot];
 
-	if(iSPlot==0) pEff[iF][iV][iP][iS]->Draw();
+      nS = myPaths[iP].nSteps;
+      for(UInt_t iS=0 ; iS<nS ; iS++) {
+      
+	theStep=myPaths[iP].steps[iS].n;
+	UInt_t iF=0;
+	if(theStep=="L1" || theStep=="MET" || theStep=="METC") {
+	  iF=1;
+	}
+
+	if(theStep!="L1" && theStep!="MHT" && theStep!="Full") {
+	  continue;
+	}
+
+	if(iS==0)     pEff[iF][iV][iP][iS]->Draw();
 	else          pEff[iF][iV][iP][iS]->Draw("SAME");
-	leg->AddEntry(pEff[iF][iV][iP][iS], nameStep[iS],"P");
+	leg->AddEntry(pEff[iF][iV][iP][iS], myPaths[iP].steps[iS].t,"P");
       }
 
       leg->Draw();
@@ -892,4 +1087,19 @@ Double_t dichotomy(double eff, double a0, double b0, double relErr,
 
   return dicho;
 
+}
+
+pair<Int_t, Int_t> getStyle(TString name)
+{
+
+  if(name=="L1")    return make_pair(kBlack , kOpenSquare);
+  if(name=="MET")   return make_pair(kBlue+2, kOpenTriangleUp);
+  if(name=="METC")  return make_pair(kBlue  , kOpenTriangleDown);
+  if(name=="METJ")  return make_pair(kCyan+2, kFullTriangleUp);
+  if(name=="MHT")   return make_pair(kGreen+2,kFullTriangleDown);
+  if(name=="PFMHT") return make_pair(kRed+2,  kOpenCircle);
+  if(name=="PFMET") return make_pair(kRed,    kFullCircle);
+  if(name=="Full")  return make_pair(kRed,    kFullCircle);
+
+  return make_pair(kBlack,kFullCircle);
 }
