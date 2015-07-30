@@ -51,33 +51,35 @@ Int_t XMetAnalysis::AnalysisAN15()
   locProcesses.push_back("qcd"); 
 
   // Selections and variables
+  /*
   const UInt_t nS=4;
   TString select[nS] = {"1jet","2jet","3jet","4jet"};
+  */
 
-  /*
   const UInt_t nS=1;
   TString select[nS] = {"monojet"};
-  */
+
   /*
   const UInt_t nCut=5;
   TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
   Bool_t  scanReset[nCut] = {true,false,false,false,false};
   */
+
+  /*
   const UInt_t nCut=5;
   TString scanCut[nCut] = {"JetMet0p4","JetMet0p45",
 			   "JetMet0p5","JetMet0p55","JetMet0p6"};
   Bool_t  scanReset[nCut] = {true,false,false,false,false};
-  
-  /*
-  const UInt_t nCut=1;
-  TString scanCut[  nCut] = {"NoJmCut"};
-  //TString scanCut[  nCut] = {"JetMet0p4"}; // fixme
-  Bool_t  scanReset[nCut] = {true};
   */
+
+  const UInt_t nCut=1;
+  //TString scanCut[  nCut] = {"NoJmCut"};
+  TString scanCut[  nCut] = {"JetMet0p4"}; // fixme
+  Bool_t  scanReset[nCut] = {true};
 
   const UInt_t nV=1;
   TString var[nV]    = {"t1mumet"};
-  UInt_t  nBins[nV]  = {50};
+  UInt_t  nBins[nV]  = {100};
   Float_t xFirst[nV] = {0};
   Float_t xLast[nV]  = {1000};
 
