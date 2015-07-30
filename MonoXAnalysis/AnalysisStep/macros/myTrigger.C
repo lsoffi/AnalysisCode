@@ -1,7 +1,7 @@
 #include "myIncludes.h"
 
-//           run        lumi    events
-typedef map< int , map< int , vector<int> > > MAP_RLE;
+//           run        lumi      events counter
+typedef map< int , map< int , map< int , int> > > MAP_RLE;
 
 struct STEP{
   double  T; // threshold
@@ -38,6 +38,9 @@ Int_t myTrigger(TString resultName="v1_test",
 		TString offlineSel="TightMuon")
 		//TString fitfunc="sigmoid")
 {
+
+  // Output log //
+  ofstream outIneff("results/"+resultName+"/outIneff.txt");
 
   // External configuration
   //
@@ -333,6 +336,8 @@ Int_t myTrigger(TString resultName="v1_test",
   double   xsec, wgt, kfact, puwgt;
 
   // branch status //
+  ch->SetBranchStatus("*", 1);  
+  /*
   ch->SetBranchStatus("*", 0);  
   ch->SetBranchStatus("trig_obj_n",   1);
   ch->SetBranchStatus("trig_obj_pt",  1);
@@ -380,6 +385,7 @@ Int_t myTrigger(TString resultName="v1_test",
   ch->SetBranchStatus("signaljetNHfrac", 1);
 
   ch->SetBranchStatus("ntightmuons", 1);
+  */
 
   // branch address //
 
@@ -424,18 +430,6 @@ Int_t myTrigger(TString resultName="v1_test",
   ch->SetBranchAddress("hltdoubleel", &hltdoubleel); // , &b_hltdoubleel);
   ch->SetBranchAddress("hltsingleel", &hltsingleel); // , &b_hltsingleel);
 
-  // x-axis variables
-  ch->SetBranchAddress("mumet", &mumet); // , &b_mumet);
-  ch->SetBranchAddress("t1mumet", &t1mumet); // , &b_mumet);
-  ch->SetBranchAddress("pfmet", &pfmet); // , &b_pfmet);
-  ch->SetBranchAddress("t1pfmet", &t1pfmet); // , &b_pfmet);
-  ch->SetBranchAddress("signaljetpt", &signaljetpt); // , &b_signaljetpt);
-  ch->SetBranchAddress("signaljetNHfrac", &signaljetNHfrac); // , &b_signaljetNHfrac);
-
-  // selection variables
-  ch->SetBranchAddress("ntightmuons", &ntightmuons); // , &b_ntightmuons);
-
-  /*
   ch->SetBranchAddress("pfmet", &pfmet); // , &b_pfmet);
   ch->SetBranchAddress("pfmetphi", &pfmetphi); // , &b_pfmetphi);
   ch->SetBranchAddress("t1pfmet", &t1pfmet); // , &b_t1pfmet);
@@ -509,6 +503,7 @@ Int_t myTrigger(TString resultName="v1_test",
   ch->SetBranchAddress("nfatjets", &nfatjets); // , &b_nfatjets);
   ch->SetBranchAddress("nphotons", &nphotons); // , &b_nphotons);
 
+  /*
   ch->SetBranchAddress("flagcsctight", &flagcsctight); // , &b_flagcsctight);
   ch->SetBranchAddress("flaghbhenoise", &flaghbhenoise); // , &b_flaghbhenoise);
   ch->SetBranchAddress("flaghcallaser", &flaghcallaser); // , &b_flaghcallaser);
@@ -522,7 +517,6 @@ Int_t myTrigger(TString resultName="v1_test",
   ch->SetBranchAddress("flaghnoisehilvl", &flaghnoisehilvl); // , &b_flaghnoisehilvl);
   */
 
-
   /////////////////////
   // LOOP OVER CHAIN //
   /////////////////////
@@ -533,6 +527,8 @@ Int_t myTrigger(TString resultName="v1_test",
 
   // initialize input variables
   double _var[nV] = {0, 0, 0, 0, 0, 0};
+  UInt_t nIneff=0;
+  UInt_t nEff=0;
 
   cout << "- Start looping over the chain" << endl;
 
@@ -584,8 +580,12 @@ Int_t myTrigger(TString resultName="v1_test",
       }
     }
 
-    mapRunLumiEvents[run][lumi].push_back(event);
+    // output json
+    if(mapRunLumiEvents[run][lumi][event]==1)
+      continue;
+    else mapRunLumiEvents[run][lumi][event]=1;
 
+    // event selection
     if(offlineSel.Contains("TightMuon")) {
       if(ntightmuons==0) continue;
     }
@@ -598,7 +598,7 @@ Int_t myTrigger(TString resultName="v1_test",
       if(!hltdoublemu) continue;      
     }
 
-    // print out every 1000 events
+        // print out every 1000 events
     if(printOut) {
       cout << "- trig_obj_n=" << trig_obj_n 
 	//<< " trig_obj_pt->size()=" << trig_obj_pt->size()
@@ -725,13 +725,114 @@ Int_t myTrigger(TString resultName="v1_test",
     } // loop:nV
     // end fill histograms //
 
+    // INVESTIGATE INEFFICIENCIES //
+    if(pfmet>400) {
+      if(!hltmet120 || !hltmetwithmu120 || !hltmetwithmu170) {
+	nIneff++ ;
+	outIneff << "INEFF: run " << run 
+		 << " lumi "      << lumi
+		 << " event "     << event
+		 << endl
+		 << "hltmet120:"  << (hltmet120 ? 1 : 0)
+		 << " hltmetwithmu120:" << (hltmetwithmu120 ? 1 : 0)
+		 << " hltmetwithmu170:" << (hltmetwithmu170 ? 1 : 0)
+		 << endl << endl
+		 << "1) Trigger objects" << endl
+		 << "L1ETM="     << myPaths[0].steps[0].pt
+		 << "   phi=" << myPaths[0].steps[0].phi 
+		 << endl
+		 << "MET="       << myPaths[0].steps[1].pt
+ 		 << "   phi=" << myPaths[0].steps[1].phi 
+		 << endl
+		 << "HBHE-Cleaned MET="       << myPaths[0].steps[2].pt
+ 		 << "   phi=" << myPaths[0].steps[2].phi 
+		 << endl
+		 << "JetID-Cleaned MET="       << myPaths[0].steps[3].pt
+ 		 << "   phi=" << myPaths[0].steps[3].phi 
+		 << endl
+		 << "MHT="       << myPaths[0].steps[4].pt
+ 		 << "   phi=" << myPaths[0].steps[4].phi 
+		 << endl
+		 << "PFMHTNoMu="       << myPaths[0].steps[5].pt
+ 		 << "   phi=" << myPaths[0].steps[5].phi 
+		 << endl
+		 << "PFMETNoMu="       << myPaths[0].steps[6].pt
+ 		 << "   phi=" << myPaths[0].steps[6].phi 
+		 << endl
+		 << "PFMHT="       << myPaths[2].steps[3].pt
+ 		 << "   phi=" << myPaths[2].steps[3].phi 
+		 << endl
+		 << "PFMET="       << myPaths[2].steps[4].pt
+ 		 << "   phi=" << myPaths[2].steps[4].phi 
+		 << endl << endl
+		 << "2) Offline MET objects"
+		 << endl
+		 << "mumet="     << mumet
+		 << "   phi=" << mumetphi   
+		 << endl
+		 << "t1mumet="  << t1mumet
+		 << "   phi=" << t1mumetphi 
+		 << endl
+		 << "pfmet="     << pfmet
+		 << "   phi=" << pfmetphi   
+		 << endl
+		 << "t1pfmet="  << t1pfmet
+		 << "   phi=" << t1pfmetphi 
+		 << endl << endl
+		 << "3) Offline objects"
+		 << endl
+		 << "Jet1(pt,eta,phi)="
+		 << "(" << signaljetpt 
+		 << "," << signaljeteta 
+		 << "," << signaljetphi 
+		 << ")" << endl
+		 << "Jet2(pt,eta,phi)="
+		 << "(" << secondjetpt 
+		 << "," << secondjeteta 
+		 << "," << secondjetphi 
+		 << ")" << endl
+		 <<"Jet3(pt,eta,phi)="
+		 << "(" << thirdjetpt 
+		 << "," << thirdjeteta 
+		 << "," << thirdjetphi 
+		 << ")" << endl
+		 << "Mu1(pt,eta,phi)="
+		 << "(" << mu1pt 
+		 << "," << mu1eta 
+		 << "," << mu1phi 
+		 << ")" << endl
+		 << "Mu2(pt,eta,phi)="
+		 << "(" << mu2pt 
+		 << "," << mu2eta 
+		 << "," << mu2phi 
+		 << ")" << endl
+		 << "El1(pt,eta,phi)="
+		 << "(" << el1pt 
+		 << "," << el1eta 
+		 << "," << el1phi 
+		 << ")" << endl
+		 << "El2(pt,eta,phi)="
+		 << "(" << el2pt 
+		 << "," << el2eta 
+		 << "," << el2phi 
+		 << ")" << endl
+		 << "Ph1(pt,eta,phi)="
+		 << "(" << loosephpt 
+		 << "," << loosepheta 
+		 << "," << loosephphi 
+		 << ")" << endl
+		 << endl;
+      }
+      else nEff++ ;
+    }
+
+
   } // end loop:entries
 
 
   /////////////////////////
   // BUILD TEFFICIENCIES //
   /////////////////////////
-
   TFile* outfile = new TFile("results/"+resultName+"/f_"+resultName+".root","recreate");
   outfile->cd();
 
@@ -975,14 +1076,20 @@ Int_t myTrigger(TString resultName="v1_test",
   }
 
 
+  // Final printouts //
+  cout << "INEFFICIENCY SUMMARY :"
+       << " nIneff=" << nIneff
+       << " nEff="   << nEff
+       << endl;
 
-  outfile->Write();
-
-
-  // clean memory
-  delete ch;
+  outIneff << "INEFFICIENCY SUMMARY :"
+	   << " nIneff=" << nIneff
+	   << " nEff="   << nEff
+	   << endl;
 
   // END //
+  outfile->Write();
+  delete ch;
   return 0;
 }
 
