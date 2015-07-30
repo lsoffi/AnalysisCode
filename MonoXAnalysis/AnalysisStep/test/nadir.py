@@ -39,7 +39,11 @@ process.source = cms.Source(
     "PoolSource", 
     fileNames = cms.untracked.vstring(
         #'/store/mc/RunIISpring15DR74/QCD_Pt_800to1000_TuneCUETP8M1_13TeV_pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v2/00000/04DC7D13-1E0C-E511-847C-00A0D1EE923C.root'
-        '/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/162/00000/160C08A3-4227-E511-B829-02163E01259F.root'
+        #'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/162/00000/160C08A3-4227-E511-B829-02163E01259F.root'
+        #'file:/user/ndaci/Data/Run2015B/MinBias/3EF1304B-B125-E511-9BCC-02163E01193E.root'
+        #'/store/data/Run2015B/ZeroBias/MINIAOD/PromptReco-v1/000/250/985/00000/34D823A2-A825-E511-973A-02163E013576.root'
+        #'/store/data/Run2015B/DoubleMuon/MINIAOD/PromptReco-v1/000/251/162/00000/12284DB9-4227-E511-A438-02163E013674.root'
+        'file:/user/ndaci/Data/Run2015B/DoubleMuon/MINIAOD/PromptReco-v1/000/251/162/00000/12284DB9-4227-E511-A438-02163E013674.root'
         )
     )
 
@@ -152,7 +156,7 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     applyHLTFilter = cms.bool(filterOnHLT),
     uselheweights = cms.bool(False),
     isWorZMCSample = cms.bool(False),
-    verbose        = cms.int32(0)
+    verbose        = cms.int32(1)
 )
 
 # Tree for the generator weights
