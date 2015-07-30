@@ -485,14 +485,16 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     _trig_n    = 0;
     TString path="";
     //
-    const edm::TriggerNames & triggerNames = iEvent.triggerNames(*filterResultsH);
-    for (int iHLT = 0 ; iHLT<static_cast<int>(filterResultsH->size()); ++iHLT) {	
-      if (filterResultsH->accept (iHLT)) {
+    const edm::TriggerNames & triggerNames = iEvent.triggerNames(*triggerResultsH);
+    for (int iHLT = 0 ; iHLT<static_cast<int>(triggerResultsH->size()); ++iHLT) {	
+      if (triggerResultsH->accept (iHLT)) {
 	path = TString(triggerNames.triggerName(iHLT));
 	_trig_pass += "_%_"+path ;
 	_trig_n++ ;
       }
     }
+
+    if(_verbose>4) cout << "- " << _trig_n << "paths : " << _trig_pass << endl;
 
     // Trigger objects
     if(!H_trg_obj.isValid()) {
@@ -505,9 +507,14 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     vector<int> trgIds;
     vector<string> trgFilt, trgPathsFF, trgPathsFT, trgPathsTF, trgPathsTT;
     bool isNone, isL3, isLF, isBoth;
+    int iObj=0;
 
+    // Loop over trigger objects    
     for (pat::TriggerObjectStandAlone obj : *H_trg_obj) { // note: not "const &" since we want to call unpackPathNames
       
+      if(_verbose>3) cout << "-- iteration #" << iObj << endl;
+      iObj++ ;
+
       obj.unpackPathNames(triggerNames);
       
       // pt,eta,phi
