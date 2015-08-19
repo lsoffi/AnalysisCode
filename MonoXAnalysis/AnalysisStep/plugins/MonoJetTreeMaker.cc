@@ -828,18 +828,18 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     nbjets    = 0;
     for (size_t i = 0; i < jets.size(); i++) {
 
-        if (jets[i].pt() > 30) { 
+        if (jets[i]->pt() > 30) { 
 	  njets++;
-	  _jet_pt     .push_back(jets[i].pt());
-	  _jet_eta    .push_back(jets[i].eta());
-	  _jet_phi    .push_back(jets[i].phi());
-	  _jet_CHfrac .push_back(jets[i].chargedHadronEnergyFraction());
-	  _jet_NHfrac .push_back(jets[i].neutralHadronEnergyFraction());
-	  _jet_EMfrac .push_back(jets[i].neutralEmEnergyFraction());
-	  _jet_CEMfrac.push_back(jets[i].chargedEmEnergyFraction());
+	  _jet_pt     .push_back(jets[i]->pt());
+	  _jet_eta    .push_back(jets[i]->eta());
+	  _jet_phi    .push_back(jets[i]->phi());
+	  _jet_CHfrac .push_back(jets[i]->chargedHadronEnergyFraction());
+	  _jet_NHfrac .push_back(jets[i]->neutralHadronEnergyFraction());
+	  _jet_EMfrac .push_back(jets[i]->neutralEmEnergyFraction());
+	  _jet_CEMfrac.push_back(jets[i]->chargedEmEnergyFraction());
 	}
 
-        if (jets[i].pt() > 30 && jets[i].bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.814) nbjets++;
+        if (jets[i]->pt() > 30 && jets[i]->bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.814) nbjets++;
     }
 
     signaljetpt      = 0.0;
