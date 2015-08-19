@@ -1259,7 +1259,7 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("hltsingleel"          , &hltsingleel          , "hltsingleel/b");
 
     // Trigger objects
-    tree->Branch("trig_pass",&_trig_pass);
+    //tree->Branch("trig_pass",&_trig_pass);
     tree->Branch("trig_n",&_trig_n,"trig_n/I");  
     //
     tree->Branch("trig_obj_n",&_trig_obj_n,"trig_obj_n/I");
