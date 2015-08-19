@@ -7,6 +7,7 @@ config.General.requestName = 'MonoJet_dmAVM10'
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'tree.py'
+config.JobType.inputFiles = ['Summer15_50nsV2_MC.db']
 
 config.section_("Data")
 config.Data.inputDataset = '/DarkMatter_Monojet_M-10_AV_Tune4C_13TeV-madgraph/Phys14DR-PU20bx25_PHYS14_25_V1-v1/MINIAODSIM'
