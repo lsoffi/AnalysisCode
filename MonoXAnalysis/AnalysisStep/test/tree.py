@@ -235,7 +235,6 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     mumet = cms.InputTag("mumet"),
     t1mumet = cms.InputTag("t1mumet"),
     triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
-    objects        = cms.InputTag("selectedPatTrigger"),
     filterResults = cms.InputTag("TriggerResults", "", metFilterProcess),
     hcalnoise = cms.InputTag("hcalnoise"),
     xsec = cms.double(9235.0),
@@ -243,9 +242,8 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
     applyHLTFilter = cms.bool(filterOnHLT),
-    uselheweights = cms.bool(False),
-    isWorZMCSample = cms.bool(False),
-    verbose        = cms.int32(0),
+    uselheweights = cms.bool(True),
+    isWorZMCSample = cms.bool(True)
 )
 
 # Tree for the generator weights
