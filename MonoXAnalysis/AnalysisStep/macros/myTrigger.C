@@ -67,8 +67,14 @@ Int_t myTrigger(TString resultName="v1_test",
 
   TChain* ch = new TChain("tree");
   //ch->Add("/user/ndaci/Data/XMET/Run2015B/DoubleMuon/skim.root");
-  ch->Add("/user/ndaci/Data/XMET/Run2015B/SingleMuon/skim.root");
+  //ch->Add("/user/ndaci/Data/XMET/Run2015B/SingleMuon/skim.root");
 
+  if(resultName.Contains("0T"))       
+    ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/V2/skim_met30.root");
+  else if(resultName.Contains("38T")) 
+    ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/38T_V5/skim_met30.root");
+  else 
+    ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/38T_V5/skim_met30.root");
 
   ///////////////////////////////////
   // Define trigger interpretation //
@@ -141,7 +147,7 @@ Int_t myTrigger(TString resultName="v1_test",
 
   PATH myPaths[nP];
   vector<STEP> vStepEmpty;
-  myPaths[0]={.nameP="PFMNoMu90",.namePath="HLT_PFMETNoMu90_NoiseCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
+  myPaths[0]={.nameP="PFMNoMu90",.namePath="HLT_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
   myPaths[0].steps.clear();
   myPaths[0].steps.push_back(s_L1ETM60);
   myPaths[0].steps.push_back(s_MET65);
@@ -152,7 +158,7 @@ Int_t myTrigger(TString resultName="v1_test",
   myPaths[0].steps.push_back(s_MuMET90);
   myPaths[0].steps.push_back(s_bMuPFM90);
 
-  myPaths[1]={.nameP="PFMNoMu120",.namePath="HLT_PFMETNoMu120_NoiseCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
+  myPaths[1]={.nameP="PFMNoMu120",.namePath="HLT_PFMETNoMu120_JetIdCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
   myPaths[1].steps.clear();
   myPaths[1].steps.push_back(s_L1ETM60);
   myPaths[1].steps.push_back(s_MET80);
@@ -181,7 +187,7 @@ Int_t myTrigger(TString resultName="v1_test",
   myPaths[3].steps.push_back(s_PFMET120);
   myPaths[3].steps.push_back(s_bPFM120);
 
-  myPaths[4]={.nameP="PFMET170",.namePath="HLT_PFMET170_NoiseCleaned",.nSteps=6,.steps=vStepEmpty};
+  myPaths[4]={.nameP="PFMET170",.namePath="HLT_PFMET170_JetIdCleaned",.nSteps=6,.steps=vStepEmpty};
   myPaths[4].steps.clear();
   myPaths[4].steps.push_back(s_L1ETM60);
   myPaths[4].steps.push_back(s_MET90);
@@ -190,7 +196,7 @@ Int_t myTrigger(TString resultName="v1_test",
   myPaths[4].steps.push_back(s_PFMET170);
   myPaths[4].steps.push_back(s_bMET170);
 
-  myPaths[5]={.nameP="CaloMET200",.namePath="HLT_CaloMET200_NoiseCleaned",.nSteps=3,.steps=vStepEmpty};
+  myPaths[5]={.nameP="CaloMET200",.namePath="HLT_CaloMET200_JetIdCleaned",.nSteps=3,.steps=vStepEmpty};
   myPaths[5].steps.clear();
   myPaths[5].steps.push_back(s_L1ETM60);
   myPaths[5].steps.push_back(s_MET210);
@@ -586,6 +592,10 @@ Int_t myTrigger(TString resultName="v1_test",
     else mapRunLumiEvents[run][lumi][event]=1;
 
     // event selection
+    if(resultName.Contains("25ns")) {
+      if(run==254833) continue;
+    }
+    
     if(offlineSel.Contains("TightMuon")) {
       if(ntightmuons==0) continue;
     }
