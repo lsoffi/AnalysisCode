@@ -35,7 +35,8 @@ Double_t dichotomy(double eff, double a0, double b0, double relErr,
 Int_t myTrigger(TString resultName="v1_test", 
 		TString json="DCS",
 		TString binning="regular",
-		TString offlineSel="TightMuon")
+		TString offlineSel="TightMuon",
+		bool    useHBHECleaning=false)
 		//TString fitfunc="sigmoid")
 {
 
@@ -54,11 +55,11 @@ Int_t myTrigger(TString resultName="v1_test",
 
   if(json=="DCS") {
     applyJson = true;
-    jsonMap = readJSONFile("/user/ndaci/Data/json/json_DCSONLY_Run2015B.txt");
+    jsonMap = readJSONFile("/user/ndaci/Data/json/13TeV/DCSOnly/json_DCSONLY.txt");
   }
   else if(json=="Prompt") {
     applyJson = true;
-    jsonMap = readJSONFile("/user/ndaci/Data/json/Cert_246908-251252_13TeV_PromptReco_Collisions15_JSON.txt");    
+    jsonMap = readJSONFile("/user/ndaci/Data/json/13TeV/Cert_246908-255031_13TeV_PromptReco_Collisions15_25ns_JSON_v2.txt");
   }
 
   //////////////////
@@ -82,7 +83,7 @@ Int_t myTrigger(TString resultName="v1_test",
 
   const UInt_t nV=6; // mumet, t1mumet, pfmet, t1pfmet, signaljetpt, signaljetNHfrac
   const UInt_t nF=2; // denom, num
-  const UInt_t nP=6; // PFMNoMu90,120; PFM90,120; PFM170; CM200;
+  const UInt_t nP=7; // PFMNoMu90,120; PFM90,120; PFM170; CM200; PFMNoMu90_Up
   UInt_t nS;
 
   // PFMNoMu: L1, MET, METClean, METJetID, MHT, PFMHT, PFMET, HLT bit
@@ -99,7 +100,10 @@ Int_t myTrigger(TString resultName="v1_test",
   vector<double>  _thresh[nP];
   */
 
+  cout << "Define steps" << endl;
+  
   STEP s_L1ETM60 ={.T=60,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
+  STEP s_L1ETM50 ={.T=50,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
 
   // PFMNoMu90
   STEP s_MET65   ={.T=65,.c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
@@ -143,64 +147,88 @@ Int_t myTrigger(TString resultName="v1_test",
   // CaloMET200
   STEP s_MET210  ={.T=210, .c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   STEP s_METC200 ={.T=200, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_METJ200 ={.T=200, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   //STEP s_bMET170 ={.T=0,   .c="hltmetwithmu170",           .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+
+  cout << "Define paths" << endl;
 
   PATH myPaths[nP];
   vector<STEP> vStepEmpty;
   myPaths[0]={.nameP="PFMNoMu90",.namePath="HLT_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
   myPaths[0].steps.clear();
-  myPaths[0].steps.push_back(s_L1ETM60);
+  myPaths[0].steps.push_back(s_L1ETM50);
   myPaths[0].steps.push_back(s_MET65);
-  myPaths[0].steps.push_back(s_METC55);
+  if(useHBHECleaning) myPaths[0].steps.push_back(s_METC55);
   myPaths[0].steps.push_back(s_METJ55);
   myPaths[0].steps.push_back(s_MHT65);
   myPaths[0].steps.push_back(s_MuMHT90);
   myPaths[0].steps.push_back(s_MuMET90);
   myPaths[0].steps.push_back(s_bMuPFM90);
+  myPaths[0].nSteps = myPaths[0].steps.size();
 
   myPaths[1]={.nameP="PFMNoMu120",.namePath="HLT_PFMETNoMu120_JetIdCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
   myPaths[1].steps.clear();
-  myPaths[1].steps.push_back(s_L1ETM60);
+  myPaths[1].steps.push_back(s_L1ETM50);
   myPaths[1].steps.push_back(s_MET80);
-  myPaths[1].steps.push_back(s_METC70);
+  if(useHBHECleaning) myPaths[1].steps.push_back(s_METC70);
   myPaths[1].steps.push_back(s_METJ70);
   myPaths[1].steps.push_back(s_MHT80);
   myPaths[1].steps.push_back(s_MuMHT120);
   myPaths[1].steps.push_back(s_MuMET120);
   myPaths[1].steps.push_back(s_bMuPFM120);
+  myPaths[1].nSteps = myPaths[1].steps.size();
 
   myPaths[2]={.nameP="PFM90",.namePath="HLT_PFMET90_PFMHT90_IDTight",.nSteps=6,.steps=vStepEmpty};
   myPaths[2].steps.clear();
-  myPaths[2].steps.push_back(s_L1ETM60);
+  myPaths[2].steps.push_back(s_L1ETM50);
   myPaths[2].steps.push_back(s_MET70);
   myPaths[2].steps.push_back(s_MHT70);
   myPaths[2].steps.push_back(s_PFMHT90);
   myPaths[2].steps.push_back(s_PFMET90);
   myPaths[2].steps.push_back(s_bPFM90);
+  myPaths[2].nSteps = myPaths[2].steps.size();
 
   myPaths[3]={.nameP="PFM120",.namePath="HLT_PFMET120_PFMHT120_IDTight",.nSteps=6,.steps=vStepEmpty};
   myPaths[3].steps.clear();
-  myPaths[3].steps.push_back(s_L1ETM60);
+  myPaths[3].steps.push_back(s_L1ETM50);
   myPaths[3].steps.push_back(s_MET90);
   myPaths[3].steps.push_back(s_MHT90);
   myPaths[3].steps.push_back(s_PFMHT120);
   myPaths[3].steps.push_back(s_PFMET120);
   myPaths[3].steps.push_back(s_bPFM120);
+  myPaths[3].nSteps = myPaths[3].steps.size();
 
   myPaths[4]={.nameP="PFMET170",.namePath="HLT_PFMET170_JetIdCleaned",.nSteps=6,.steps=vStepEmpty};
   myPaths[4].steps.clear();
-  myPaths[4].steps.push_back(s_L1ETM60);
+  myPaths[4].steps.push_back(s_L1ETM50);
   myPaths[4].steps.push_back(s_MET90);
-  myPaths[4].steps.push_back(s_METC80);
+  if(useHBHECleaning) myPaths[4].steps.push_back(s_METC80);
   myPaths[4].steps.push_back(s_METJ80);
   myPaths[4].steps.push_back(s_PFMET170);
   myPaths[4].steps.push_back(s_bMET170);
+  myPaths[4].nSteps = myPaths[4].steps.size();
 
   myPaths[5]={.nameP="CaloMET200",.namePath="HLT_CaloMET200_JetIdCleaned",.nSteps=3,.steps=vStepEmpty};
   myPaths[5].steps.clear();
-  myPaths[5].steps.push_back(s_L1ETM60);
+  myPaths[5].steps.push_back(s_L1ETM50);
   myPaths[5].steps.push_back(s_MET210);
-  myPaths[5].steps.push_back(s_METC200);
+  if(useHBHECleaning) myPaths[5].steps.push_back(s_METC200);
+  myPaths[5].steps.push_back(s_METJ200);
+  myPaths[5].nSteps = myPaths[5].steps.size();
+
+  myPaths[6]={.nameP="PFMNoMu90_Up",.namePath="HLT_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
+  myPaths[6].steps.clear();
+  myPaths[6].steps.push_back(s_L1ETM50);
+  myPaths[6].steps.push_back(s_MET80);
+  if(useHBHECleaning) myPaths[6].steps.push_back(s_METC70);
+  myPaths[6].steps.push_back(s_METJ70);
+  myPaths[6].steps.push_back(s_MHT80);
+  myPaths[6].steps.push_back(s_MuMHT90);
+  myPaths[6].steps.push_back(s_MuMET90);
+  myPaths[6].steps.push_back(s_bMuPFM90);
+  myPaths[6].nSteps = myPaths[6].steps.size();
+
+  cout << "Set style" << endl;
 
   // Set style per step in all paths
   pair<Int_t, Int_t> theStyle = make_pair(0,0);
@@ -214,6 +242,8 @@ Int_t myTrigger(TString resultName="v1_test",
     }
   }
   // end set style
+
+  cout << "Define trigger inputs" << endl;
 
   // Trigger inputs //
   double _toPt, _toEta, _toPhi;
@@ -229,6 +259,8 @@ Int_t myTrigger(TString resultName="v1_test",
   ////////////////
   // HISTOGRAMS //
   ////////////////
+
+  cout << "Define histograms." << endl;
 
   vector<TH1F*> h[nV][nF][nP];
 
@@ -529,6 +561,7 @@ Int_t myTrigger(TString resultName="v1_test",
 
   UInt_t entries=ch->GetEntries();
   bool printOut=false;
+  bool jetID1=false;
   cout << "Start processing: " << entries << " entries." << endl;
 
   // initialize input variables
@@ -608,7 +641,12 @@ Int_t myTrigger(TString resultName="v1_test",
       if(!hltdoublemu) continue;      
     }
 
-        // print out every 1000 events
+    if(offlineSel.Contains("Ana")) {
+      jetID1 = signaljetpt>110 && abs(signaljeteta)<2.5 && signaljetNHfrac<0.7 && signaljetEMfrac<0.7 && signaljetCHfrac>0.2;
+      if(!jetID1) continue;
+    }
+
+    // print out every 1000 events
     if(printOut) {
       cout << "- trig_obj_n=" << trig_obj_n 
 	//<< " trig_obj_pt->size()=" << trig_obj_pt->size()
@@ -863,7 +901,7 @@ Int_t myTrigger(TString resultName="v1_test",
   f[0]->SetParName(2, "alpha");
   f[0]->SetParName(3, "n");
   f[0]->SetParName(4, "norm");
-  f[0]->SetParameter(0, 120);
+  f[0]->SetParameter(0, 200);
   f[0]->SetParameter(1, 1);
   f[0]->SetParameter(2, 1);
   f[0]->SetParameter(3, 5);
@@ -878,7 +916,7 @@ Int_t myTrigger(TString resultName="v1_test",
   f[1]->SetParName(0, "midpoint");
   f[1]->SetParName(1, "steepness");
   f[1]->SetParName(2, "max");
-  f[1]->SetParameter(0, 120);
+  f[1]->SetParameter(0, 200);
   f[1]->SetParameter(1, 0.06);
   f[1]->SetParameter(2, 1);
   f[1]->SetParLimits(2, 0.995, 1);
@@ -911,6 +949,24 @@ Int_t myTrigger(TString resultName="v1_test",
 			    myPaths[iP].namePath+";"+nameAxis[iV]+";Efficiency" );
 
 	    if( nameV[iV].Contains("met") || nameV[iV].Contains("pt") ) {
+
+	      if(iFunc==0) {
+		f[0]->SetParameter(0, 120);
+		f[0]->SetParameter(1, 1);
+		f[0]->SetParameter(2, 1);
+		f[0]->SetParameter(3, 5);
+		f[0]->SetParameter(4, 1);
+		f[0]->SetParLimits(1, 0.01, 50);
+		f[0]->SetParLimits(2, 0.01, 8);
+		f[0]->SetParLimits(3, 1.1, 35);
+		f[0]->SetParLimits(4, 0.6, 1);
+	      }
+	      else if(iFunc==1) {
+		f[1]->SetParameter(0, 120);
+		f[1]->SetParameter(1, 0.06);
+		f[1]->SetParameter(2, 1);
+		f[1]->SetParLimits(2, 0.995, 1);
+	      }
 
 	      pEffTemp->Fit(f[iFunc],"R");
 
