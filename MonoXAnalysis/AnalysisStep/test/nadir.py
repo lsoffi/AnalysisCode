@@ -22,14 +22,17 @@ process.options = cms.untracked.PSet(
 
 # How many events to process
 process.maxEvents = cms.untracked.PSet( 
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(20)
 )
 
+# Test code
+myTest = True
+
 # Is this a simulation or real data
-isMC = True
+isMC = False
 
 # Filter on high MET events
-filterHighMETEvents = False
+filterHighMETEvents = True
 
 # Filter on triggered events
 filterOnHLT = False
@@ -41,9 +44,11 @@ usePrivateSQlite = True
 applyL2L3Residuals = True
 
 # Define the input source
-process.source = cms.Source("PoolSource", 
+process.source = cms.Source(
+    "PoolSource", 
     fileNames = cms.untracked.vstring([
-        '/store/mc/RunIISpring15DR74/GJets_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/00BA540A-5618-E511-9D04-A0369F3102F6.root'
+            #'/store/mc/RunIISpring15DR74/GJets_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/00BA540A-5618-E511-9D04-A0369F3102F6.root'
+            '/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/226/00000/905BFE5A-2446-E511-9815-02163E014184.root'
     ])
 )
 
@@ -245,7 +250,7 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     applyHLTFilter = cms.bool(filterOnHLT),
     uselheweights = cms.bool(False),
     isWorZMCSample = cms.bool(False),
-    verbose        = cms.int32(0),
+    verbose        = cms.int32(1)
 )
 
 # Tree for the generator weights
@@ -259,12 +264,15 @@ process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
 # MET filter
 process.metfilter = cms.EDFilter("CandViewSelector",
     src = cms.InputTag("t1mumet"),
-    cut = cms.string("et > 200"),
+    cut = cms.string("et > 30"),
     filter = cms.bool(True)
 )
 
 # Set up the path
-if filterHighMETEvents: 
+if myTest:
+    process.treePath = cms.Path(process.tree)
+
+elif filterHighMETEvents: 
     if (isMC):
         process.treePath = cms.Path(process.gentree + process.goodVertices + process.metfilter + process.tree)
     else :
@@ -274,3 +282,4 @@ else :
         process.treePath = cms.Path(process.gentree + process.goodVertices                     + process.tree)
     else :
         process.treePath = cms.Path(                  process.goodVertices                     + process.tree)
+        #process.treePath = cms.Path(process.tree)
