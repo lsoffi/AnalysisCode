@@ -164,7 +164,7 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         uint32_t nvtx, nmuons, nelectrons, ntaus, ntightmuons, ntightelectrons, nphotons, njets, nbjets, nfatjets;
         uint8_t  hltmet90, hltmet120, hltmetwithmu90, hltmetwithmu120, hltmetwithmu170, hltmetwithmu300, hltjetmet90, hltjetmet120, hltphoton165, hltphoton175, hltdoublemu, hltsinglemu, hltdoubleel, hltsingleel;
         uint8_t  flagcsctight, flaghbhenoise, flaghcallaser, flagecaltrig, flageebadsc, flagecallaser, flagtrkfail, flagtrkpog, flaghnoiseloose, flaghnoisetight, flaghnoisehilvl;
-        double   pfmet, pfmetphi, t1pfmet, t1pfmetphi, metnohf, metnohfphi, t1metnohf, t1metnohfphi, pfmupt, pfmuphi, mumet, mumetphi, t1mumet, t1mumetphi;
+        double   pfmet, pfmetphi, t1pfmet, t1pfmetphi, calomet, calometphi, metnohf, metnohfphi, t1metnohf, t1metnohfphi, pfmupt, pfmuphi, mumet, mumetphi, t1mumet, t1mumetphi;
         double   hmet, hmetphi, amet, ametphi, bmet, bmetphi, cmet, cmetphi, emet, emetphi, mmet, mmetphi, pmet, pmetphi, omet, ometphi;
         double   fatjetpt, fatjeteta, fatjetphi, fatjettau2, fatjettau1, fatjetCHfrac, fatjetNHfrac, fatjetEMfrac, fatjetCEMfrac, fatjetmetdphi, fatjetprmass, fatjetsdmass, fatjettrmass, fatjetftmass;
         double   signaljetpt, signaljeteta, signaljetphi, signaljetbtag, signaljetCHfrac, signaljetNHfrac, signaljetEMfrac, signaljetCEMfrac, signaljetmetdphi, signaljetqgl, signaljetqgs2, signaljetqgptd;
@@ -694,6 +694,9 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 
     t1pfmet        = t1pfmetH->front().et();
     t1pfmetphi     = t1pfmetH->front().phi();
+
+    calomet        = t1pfmetH->front().caloMETPt();
+    calometphi     = t1pfmetH->front().caloMETPhi();
 
     pfmet          = t1pfmetH->front().uncorrectedPt();
     pfmetphi       = t1pfmetH->front().uncorrectedPhi();
@@ -1410,6 +1413,8 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("pfmetphi"             , &pfmetphi             , "pfmetphi/D");
     tree->Branch("t1pfmet"              , &t1pfmet              , "t1pfmet/D");
     tree->Branch("t1pfmetphi"           , &t1pfmetphi           , "t1pfmetphi/D");
+    tree->Branch("calomet"              , &calomet              , "calomet/D");
+    tree->Branch("calometphi"           , &calometphi           , "calometphi/D");
     tree->Branch("metnohf"              , &metnohf              , "metnohf/D");
     tree->Branch("metnohfphi"           , &metnohfphi           , "metnohfphi/D");
     tree->Branch("t1metnohf"            , &t1metnohf            , "t1metnohf/D");
