@@ -36,6 +36,7 @@ Int_t myTrigger(TString resultName="v1_test",
 		TString json="DCS",
 		TString binning="regular",
 		TString offlineSel="TightMuon",
+		TString seed="ETM50",
 		bool    useHBHECleaning=false)
 		//TString fitfunc="sigmoid")
 {
@@ -83,27 +84,18 @@ Int_t myTrigger(TString resultName="v1_test",
 
   const UInt_t nV=6; // mumet, t1mumet, pfmet, t1pfmet, signaljetpt, signaljetNHfrac
   const UInt_t nF=2; // denom, num
-  const UInt_t nP=7; // PFMNoMu90,120; PFM90,120; PFM170; CM200; PFMNoMu90_Up
+  const UInt_t nP=10; // PFMNoMu90,120; Jet80PFMNoMu90,120; PFM90,120; PFM170; CM200; PFMNoMu90_Up, Jet80PFMNoMu90_Up
   UInt_t nS;
 
-  // PFMNoMu: L1, MET, METClean, METJetID, MHT, PFMHT, PFMET, HLT bit
-  // PFM:     L1, MET, METClean, METJetID, MHT, PFMHT, PFMET, HLT bit
-  // PFM170:  L1, MET, METClean, METJetID, PFMET
-  // CM200 :  L1, MET, METClean, METJetID
-
-  //TString nameS[nS]={"L1","MET","METClean","METJetID","MHT","PFMHT","PFMET","bit"};
-  //TString nameStep[nS]={"L1","MET","Cleaned MET", "JetID-cleaned MET", "MHT", "PFMHTNoMu", "PFMETNoMu", "Full path"};
-  /*
-  const UInt_t nS[nP] = {8,8,8,8,5,4};
-
-  vector<TString> _myCol[nP];
-  vector<double>  _thresh[nP];
-  */
-
   cout << "Define steps" << endl;
-  
+
+  // Level-1 Seeds
   STEP s_L1ETM60 ={.T=60,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
   STEP s_L1ETM50 ={.T=50,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
+
+  // MonoPFJet
+  STEP s_Jet65   ={.T=65,.c="hltAK4CaloJetsCorrectedIDPassed::HLT",.n="Jet",  .t="Jet",  .C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_PFJet80 ={.T=80,.c="hltAK4PFJetsTightIDCorrected::HLT",   .n="PFJet",.t="PFJet",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFMNoMu90
   STEP s_MET65   ={.T=65,.c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
@@ -150,13 +142,17 @@ Int_t myTrigger(TString resultName="v1_test",
   STEP s_METJ200 ={.T=200, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   //STEP s_bMET170 ={.T=0,   .c="hltmetwithmu170",           .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
+  // PATHS //
   cout << "Define paths" << endl;
-
   PATH myPaths[nP];
   vector<STEP> vStepEmpty;
+  
   myPaths[0]={.nameP="PFMNoMu90",.namePath="HLT_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
   myPaths[0].steps.clear();
-  myPaths[0].steps.push_back(s_L1ETM50);
+  //
+  if(     seed=="ETM50") myPaths[0].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[0].steps.push_back(s_L1ETM60);
+  //
   myPaths[0].steps.push_back(s_MET65);
   if(useHBHECleaning) myPaths[0].steps.push_back(s_METC55);
   myPaths[0].steps.push_back(s_METJ55);
@@ -168,7 +164,10 @@ Int_t myTrigger(TString resultName="v1_test",
 
   myPaths[1]={.nameP="PFMNoMu120",.namePath="HLT_PFMETNoMu120_JetIdCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
   myPaths[1].steps.clear();
-  myPaths[1].steps.push_back(s_L1ETM50);
+  //
+  if(     seed=="ETM50") myPaths[1].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[1].steps.push_back(s_L1ETM60);
+  //
   myPaths[1].steps.push_back(s_MET80);
   if(useHBHECleaning) myPaths[1].steps.push_back(s_METC70);
   myPaths[1].steps.push_back(s_METJ70);
@@ -178,55 +177,121 @@ Int_t myTrigger(TString resultName="v1_test",
   myPaths[1].steps.push_back(s_bMuPFM120);
   myPaths[1].nSteps = myPaths[1].steps.size();
 
-  myPaths[2]={.nameP="PFM90",.namePath="HLT_PFMET90_PFMHT90_IDTight",.nSteps=6,.steps=vStepEmpty};
+  myPaths[2]={.nameP="Jet80PFMNoMu90",.namePath="HLT_MonoCentralPFJet80_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
   myPaths[2].steps.clear();
-  myPaths[2].steps.push_back(s_L1ETM50);
-  myPaths[2].steps.push_back(s_MET70);
-  myPaths[2].steps.push_back(s_MHT70);
-  myPaths[2].steps.push_back(s_PFMHT90);
-  myPaths[2].steps.push_back(s_PFMET90);
-  myPaths[2].steps.push_back(s_bPFM90);
+  //
+  if(     seed=="ETM50") myPaths[2].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[2].steps.push_back(s_L1ETM60);
+  //
+  myPaths[2].steps.push_back(s_MET65);
+  myPaths[2].steps.push_back(s_Jet65);
+  if(useHBHECleaning) myPaths[2].steps.push_back(s_METC55);
+  myPaths[2].steps.push_back(s_METJ55);
+  myPaths[2].steps.push_back(s_MHT65);
+  myPaths[2].steps.push_back(s_PFJet80);
+  myPaths[2].steps.push_back(s_MuMHT90);
+  myPaths[2].steps.push_back(s_MuMET90);
+  myPaths[2].steps.push_back(s_bMuPFM90);
   myPaths[2].nSteps = myPaths[2].steps.size();
 
-  myPaths[3]={.nameP="PFM120",.namePath="HLT_PFMET120_PFMHT120_IDTight",.nSteps=6,.steps=vStepEmpty};
+  myPaths[3]={.nameP="Jet80PFMNoMu120",.namePath="HLT_MonoCentralPFJet80_PFMETNoMu120_JetIdCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
   myPaths[3].steps.clear();
-  myPaths[3].steps.push_back(s_L1ETM50);
-  myPaths[3].steps.push_back(s_MET90);
-  myPaths[3].steps.push_back(s_MHT90);
-  myPaths[3].steps.push_back(s_PFMHT120);
-  myPaths[3].steps.push_back(s_PFMET120);
-  myPaths[3].steps.push_back(s_bPFM120);
+  //
+  if(     seed=="ETM50") myPaths[3].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[3].steps.push_back(s_L1ETM60);
+  //
+  myPaths[3].steps.push_back(s_MET80);
+  myPaths[3].steps.push_back(s_Jet65);
+  if(useHBHECleaning) myPaths[3].steps.push_back(s_METC70);
+  myPaths[3].steps.push_back(s_METJ70);
+  myPaths[3].steps.push_back(s_MHT80);
+  myPaths[3].steps.push_back(s_PFJet80);
+  myPaths[3].steps.push_back(s_MuMHT120);
+  myPaths[3].steps.push_back(s_MuMET120);
+  myPaths[3].steps.push_back(s_bMuPFM120);
   myPaths[3].nSteps = myPaths[3].steps.size();
 
-  myPaths[4]={.nameP="PFMET170",.namePath="HLT_PFMET170_JetIdCleaned",.nSteps=6,.steps=vStepEmpty};
+  myPaths[4]={.nameP="PFM90",.namePath="HLT_PFMET90_PFMHT90_IDTight",.nSteps=6,.steps=vStepEmpty};
   myPaths[4].steps.clear();
-  myPaths[4].steps.push_back(s_L1ETM50);
-  myPaths[4].steps.push_back(s_MET90);
-  if(useHBHECleaning) myPaths[4].steps.push_back(s_METC80);
-  myPaths[4].steps.push_back(s_METJ80);
-  myPaths[4].steps.push_back(s_PFMET170);
-  myPaths[4].steps.push_back(s_bMET170);
+  //
+  if(     seed=="ETM50") myPaths[4].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[4].steps.push_back(s_L1ETM60);
+  //
+  myPaths[4].steps.push_back(s_MET70);
+  myPaths[4].steps.push_back(s_MHT70);
+  myPaths[4].steps.push_back(s_PFMHT90);
+  myPaths[4].steps.push_back(s_PFMET90);
+  myPaths[4].steps.push_back(s_bPFM90);
   myPaths[4].nSteps = myPaths[4].steps.size();
 
-  myPaths[5]={.nameP="CaloMET200",.namePath="HLT_CaloMET200_JetIdCleaned",.nSteps=3,.steps=vStepEmpty};
+  myPaths[5]={.nameP="PFM120",.namePath="HLT_PFMET120_PFMHT120_IDTight",.nSteps=6,.steps=vStepEmpty};
   myPaths[5].steps.clear();
-  myPaths[5].steps.push_back(s_L1ETM50);
-  myPaths[5].steps.push_back(s_MET210);
-  if(useHBHECleaning) myPaths[5].steps.push_back(s_METC200);
-  myPaths[5].steps.push_back(s_METJ200);
+  //
+  if(     seed=="ETM50") myPaths[5].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[5].steps.push_back(s_L1ETM60);
+  //
+  myPaths[5].steps.push_back(s_MET90);
+  myPaths[5].steps.push_back(s_MHT90);
+  myPaths[5].steps.push_back(s_PFMHT120);
+  myPaths[5].steps.push_back(s_PFMET120);
+  myPaths[5].steps.push_back(s_bPFM120);
   myPaths[5].nSteps = myPaths[5].steps.size();
 
-  myPaths[6]={.nameP="PFMNoMu90_Up",.namePath="HLT_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
+  myPaths[6]={.nameP="PFMET170",.namePath="HLT_PFMET170_JetIdCleaned",.nSteps=6,.steps=vStepEmpty};
   myPaths[6].steps.clear();
-  myPaths[6].steps.push_back(s_L1ETM50);
-  myPaths[6].steps.push_back(s_MET80);
-  if(useHBHECleaning) myPaths[6].steps.push_back(s_METC70);
-  myPaths[6].steps.push_back(s_METJ70);
-  myPaths[6].steps.push_back(s_MHT80);
-  myPaths[6].steps.push_back(s_MuMHT90);
-  myPaths[6].steps.push_back(s_MuMET90);
-  myPaths[6].steps.push_back(s_bMuPFM90);
+  //
+  if(     seed=="ETM50") myPaths[6].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[6].steps.push_back(s_L1ETM60);
+  //
+  myPaths[6].steps.push_back(s_MET90);
+  if(useHBHECleaning) myPaths[6].steps.push_back(s_METC80);
+  myPaths[6].steps.push_back(s_METJ80);
+  myPaths[6].steps.push_back(s_PFMET170);
+  myPaths[6].steps.push_back(s_bMET170);
   myPaths[6].nSteps = myPaths[6].steps.size();
+
+  myPaths[7]={.nameP="CaloMET200",.namePath="HLT_CaloMET200_JetIdCleaned",.nSteps=3,.steps=vStepEmpty};
+  myPaths[7].steps.clear();
+  //
+  if(     seed=="ETM50") myPaths[7].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[7].steps.push_back(s_L1ETM60);
+  //
+  myPaths[7].steps.push_back(s_MET210);
+  if(useHBHECleaning) myPaths[7].steps.push_back(s_METC200);
+  myPaths[7].steps.push_back(s_METJ200);
+  myPaths[7].nSteps = myPaths[7].steps.size();
+
+  myPaths[8]={.nameP="PFMNoMu90_Up",.namePath="HLT_CaloUp_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
+  myPaths[8].steps.clear();
+  //
+  if(     seed=="ETM50") myPaths[8].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[8].steps.push_back(s_L1ETM60);
+  //
+  myPaths[8].steps.push_back(s_MET80);
+  if(useHBHECleaning) myPaths[8].steps.push_back(s_METC70);
+  myPaths[8].steps.push_back(s_METJ70);
+  myPaths[8].steps.push_back(s_MHT80);
+  myPaths[8].steps.push_back(s_MuMHT90);
+  myPaths[8].steps.push_back(s_MuMET90);
+  myPaths[8].steps.push_back(s_bMuPFM90);
+  myPaths[8].nSteps = myPaths[8].steps.size();
+
+  myPaths[9]={.nameP="Jet80PFMNoMu90_Up",.namePath="HLT_CaloUp_MonoCentralPFJet80_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
+  myPaths[9].steps.clear();
+  //
+  if(     seed=="ETM50") myPaths[9].steps.push_back(s_L1ETM50);
+  else if(seed=="ETM60") myPaths[9].steps.push_back(s_L1ETM60);
+  //
+  myPaths[9].steps.push_back(s_MET80);
+  myPaths[9].steps.push_back(s_Jet65);
+  if(useHBHECleaning) myPaths[9].steps.push_back(s_METC70);
+  myPaths[9].steps.push_back(s_METJ70);
+  myPaths[9].steps.push_back(s_MHT80);
+  myPaths[9].steps.push_back(s_PFJet80);
+  myPaths[9].steps.push_back(s_MuMHT90);
+  myPaths[9].steps.push_back(s_MuMET90);
+  myPaths[9].steps.push_back(s_bMuPFM90);
+  myPaths[9].nSteps = myPaths[9].steps.size();
 
   cout << "Set style" << endl;
 
@@ -476,12 +541,12 @@ Int_t myTrigger(TString resultName="v1_test",
   ch->SetBranchAddress("pfmuphi", &pfmuphi); // , &b_pfmuphi);
   ch->SetBranchAddress("mumet", &mumet); // , &b_mumet);
   ch->SetBranchAddress("mumetphi", &mumetphi); // , &b_mumetphi);
-  ch->SetBranchAddress("phmet", &phmet); // , &b_phmet);
-  ch->SetBranchAddress("phmetphi", &phmetphi); // , &b_phmetphi);
+  //ch->SetBranchAddress("phmet", &phmet); // , &b_phmet);
+  //ch->SetBranchAddress("phmetphi", &phmetphi); // , &b_phmetphi);
   ch->SetBranchAddress("t1mumet", &t1mumet); // , &b_t1mumet);
   ch->SetBranchAddress("t1mumetphi", &t1mumetphi); // , &b_t1mumetphi);
-  ch->SetBranchAddress("t1phmet", &t1phmet); // , &b_t1phmet);
-  ch->SetBranchAddress("t1phmetphi", &t1phmetphi); // , &b_t1phmetphi);
+  //ch->SetBranchAddress("t1phmet", &t1phmet); // , &b_t1phmet);
+  //ch->SetBranchAddress("t1phmetphi", &t1phmetphi); // , &b_t1phmetphi);
 
   ch->SetBranchAddress("signaljetpt", &signaljetpt); // , &b_signaljetpt);
   ch->SetBranchAddress("signaljeteta", &signaljeteta); // , &b_signaljeteta);
