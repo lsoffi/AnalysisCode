@@ -1,5 +1,7 @@
 #include "myIncludes.h"
 
+bool DEBUG = true;
+
 //           run        lumi      events counter
 typedef map< int , map< int , map< int , int> > > MAP_RLE;
 
@@ -96,6 +98,8 @@ Int_t myTrigger(TString resultName="v1_test",
   // MonoPFJet
   STEP s_Jet65   ={.T=65,.c="hltAK4CaloJetsCorrectedIDPassed::HLT",.n="Jet",  .t="Jet",  .C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   STEP s_PFJet80 ={.T=80,.c="hltAK4PFJetsTightIDCorrected::HLT",   .n="PFJet",.t="PFJet",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_bJ80MuPFM90 ={.T=0,.c="hltjetmet90",                   .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  STEP s_bJ80MuPFM120={.T=0,.c="hltjetmet120",                  .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFMNoMu90
   STEP s_MET65   ={.T=65,.c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
@@ -191,7 +195,7 @@ Int_t myTrigger(TString resultName="v1_test",
   myPaths[2].steps.push_back(s_PFJet80);
   myPaths[2].steps.push_back(s_MuMHT90);
   myPaths[2].steps.push_back(s_MuMET90);
-  myPaths[2].steps.push_back(s_bMuPFM90);
+  myPaths[2].steps.push_back(s_bJ80MuPFM90);
   myPaths[2].nSteps = myPaths[2].steps.size();
 
   myPaths[3]={.nameP="Jet80PFMNoMu120",.namePath="HLT_MonoCentralPFJet80_PFMETNoMu120_JetIdCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
@@ -208,7 +212,7 @@ Int_t myTrigger(TString resultName="v1_test",
   myPaths[3].steps.push_back(s_PFJet80);
   myPaths[3].steps.push_back(s_MuMHT120);
   myPaths[3].steps.push_back(s_MuMET120);
-  myPaths[3].steps.push_back(s_bMuPFM120);
+  myPaths[3].steps.push_back(s_bJ80MuPFM120);
   myPaths[3].nSteps = myPaths[3].steps.size();
 
   myPaths[4]={.nameP="PFM90",.namePath="HLT_PFMET90_PFMHT90_IDTight",.nSteps=6,.steps=vStepEmpty};
@@ -720,6 +724,14 @@ Int_t myTrigger(TString resultName="v1_test",
 	   << endl;
     }
 
+    // Debug printouts
+    if(DEBUG) {
+      cout << "Run: "    << run
+	   << " Lumi: "  << lumi
+	   << " Event: " << event
+	   << endl;
+    }
+
     // get x-axis variables //
     _var[0] = mumet;
     _var[1] = t1mumet;
@@ -750,15 +762,31 @@ Int_t myTrigger(TString resultName="v1_test",
       //
       _toCol    = (TString)(*trig_obj_col)[iObj];
 
+      // Check HLT Jets
+      if(DEBUG) {
+	if(_toCol=="hltAK4CaloJetsCorrectedIDPassed::HLT" || 
+	   _toCol=="hltAK4PFJetsTightIDCorrected::HLT") {
+	  cout << _toCol << " "
+	       << _toPt  << " "
+	       << _toEta << " "
+	       << _toPhi << " "
+	       << endl;
+	}
+      }
+
       // loop: paths
       for(UInt_t iP=0 ; iP<nP ; iP++) { // paths
 	nS = myPaths[iP].nSteps;
 	// loop: steps
 	for(UInt_t iS=0 ; iS<nS ; iS++) {
+	  // use object only if it corresponds to step iS
 	  if(_toCol==myPaths[iP].steps[iS].c) {
-	    myPaths[iP].steps[iS].pt  = _toPt;
-	    myPaths[iP].steps[iS].phi = _toPhi;
-	  }
+	    // Take only the leading object in the collection
+	    if( _toPt > myPaths[iP].steps[iS].pt ) {
+	      myPaths[iP].steps[iS].pt  = _toPt;
+	      myPaths[iP].steps[iS].phi = _toPhi;
+	    } //endif pT>stored pT
+	  } //endif coll<->step
 	} // end loop: steps
       } // end loop: paths
 
@@ -777,6 +805,8 @@ Int_t myTrigger(TString resultName="v1_test",
 	if(theStep=="Full") { // check trigger bit
 	  if(     theColl=="hltmet90")        fired=hltmet90;
 	  else if(theColl=="hltmet120")       fired=hltmet120;
+	  else if(theColl=="hltjetmet90")     fired=hltjetmet90;
+	  else if(theColl=="hltjetmet120")    fired=hltjetmet120;
 	  else if(theColl=="hltmetwithmu90")  fired=hltmetwithmu90;
 	  else if(theColl=="hltmetwithmu120") fired=hltmetwithmu120;
 	  else if(theColl=="hltmetwithmu170") fired=hltmetwithmu170;
