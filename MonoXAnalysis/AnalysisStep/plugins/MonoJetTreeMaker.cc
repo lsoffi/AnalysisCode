@@ -79,39 +79,9 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         void Init();
 
         // InputTags
-        edm::InputTag pileupInfoTag;
-        edm::InputTag genevtInfoTag;
-        edm::InputTag verticesTag;
-        edm::InputTag gensTag;
-        edm::InputTag muonsTag;
-        edm::InputTag electronsTag;
-        edm::InputTag photonsTag;
-        edm::InputTag tightmuonsTag;
-        edm::InputTag tightelectronsTag;
-        edm::InputTag tightphotonsTag;
-        edm::InputTag photonMediumIdTag;
-        edm::InputTag photonTightIdTag;
-        edm::InputTag loosephotonsTag;
-        edm::InputTag photonsieieTag;
-        edm::InputTag rndgammaisoTag;
-        edm::InputTag rndchhadisoTag;
-        edm::InputTag tausTag;
-        edm::InputTag jetsTag;
-        edm::InputTag fatjetsTag;
-        edm::InputTag qglTag;
-        edm::InputTag qgs2Tag;
-        edm::InputTag qgmultTag;
-        edm::InputTag qgptdTag;
-        edm::InputTag t1pfmetTag;
-        edm::InputTag t1metnohfTag;
-        edm::InputTag partmetTag;
-        edm::InputTag pfmuptTag;
-        edm::InputTag mumetTag;
-        edm::InputTag t1mumetTag;
         edm::InputTag triggerResultsTag;
         edm::InputTag _IT_trg_obj;
         edm::InputTag filterResultsTag;
-        edm::InputTag hcalnoiseTag;
 
         // Tokens
         edm::EDGetTokenT<edm::TriggerResults>              triggerResultsToken;
@@ -222,39 +192,42 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
 };
 
 MonoJetTreeMaker::MonoJetTreeMaker(const edm::ParameterSet& iConfig): 
-    pileupInfoTag((iConfig.existsAs<edm::InputTag>("pileup") ? iConfig.getParameter<edm::InputTag>("pileup") : edm::InputTag("addPileupInfo"))),
-    genevtInfoTag((iConfig.existsAs<edm::InputTag>("genevt") ? iConfig.getParameter<edm::InputTag>("genevt") : edm::InputTag("generator"))),
-    verticesTag(iConfig.getParameter<edm::InputTag>("vertices")),
-    gensTag((iConfig.existsAs<edm::InputTag>("gens") ? iConfig.getParameter<edm::InputTag>("gens") : edm::InputTag("prunedGenParticles"))),
-    muonsTag(iConfig.getParameter<edm::InputTag>("muons")),
-    electronsTag(iConfig.getParameter<edm::InputTag>("electrons")),
-    photonsTag(iConfig.getParameter<edm::InputTag>("photons")),
-    tightmuonsTag(iConfig.getParameter<edm::InputTag>("tightmuons")),
-    tightelectronsTag(iConfig.getParameter<edm::InputTag>("tightelectrons")),
-    tightphotonsTag(iConfig.getParameter<edm::InputTag>("tightphotons")),
-    photonMediumIdTag(iConfig.getParameter<edm::InputTag>("photonMediumId")),
-    photonTightIdTag(iConfig.getParameter<edm::InputTag>("photonTightId")),
-    loosephotonsTag(iConfig.getParameter<edm::InputTag>("loosephotons")),
-    photonsieieTag(iConfig.getParameter<edm::InputTag>("photonsieie")),
-    rndgammaisoTag(iConfig.getParameter<edm::InputTag>("rndgammaiso")),
-    rndchhadisoTag(iConfig.getParameter<edm::InputTag>("rndchhadiso")),
-    tausTag(iConfig.getParameter<edm::InputTag>("taus")),
-    jetsTag(iConfig.getParameter<edm::InputTag>("jets")),
-    fatjetsTag(iConfig.getParameter<edm::InputTag>("fatjets")),
-    qglTag(iConfig.getParameter<edm::InputTag>("qgl")),
-    qgs2Tag(iConfig.getParameter<edm::InputTag>("qgs2")),
-    qgmultTag(iConfig.getParameter<edm::InputTag>("qgmult")),
-    qgptdTag(iConfig.getParameter<edm::InputTag>("qgptd")),
-    t1pfmetTag(iConfig.getParameter<edm::InputTag>("t1pfmet")),
-    t1metnohfTag(iConfig.getParameter<edm::InputTag>("t1metnohf")),
-    partmetTag(iConfig.getParameter<edm::InputTag>("partmet")),
-    pfmuptTag(iConfig.getParameter<edm::InputTag>("pfmupt")),
-    mumetTag(iConfig.getParameter<edm::InputTag>("mumet")),
-    t1mumetTag(iConfig.getParameter<edm::InputTag>("t1mumet")),
     triggerResultsTag(iConfig.getParameter<edm::InputTag>("triggerResults")),
     _IT_trg_obj(iConfig.getParameter<edm::InputTag>("objects")),
     filterResultsTag(iConfig.getParameter<edm::InputTag>("filterResults")),
-    hcalnoiseTag(iConfig.getParameter<edm::InputTag>("hcalnoise")),
+    triggerResultsToken(consumes<edm::TriggerResults> (triggerResultsTag)),
+    trgObjectsToken_(consumes<pat::TriggerObjectStandAloneCollection>(_IT_trg_obj)),
+    filterResultsToken(consumes<edm::TriggerResults> (filterResultsTag)),
+    hcalnoiseToken(consumes<HcalNoiseSummary> (iConfig.getParameter<edm::InputTag>("hcalnoise"))),
+    pileupInfoToken(consumes<std::vector<PileupSummaryInfo> > ((iConfig.existsAs<edm::InputTag>("pileup") ? iConfig.getParameter<edm::InputTag>("pileup") : edm::InputTag("addPileupInfo")))),
+    genevtInfoToken(consumes<GenEventInfoProduct> ((iConfig.existsAs<edm::InputTag>("genevt") ? iConfig.getParameter<edm::InputTag>("genevt") : edm::InputTag("generator")))),
+    verticesToken(consumes<std::vector<reco::Vertex> > (iConfig.getParameter<edm::InputTag>("vertices"))),
+    gensToken(consumes<edm::View<reco::GenParticle> > ((iConfig.existsAs<edm::InputTag>("gens") ? iConfig.getParameter<edm::InputTag>("gens") : edm::InputTag("prunedGenParticles")))),
+    muonsToken(consumes<pat::MuonRefVector> (iConfig.getParameter<edm::InputTag>("muons"))),
+    electronsToken(consumes<pat::ElectronRefVector> (iConfig.getParameter<edm::InputTag>("electrons"))),
+    photonsToken(consumes<pat::PhotonRefVector> (iConfig.getParameter<edm::InputTag>("photons"))),
+    tightmuonsToken(consumes<pat::MuonRefVector> (iConfig.getParameter<edm::InputTag>("tightmuons"))),
+    tightelectronsToken(consumes<pat::ElectronRefVector> (iConfig.getParameter<edm::InputTag>("tightelectrons"))),
+    tightphotonsToken(consumes<pat::PhotonRefVector> (iConfig.getParameter<edm::InputTag>("tightphotons"))),
+    photonMediumIdToken(consumes<edm::ValueMap<bool> > (iConfig.getParameter<edm::InputTag>("photonMediumId"))),
+    photonTightIdToken(consumes<edm::ValueMap<bool> > (iConfig.getParameter<edm::InputTag>("photonTightId"))),
+    loosephotonsToken(consumes<pat::PhotonRefVector> (iConfig.getParameter<edm::InputTag>("loosephotons"))),
+    photonsieieToken(consumes<edm::ValueMap<float> > (iConfig.getParameter<edm::InputTag>("photonsieie"))),
+    rndgammaisoToken(consumes<edm::ValueMap<float> > (iConfig.getParameter<edm::InputTag>("rndgammaiso"))),
+    rndchhadisoToken(consumes<edm::ValueMap<float> > (iConfig.getParameter<edm::InputTag>("rndchhadiso"))),
+    tausToken(consumes<std::vector<pat::Tau> > (iConfig.getParameter<edm::InputTag>("taus"))),
+    jetsToken(consumes<std::vector<pat::Jet> > (iConfig.getParameter<edm::InputTag>("jets"))),
+    fatjetsToken(consumes<std::vector<pat::Jet> > (iConfig.getParameter<edm::InputTag>("fatjets"))),
+    qglToken(consumes<edm::ValueMap<float> > (iConfig.getParameter<edm::InputTag>("qgl"))),
+    qgs2Token(consumes<edm::ValueMap<float> > (iConfig.getParameter<edm::InputTag>("qgs2"))),
+    qgmultToken(consumes<edm::ValueMap<int> > (iConfig.getParameter<edm::InputTag>("qgmult"))),
+    qgptdToken(consumes<edm::ValueMap<float> > (iConfig.getParameter<edm::InputTag>("qgptd"))),
+    t1pfmetToken(consumes<edm::View<pat::MET> > (iConfig.getParameter<edm::InputTag>("t1pfmet"))),
+    t1metnohfToken(consumes<edm::View<pat::MET> > (iConfig.getParameter<edm::InputTag>("t1metnohf"))),
+    partmetToken(consumes<edm::View<reco::MET> > (iConfig.getParameter<edm::InputTag>("partmet"))),
+    pfmuptToken(consumes<edm::View<reco::MET> > (iConfig.getParameter<edm::InputTag>("pfmupt"))),
+    mumetToken(consumes<edm::View<reco::MET> > (iConfig.getParameter<edm::InputTag>("mumet"))),
+    t1mumetToken(consumes<edm::View<reco::MET> > (iConfig.getParameter<edm::InputTag>("t1mumet"))),
     applyHLTFilter(iConfig.existsAs<bool>("applyHLTFilter") ? iConfig.getParameter<bool>("applyHLTFilter") : false),
     isWorZMCSample(iConfig.existsAs<bool>("isWorZMCSample") ? iConfig.getParameter<bool>("isWorZMCSample") : false),
     isSignalSample(iConfig.existsAs<bool>("isSignalSample") ? iConfig.getParameter<bool>("isSignalSample") : false),
@@ -262,47 +235,10 @@ MonoJetTreeMaker::MonoJetTreeMaker(const edm::ParameterSet& iConfig):
     cleanElectronJet(iConfig.existsAs<bool>("cleanElectronJet") ? iConfig.getParameter<bool>("cleanElectronJet") : false),
     cleanPhotonJet(iConfig.existsAs<bool>("cleanPhotonJet") ? iConfig.getParameter<bool>("cleanPhotonJet") : false),
     uselheweights(iConfig.existsAs<bool>("uselheweights") ? iConfig.getParameter<bool>("uselheweights") : false),
-    xsec(iConfig.getParameter<double>("xsec")),
+    xsec(iConfig.getParameter<double>("xsec") * 1000.0),
     kfact((iConfig.existsAs<double>("kfactor") ? iConfig.getParameter<double>("kfactor") : 1.0)),
     _verbose((iConfig.existsAs<int32_t>("verbose") ? iConfig.getParameter<int32_t>("verbose") : 0))
 {
-
-    // Token consumes instructions
-    triggerResultsToken = consumes<edm::TriggerResults> (triggerResultsTag); 
-    trgObjectsToken_   = consumes<pat::TriggerObjectStandAloneCollection>(_IT_trg_obj);
-    filterResultsToken = consumes<edm::TriggerResults> (filterResultsTag); 
-    hcalnoiseToken = consumes<HcalNoiseSummary> (hcalnoiseTag); 
-    pileupInfoToken = consumes<std::vector<PileupSummaryInfo> > (pileupInfoTag);
-    genevtInfoToken = consumes<GenEventInfoProduct> (genevtInfoTag);
-    verticesToken = consumes<std::vector<reco::Vertex> > (verticesTag);
-    gensToken = consumes<edm::View<reco::GenParticle> > (gensTag); 
-    muonsToken = consumes<pat::MuonRefVector> (muonsTag); 
-    electronsToken = consumes<pat::ElectronRefVector> (electronsTag); 
-    photonsToken = consumes<pat::PhotonRefVector> (photonsTag); 
-    tightmuonsToken = consumes<pat::MuonRefVector> (tightmuonsTag); 
-    tightelectronsToken = consumes<pat::ElectronRefVector> (tightelectronsTag); 
-    tightphotonsToken = consumes<pat::PhotonRefVector> (tightphotonsTag); 
-    photonMediumIdToken = consumes<edm::ValueMap<bool> > (photonMediumIdTag); 
-    photonTightIdToken = consumes<edm::ValueMap<bool> > (photonTightIdTag); 
-    loosephotonsToken = consumes<pat::PhotonRefVector> (loosephotonsTag); 
-    photonsieieToken = consumes<edm::ValueMap<float> > (photonsieieTag); 
-    rndgammaisoToken = consumes<edm::ValueMap<float> > (rndgammaisoTag); 
-    rndchhadisoToken = consumes<edm::ValueMap<float> > (rndchhadisoTag); 
-    tausToken = consumes<std::vector<pat::Tau> > (tausTag); 
-    jetsToken = consumes<std::vector<pat::Jet> > (jetsTag); 
-    qglToken = consumes<edm::ValueMap<float> > (qglTag); 
-    qgs2Token = consumes<edm::ValueMap<float> > (qgs2Tag); 
-    qgmultToken = consumes<edm::ValueMap<int> > (qgmultTag); 
-    qgptdToken = consumes<edm::ValueMap<float> > (qgptdTag); 
-    fatjetsToken = consumes<std::vector<pat::Jet> > (fatjetsTag); 
-    t1pfmetToken = consumes<edm::View<pat::MET> > (t1pfmetTag); 
-    t1metnohfToken = consumes<edm::View<pat::MET> > (t1metnohfTag); 
-    partmetToken = consumes<edm::View<reco::MET> > (partmetTag); 
-    pfmuptToken = consumes<edm::View<reco::MET> > (pfmuptTag); 
-    mumetToken = consumes<edm::View<reco::MET> > (mumetTag); 
-    t1mumetToken = consumes<edm::View<reco::MET> > (t1mumetTag); 
-   
-    xsec *= 1000.; 
 }
 
 
@@ -701,11 +637,11 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     pfmet          = t1pfmetH->front().uncorrectedPt();
     pfmetphi       = t1pfmetH->front().uncorrectedPhi();
 
-    t1metnohf      = t1pfmetH->front().et();
-    t1metnohfphi   = t1pfmetH->front().phi();
+    t1metnohf      = t1metnohfH->front().et();
+    t1metnohfphi   = t1metnohfH->front().phi();
 
-    metnohf        = t1pfmetH->front().uncorrectedPt();
-    metnohfphi     = t1pfmetH->front().uncorrectedPhi();
+    metnohf        = t1metnohfH->front().uncorrectedPt();
+    metnohfphi     = t1metnohfH->front().uncorrectedPhi();
 
     if (partmetH.isValid() && partmetH->size() == 9) {
     hmet           = (*partmetH)[1].et();
@@ -1015,6 +951,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 
     mht = sqrt(mhtx*mhtx + mhty*mhty);
 
+    /*
     if (jetEts.size() > 1 && jetEts.size() < 15) { // Memory consumption explodes with large number of jets -- this should be addressed
         // This code is ripped off from UserCode/SusyAnalysis/HadronicSUSYOverlapExercise/ANALYSIS/src 
         std::vector<double> diff( 1<<(jetEts.size()-1) , 0. );
@@ -1028,6 +965,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         alphat = 0.5 * (ht - dht) / sqrt(ht*ht - mht*mht);
     }
     else alphat = 0.0;
+    */
 
     apcjetmetmax = 0.0;
     apcjetmetmin = 0.0;

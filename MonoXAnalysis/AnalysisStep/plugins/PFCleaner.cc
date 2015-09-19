@@ -241,9 +241,9 @@ void PFCleaner::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 }
 
 bool PFCleaner::randomConeOverlaps(double randomphi, double photoneta, double photonphi, std::vector<pat::Jet> jets) {
-    if (reco::deltaR(photoneta, randomphi, photoneta, photonphi) < 0.8) return true;
+    if (reco::deltaR(photoneta, randomphi, photoneta, photonphi) < 0.4) return true;
     for (std::size_t i = 0; i < jets.size(); i++) {
-        if (jets[i].pt() > 30. && reco::deltaR(photoneta, randomphi, jets[i].eta(), jets[i].phi()) < 0.8) return true;
+        if (jets[i].pt() > 30. && reco::deltaR(photoneta, randomphi, jets[i].eta(), jets[i].phi()) < 0.4) return true;
     }
     return false;
 }
