@@ -85,8 +85,8 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
 
         // Tokens
         edm::EDGetTokenT<edm::TriggerResults>              triggerResultsToken;
-        edm::EDGetTokenT<edm::TriggerResults>              filterResultsToken;
         edm::EDGetTokenT<pat::TriggerObjectStandAloneCollection> trgObjectsToken_;
+        edm::EDGetTokenT<edm::TriggerResults>              filterResultsToken;
         edm::EDGetTokenT<HcalNoiseSummary>                 hcalnoiseToken;
         edm::EDGetTokenT<std::vector<PileupSummaryInfo> >  pileupInfoToken;
         edm::EDGetTokenT<GenEventInfoProduct>              genevtInfoToken;
