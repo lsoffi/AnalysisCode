@@ -29,7 +29,7 @@ process.maxEvents = cms.untracked.PSet(
 myTest = False
 
 # Is this a simulation or real data
-isMC = True
+isMC = False
 
 # Filter on high MET events
 filterHighMETEvents = True
