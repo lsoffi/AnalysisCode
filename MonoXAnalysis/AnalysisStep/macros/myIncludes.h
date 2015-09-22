@@ -161,6 +161,15 @@ readJSONFile(const std::string& inFileName)
   return jsonMap;
 }
 
+
+std::map<int, std::vector<std::pair<int, int> > >
+readJSONFile(TString inFileName)
+{
+  string input = inFileName.Data();
+  return readJSONFile(input);
+}
+
+
 bool AcceptEventByRunAndLumiSection(const int& runId, const int& lumiId,
                                     std::map<int, std::vector<std::pair<int, int> > >& jsonMap)
 {
