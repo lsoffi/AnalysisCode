@@ -1,6 +1,6 @@
 #include "myIncludes.h"
 
-bool DEBUG = true;
+bool DEBUG = false;
 
 //           run        lumi      events counter
 typedef map< int , map< int , map< int , int> > > MAP_RLE;
@@ -34,51 +34,99 @@ Double_t ApproxErf(Double_t arg);
 Double_t dichotomy(double eff, double a0, double b0, double relErr,
 		   TF1 f, bool verbose);
 
-Int_t myTrigger(TString resultName="v1_test", 
-		TString json="DCS",
-		TString binning="regular",
-		TString offlineSel="TightMuon",
+Int_t myTrigger(TString resultName="v0_test", 
+		TString offlineSel="HLTMu_TightMuon_Ana",
+		TString era="2015C",
+		TString period="25ns",
 		TString seed="ETM50",
-		bool    useHBHECleaning=false)
-		//TString fitfunc="sigmoid")
+		TString json="Prompt",
+		TString field="38T",
+		TString skim="noskim",
+		TString HBHECleaning="NoHBHE",
+		TString binning="tune"
+		)
 {
 
+  ////////////////
   // Output log //
+  ////////////////
+
   ofstream outIneff("results/"+resultName+"/outIneff.txt");
 
-  // External configuration
-  //
-  // Define JSON file
+  //////////////////////
+  // Define JSON file //
+  //////////////////////
+  TString dirJson="/user/ndaci/Data/json/13TeV/";
   bool applyJson=false;
   map<int, vector<pair<int, int> > > jsonMap;
   MAP_RLE mapRunLumiEvents;
 
-  //Bool_t useSigmoid = fitfunc.Contains("sigmoid");
-  //Bool_t useCB = fitfunc.Contains("CB");
-
   if(json=="DCS") {
     applyJson = true;
-    jsonMap = readJSONFile("/user/ndaci/Data/json/13TeV/DCSOnly/json_DCSONLY.txt");
+    if(field=="38T")
+      jsonMap = readJSONFile(dirJson+"/DCSOnly/json_DCSONLY.txt");
+    else if(field=="0T") 
+      jsonMap = readJSONFile(dirJson+"/DCSOnly/json_DCSONLY_0T.txt");
   }
   else if(json=="Prompt") {
     applyJson = true;
-    jsonMap = readJSONFile("/user/ndaci/Data/json/13TeV/Cert_246908-255031_13TeV_PromptReco_Collisions15_25ns_JSON_v2.txt");
+    //
+    if(period=="25ns") {
+      if(field=="38T")
+	jsonMap = readJSONFile(dirJson+"/Cert_246908-255031_13TeV_PromptReco_Collisions15_25ns_JSON_v2.txt");
+      else if(field=="0T") {
+	jsonMap = readJSONFile(dirJson+"/Cert_246908-256406_13TeV_PromptReco_Collisions15_ZeroTesla_25ns_JSON.txt");
+      }
+      else {
+	cout << "ERROR: Please choose field: 38T, 0T. Exit ==> []" << endl;
+	return -1;
+      }
+    }
+    //
+    else if(period=="50ns") {
+      if(field=="38T")
+	jsonMap = readJSONFile(dirJson+"Cert_246908-255031_13TeV_PromptReco_Collisions15_50ns_JSON_v2.txt");
+      else if(field=="0T") {
+	jsonMap = readJSONFile(dirJson+"Cert_246908-252126_13TeV_PromptReco_Collisions15_ZeroTesla_50ns_JSON.txt");
+      }
+      else {
+	cout << "ERROR: Please choose field: 38T, 0T. Exit ==> []" << endl;
+	return -1;
+      }
+    }
+    //
+    else {
+      cout << "ERROR: Please choose period: 25ns, 50ns. Exit ==> []" << endl;
+      return -1;
+    }
   }
 
   //////////////////
   // Define Chain //
   //////////////////
 
-  TChain* ch = new TChain("tree");
-  //ch->Add("/user/ndaci/Data/XMET/Run2015B/DoubleMuon/skim.root");
-  //ch->Add("/user/ndaci/Data/XMET/Run2015B/SingleMuon/skim.root");
+  TString nameChain="tree/tree";
+  if(skim=="skim") nameChain="tree";
+  TChain* ch = new TChain(nameChain);
 
-  if(resultName.Contains("0T"))       
-    ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/V2/skim_met30.root");
-  else if(resultName.Contains("38T")) 
-    ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/38T_V5/skim_met30.root");
-  else 
-    ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/38T_V5/skim_met30.root");
+  if(era=="2015B")
+    ch->Add("/user/ndaci/Data/XMET/Run2015B/SingleMuon/V3/skim.root");
+  else if(era=="2015C") {
+    if(field=="0T") 
+      ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/V2/skim_met30.root");
+    else if(field=="38T") 
+      ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/38T_V5/skim_met30.root");
+  }
+  else if(era=="2015D") {
+    ch->Add("/user/ndaci/Data/XMET/Run2015D/SingleMuon/V1/tree_*.root");
+  }
+  else {
+    cout << "ERROR: Please specify input source in the output dir name: " 
+	 << "2015B, 2015C, 2015C, 2015D. "
+	 << "Please specify field: 38T, 0T. Exit ==> []"
+	 << endl;
+    return -1;
+  }
 
   ///////////////////////////////////
   // Define trigger interpretation //
@@ -86,7 +134,7 @@ Int_t myTrigger(TString resultName="v1_test",
 
   const UInt_t nV=6; // mumet, t1mumet, pfmet, t1pfmet, signaljetpt, signaljetNHfrac
   const UInt_t nF=2; // denom, num
-  const UInt_t nP=10; // PFMNoMu90,120; Jet80PFMNoMu90,120; PFM90,120; PFM170; CM200; PFMNoMu90_Up, Jet80PFMNoMu90_Up
+  const UInt_t nP=11; // PFMNoMu90,120; Jet80PFMNoMu90,120; PFM90,120; PFM170; CM200; PFMNoMu90_Up, Jet80PFMNoMu90_Up; OR90GeV
   UInt_t nS;
 
   cout << "Define steps" << endl;
@@ -100,6 +148,9 @@ Int_t myTrigger(TString resultName="v1_test",
   STEP s_PFJet80 ={.T=80,.c="hltAK4PFJetsTightIDCorrected::HLT",   .n="PFJet",.t="PFJet",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   STEP s_bJ80MuPFM90 ={.T=0,.c="hltjetmet90",                   .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   STEP s_bJ80MuPFM120={.T=0,.c="hltjetmet120",                  .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+
+  // OR
+  STEP s_bOR90GeV = {.T=0,.c="OR90GeV",                  .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFMNoMu90
   STEP s_MET65   ={.T=65,.c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
@@ -147,6 +198,7 @@ Int_t myTrigger(TString resultName="v1_test",
   //STEP s_bMET170 ={.T=0,   .c="hltmetwithmu170",           .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PATHS //
+  Bool_t useHBHECleaning = (HBHECleaning!="NoHBHE");
   cout << "Define paths" << endl;
   PATH myPaths[nP];
   vector<STEP> vStepEmpty;
@@ -297,6 +349,11 @@ Int_t myTrigger(TString resultName="v1_test",
   myPaths[9].steps.push_back(s_bMuPFM90);
   myPaths[9].nSteps = myPaths[9].steps.size();
 
+  myPaths[10]={.nameP="OR90GeV",.namePath="HLT_PFMNoMu90_PFMET170",.nSteps=1,.steps=vStepEmpty};
+  myPaths[10].steps.clear();
+  myPaths[10].steps.push_back(s_bOR90GeV);
+  myPaths[10].nSteps = myPaths[10].steps.size();
+
   cout << "Set style" << endl;
 
   // Set style per step in all paths
@@ -444,58 +501,8 @@ Int_t myTrigger(TString resultName="v1_test",
 
   // branch status //
   ch->SetBranchStatus("*", 1);  
-  /*
-  ch->SetBranchStatus("*", 0);  
-  ch->SetBranchStatus("trig_obj_n",   1);
-  ch->SetBranchStatus("trig_obj_pt",  1);
-  ch->SetBranchStatus("trig_obj_eta", 1);
-  ch->SetBranchStatus("trig_obj_phi", 1);
-
-  ch->SetBranchStatus("trig_obj_eta", 1); 
-  ch->SetBranchStatus("trig_obj_phi", 1); 
-  ch->SetBranchStatus("trig_obj_col", 1); 
-  //ch->SetBranchStatus("trig_obj_ids", 1); 
-  ch->SetBranchStatus("trig_obj_lab", 1); 
-  ch->SetBranchStatus("trig_obj_path_FF", 1); 
-  ch->SetBranchStatus("trig_obj_path_FT", 1); 
-  ch->SetBranchStatus("trig_obj_path_TF", 1); 
-  ch->SetBranchStatus("trig_obj_path_TT", 1); 
-
-  ch->SetBranchStatus("hltmet90", 1); // ", &hltmet90); // , &b_hltmet90);
-  ch->SetBranchStatus("hltmet120", 1); // ", &hltmet120); // , &b_hltmet120);
-  ch->SetBranchStatus("hltmetwithmu90", 1); // ", &hltmetwithmu90); // , &b_hltmetwithmu90);
-  ch->SetBranchStatus("hltmetwithmu120", 1); // ", &hltmetwithmu120); // , &b_hltmetwithmu120);
-  ch->SetBranchStatus("hltmetwithmu170", 1); // ", &hltmetwithmu170); // , &b_hltmetwithmu170);
-  ch->SetBranchStatus("hltmetwithmu300", 1); // ", &hltmetwithmu300); // , &b_hltmetwithmu300);
-  ch->SetBranchStatus("hltjetmet90", 1); // ", &hltjetmet90); // , &b_hltjetmet90);
-  ch->SetBranchStatus("hltjetmet120", 1); // ", &hltjetmet120); // , &b_hltjetmet120);
-  ch->SetBranchStatus("hltphoton165", 1); // ", &hltphoton165); // , &b_hltphoton165);
-  ch->SetBranchStatus("hltphoton175", 1); // ", &hltphoton175); // , &b_hltphoton175);
-  ch->SetBranchStatus("hltdoublemu", 1); // ", &hltdoublemu); // , &b_hltdoublemu);
-  ch->SetBranchStatus("hltsinglemu", 1); // ", &hltsinglemu); // , &b_hltsinglemu);
-  ch->SetBranchStatus("hltdoubleel", 1); // ", &hltdoubleel); // , &b_hltdoubleel);
-  ch->SetBranchStatus("hltsingleel", 1); // ", &hltsingleel); // , &b_hltsingleel);
-
-  ch->SetBranchStatus("event", 1); 
-  ch->SetBranchStatus("run", 1); 
-  ch->SetBranchStatus("lumi", 1); 
-  ch->SetBranchStatus("puwgt", 1); 
-  ch->SetBranchStatus("puobs", 1); 
-  ch->SetBranchStatus("putrue", 1); 
-  ch->SetBranchStatus("nvtx", 1); 
-
-  ch->SetBranchStatus("mumet", 1);
-  ch->SetBranchStatus("t1mumet", 1);
-  ch->SetBranchStatus("pfmet", 1);
-  ch->SetBranchStatus("t1pfmet", 1);
-  ch->SetBranchStatus("signaljetpt", 1);
-  ch->SetBranchStatus("signaljetNHfrac", 1);
-
-  ch->SetBranchStatus("ntightmuons", 1);
-  */
 
   // branch address //
-
   // trigger objects
   ch->SetBranchAddress("trig_obj_n", &trig_obj_n); // , &b_trig_obj_n);
   ch->SetBranchAddress("trig_obj_pt", &trig_obj_pt); // , &b_trig_obj_pt);
@@ -694,16 +701,16 @@ Int_t myTrigger(TString resultName="v1_test",
     else mapRunLumiEvents[run][lumi][event]=1;
 
     // event selection
-    if(resultName.Contains("25ns")) {
+    if(era=="2015C" && period=="25ns") {
       if(run==254833) continue;
     }
     
     if(offlineSel.Contains("TightMuon")) {
-      if(ntightmuons==0) continue;
+      if(ntightmuons<1) continue;
     }
 
     if(offlineSel.Contains("HLTMu")) {
-      if(!hltsinglemu) continue;      
+      if(!hltsinglemu) continue;
     }
 
     if(offlineSel.Contains("HLTDiMu")) {
@@ -810,6 +817,9 @@ Int_t myTrigger(TString resultName="v1_test",
 	  else if(theColl=="hltmetwithmu90")  fired=hltmetwithmu90;
 	  else if(theColl=="hltmetwithmu120") fired=hltmetwithmu120;
 	  else if(theColl=="hltmetwithmu170") fired=hltmetwithmu170;
+	  else if(theColl=="OR90GeV")         {
+	    fired=hltmet90 || hltjetmet90 || hltmetwithmu170;
+	  }
 	  else fired=false;
 	}
 	//
