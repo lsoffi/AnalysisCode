@@ -22,7 +22,7 @@ process.options = cms.untracked.PSet(
 
 # How many events to process
 process.maxEvents = cms.untracked.PSet( 
-    input = cms.untracked.int32(20)
+    input = cms.untracked.int32(-1)
 )
 
 # Test code
@@ -47,8 +47,16 @@ applyL2L3Residuals = True
 process.source = cms.Source(
     "PoolSource", 
     fileNames = cms.untracked.vstring([
-            #'/store/mc/RunIISpring15DR74/GJets_HT-400To600_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/00BA540A-5618-E511-9D04-A0369F3102F6.root'
-            '/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/226/00000/905BFE5A-2446-E511-9815-02163E014184.root'
+            'file:/user/ndaci/Data/XMET/Run2015C/SingleElectron/MINIAOD_0T/A2A0552B-CE45-E511-BE5D-02163E013865.root'
+            #'file:/user/ndaci/Data/XMET/Run2015C/SingleMuon/MINIAOD_0T/2E16F335-D945-E511-A469-02163E013865.root'
+            #'/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/226/00000/905BFE5A-2446-E511-9815-02163E014184.root'
+            #'file:/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/293/00000/2E16F335-D945-E511-A469-02163E013865.root',
+            #'file:/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/293/00000/301BB738-D945-E511-A3F7-02163E014462.root',
+            #'file:/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/293/00000/565E5A3B-D945-E511-995A-02163E011E04.root',
+            #'file:/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/293/00000/60E06B39-D945-E511-848D-02163E01358E.root',
+            #'file:/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/293/00000/7098D336-D945-E511-83FF-02163E011DF7.root',
+            #'file:/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/293/00000/86FAB239-D945-E511-8331-02163E0141E8.root',
+            #'file:/store/data/Run2015C/SingleMuon/MINIAOD/PromptReco-v1/000/254/293/00000/BEC4B232-D945-E511-B4C7-02163E011F9D.root'
     ])
 )
 
