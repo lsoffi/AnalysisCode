@@ -39,7 +39,7 @@ Int_t fitEfficiency(TString resultName="v0_test",
 		    TString HBHECleaning="NoHBHE")
 {
 
-  TFile* infile = new TFile("results/"+resultName+"/refit/f_"+resultName+".root","read");
+  TFile* infile = new TFile("results/"+resultName+"/f_"+resultName+".root","read");
   if(infile->IsZombie()) {
     cout << "ERROR: input file is a zombie. Exit ==> []" << endl;
     return -1;
