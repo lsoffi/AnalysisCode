@@ -41,8 +41,9 @@ using namespace std;
 struct STEP{
   double  T; // threshold
   TString c; // collection
-  TString n; // name
-  TString t; // title
+  TString n; // name  of the type of step
+  TString t; // title of the type of step
+  TString f; // filter name
 
   Int_t   C; // color
   Int_t   S; // style
