@@ -1,6 +1,7 @@
 #ifndef MYINCLUDES
 #define MYINCLUDES
 
+// includes //
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -33,7 +34,60 @@
 //
 #include "tdrstyle.h"
 
+// namespaces //
 using namespace std;
+
+// structures //
+struct STEP{
+  double  T; // threshold
+  TString c; // collection
+  TString n; // name
+  TString t; // title
+
+  Int_t   C; // color
+  Int_t   S; // style
+  
+  double pt;
+  double phi;
+  bool   pass;
+  bool   serial;
+};
+
+struct PATH{
+  TString nameP;
+  TString namePath;
+  UInt_t nSteps;
+  vector<STEP> steps;
+};
+
+
+// Function Declarations //
+
+// style
+Int_t setStyle(TH1F* h, Int_t color);
+Int_t setStyle(TCanvas* c);
+Int_t setStyle(TLegend* leg);
+
+// json files
+std::map<int, std::vector<std::pair<int, int> > > 
+  readJSONFile(const std::string& inFileName);
+std::map<int, std::vector<std::pair<int, int> > >
+  readJSONFile(TString inFileName);
+bool AcceptEventByRunAndLumiSection(const int& runId, const int& lumiId,
+                                    std::map<int, std::vector<std::pair<int, int> > >& jsonMap);
+
+// maths
+pair<Double_t, Double_t> Integrate(TH1F* h);
+Double_t ApproxErf(Double_t arg);
+Double_t evaluate(double *x, double *par);
+Double_t evaluate2(double *x, double *par);
+Double_t dichotomy(double eff, double a0, double b0, double relErr,
+		   TF1 f, bool verbose);
+
+
+/////////////////////
+// IMPLEMENTATIONS //
+/////////////////////
 
 pair<Double_t, Double_t> Integrate(TH1F* h) 
 {
@@ -191,6 +245,108 @@ bool AcceptEventByRunAndLumiSection(const int& runId, const int& lumiId,
   
   
   return true;
+}
+
+Double_t evaluate(double *x, double *par)
+{ 
+  double m = x[0];
+  double m0 = par[0];
+  double sigma = par[1];
+  double alpha = par[2];
+  double n = par[3];
+  double norm = par[4];
+  
+  const double sqrtPiOver2 = 1.2533141373; // sqrt(pi/2)
+  const double sqrt2 = 1.4142135624;
+
+  Double_t sig = fabs((Double_t) sigma);
+  Double_t t = (m - m0)/sig ;
+  
+  if (alpha < 0)
+    t = -t;
+
+  Double_t absAlpha = fabs(alpha / sig);
+  Double_t a = TMath::Power(n/absAlpha,n)*exp(-0.5*absAlpha*absAlpha);
+  Double_t b = absAlpha - n/absAlpha;
+
+  Double_t aireGauche = (1 + ApproxErf( absAlpha / sqrt2 )) * sqrtPiOver2 ;
+  Double_t aireDroite = ( a * 1/TMath::Power(absAlpha - b,n-1)) / (n - 1);
+  Double_t aire = aireGauche + aireDroite;
+
+  if ( t <= absAlpha ){
+    return norm * (1 + ApproxErf( t / sqrt2 )) * sqrtPiOver2 / aire ;
+  }
+  else{
+    return norm * (aireGauche +  a * (1/TMath::Power(t-b,n-1) - 1/TMath::Power(absAlpha - b,n-1)) / (1 - n)) / aire ;
+  }
+  
+} 
+
+Double_t ApproxErf(Double_t arg)
+{
+  static const double erflim = 5.0;
+  if( arg > erflim )
+    return 1.0;
+  if( arg < -erflim )
+    return -1.0;
+  
+  return TMath::Erf(arg);
+}
+
+Double_t evaluate2(double *x, double *par)
+{ 
+  return par[2] / (1 + TMath::Exp(-par[1]*(x[0] - par[0])));
+} 
+
+Double_t dichotomy(double eff, double a0, double b0, double relErr,
+		   TF1 f, bool verbose) 
+{
+  
+  double dicho, effApprox, a, b;
+  
+  if(a0<b0) {
+    a = a0;
+    b = b0;
+  } else if(a0>b0) {
+    a = b0;
+    b = a0;
+  }
+  else {
+    cout << "PLEASE CHOOSE DIFFERENT VALUES FOR a AND b" << endl;
+    return -999;
+  }
+
+  // Test bounds
+  if( (f.Eval(a) > eff) || (f.Eval(b) < eff) ) {
+    cout << "Bounds not large enough : eff(a)=" << f.Eval(a) 
+	 << " ; eff(b)=" << f.Eval(b) << " ; tested eff=" << eff
+	 << endl;
+    return -999;
+  }
+
+  do {
+    dicho = (a+b)/2 ;
+    effApprox = f.Eval(dicho);
+
+    if( effApprox < eff ) {
+      a = dicho;
+    } else {
+      b = dicho;
+    }
+  }
+  while( (fabs(effApprox-eff) / eff) > relErr );
+
+  if(verbose) {
+    cout << "relative precision asked (" << relErr*100 << " %) reached !"
+	 << endl
+	 << "found value of eT : " << dicho << " GeV" 
+	 << endl
+      //<< "efficiency value : " << 100*efficiency(dicho,mean,sigma,alpha,n,norm) << " %"
+	 << endl;
+  }
+
+  return dicho;
+
 }
 
 #endif
