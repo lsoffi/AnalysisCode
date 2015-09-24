@@ -43,6 +43,8 @@ MyTrigger::MyTrigger(TString resultName, TString offlineSel, TString era,
 
 Int_t MyTrigger::ProdHistos()
 {
+  cout << "- ProdHistos()" << endl;
+
   // Check and announce #entries
   UInt_t entries=_ch->GetEntries();
   cout << "- Start processing: " << entries << " entries." << endl;
@@ -580,6 +582,10 @@ Int_t MyTrigger::GetHistos()
 Int_t MyTrigger::ProdEff()
 {
 
+  cout << "- ProdEff()" << endl
+       << "- using _Histos.size()=" << _Histos.size()
+       << endl;
+
   TFile* outfile = new TFile("results/"+_resultName+"/eff_"+_resultName+".root","recreate");
   outfile->cd();
 
@@ -589,18 +595,21 @@ Int_t MyTrigger::ProdEff()
   TH1F *hNum, *hDen;
   TEfficiency *pEff;
   M_NUM_H theMap;
-  TString namePathFull, namePath, nameStep, nameVar;
+  //TString namePathFull, namePath, nameStep, nameVar;
+  TString nameTEff;
 
   // Loop: paths
   for(_itPathStepVarNumH=_Histos.begin() ; _itPathStepVarNumH!=_Histos.end() ; _itPathStepVarNumH++) {
 
     namePath = _itPathStepVarNumH->first;
     namePathFull = _Paths[namePath].namePath;
+    cout << "-- " << namePath << " : " << namePathFull << endl;
 
     // loop: steps
     for(_itStepVarNumH=_itPathStepVarNumH->second.begin() ; _itStepVarNumH!=_itPathStepVarNumH->second.end() ; _itStepVarNumH++) {
 
       nameStep = _itStepVarNumH->first;
+      cout << "--- " << nameStep << endl;
 
       // loop: var
       for(_itVarNumH=_itStepVarNumH->second.begin() ; _itVarNumH!=_itStepVarNumH->second.end() ; _itVarNumH++) {
@@ -619,9 +628,10 @@ Int_t MyTrigger::ProdEff()
 	for(UInt_t iF=0; iF<nF; iF++) {
 	  if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen) ) {
 	    pEff = new TEfficiency(*hNum,*hDen);
-	    pEff->
-	      SetNameTitle( "t_"+nameVar+"_"+namePath+"_"+nameStep+"_"+nameFunc[iF],
-			    namePathFull+";"+_Axis[nameVar]+";Efficiency" );
+	    nameTEff = "t_"+nameVar+"_"+namePath+"_"+nameStep+"_"+nameFunc[iF];
+	    cout << "----- produced TEff: " << nameTEff << endl;
+
+	    pEff->SetNameTitle(nameTEff, namePathFull+";"+_Axis[nameVar]+";Efficiency");
 	    _Eff[namePath][nameStep][nameVar][nameFunc[iF]] = pEff;
 	    _Eff[namePath][nameStep][nameVar][nameFunc[iF]]->Write();
 	  }
@@ -636,6 +646,10 @@ Int_t MyTrigger::ProdEff()
 
 Int_t MyTrigger::FitEff()
 {
+
+  cout << "- FitEff()" << endl
+       << "- using _Eff.size()=" << _Eff.size()
+       << endl;
 
   // Output file
   TFile* outfile = new TFile("results/"+_resultName+"/fits_"+_resultName+".root","recreate");
@@ -654,8 +668,9 @@ Int_t MyTrigger::FitEff()
   // Loop: paths
   for(_itPathStepVarFitE=_Eff.begin() ; _itPathStepVarFitE!=_Eff.end() ; _itPathStepVarFitE++) {
 
-    //namePath = _itPathStepVarFitE->first;
-    //namePathFull = _Paths[namePath].namePath;
+    namePath = _itPathStepVarFitE->first;
+    namePathFull = _Paths[namePath].namePath;
+    cout << "-- Path: " << namePath << " : " << namePathFull << endl;
 
     // loop: steps
     for(_itStepVarFitE=_itPathStepVarFitE->second.begin() ; _itStepVarFitE!=_itPathStepVarFitE->second.end() ; _itStepVarFitE++) {
@@ -663,6 +678,7 @@ Int_t MyTrigger::FitEff()
       nameStep = _itStepVarFitE->first;
       theStep  = _Steps[nameStep];
       threshold= theStep.T;
+      cout << "--- Step: " << nameStep << " (threshold=" << threshold << ")" << endl;
 
       // loop: var
       for(_itVarFitE=_itStepVarFitE->second.begin() ; _itVarFitE!=_itStepVarFitE->second.end() ; _itVarFitE++) {
@@ -685,6 +701,11 @@ Int_t MyTrigger::FitEff()
 	    if(iF==0) func = new TF1(nameFuncLoc,evaluate,0,1000,5);
 	    else      func = new TF1(nameFuncLoc,evaluate2,0,1000,3);
 	    prepareFunc(func, nameFunc[iF], threshold);
+
+	    cout << "----- Fitting: " << nameTEff 
+		 << " using: " << nameFuncLoc
+		 << " (threshold=" << threshold << ")" 
+		 << endl;
 	    
 	    // perform the fit
 	    pEff->Fit(func , "R");
@@ -778,8 +799,8 @@ Int_t MyTrigger::DefinePaths()
 
   // MonoPFJet
   _Steps["Jet65"]={.T=65,.c="hltAK4CaloJetsCorrectedIDPassed::HLT",.n="Jet",  .t="Jet",  .C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["PFJet80"]={.T=80,.c="hltAK4PFJetsTightIDCorrected::HLT",   .n="PFJet",.t="PFJet",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["bJ80MuPFM90"]={.T=0,.c="hltjetmet90",                   .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["PFJet80"]={.T=80,.c="hltAK4PFJetsTightIDCorrected::HLT", .n="PFJet",.t="PFJet",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["bJ80MuPFM90"]={.T=0,.c="hltjetmet90",                    .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   _Steps["bJ80MuPFM120"]={.T=0,.c="hltjetmet120",                  .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // OR
@@ -811,8 +832,8 @@ Int_t MyTrigger::DefinePaths()
   _Steps["bPFM90"] ={.T=0, .c="hltmetwithmu90",       .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFM120
-  _Steps["MET90"]   ={.T=90,.c="hltMet::HLT",            .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
-  _Steps["MHT90"]   ={.T=90,.c="hltMht::HLT",            .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MET90"]   ={.T=90,.c="hltMet::HLT",           .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
+  _Steps["MHT90"]   ={.T=90,.c="hltMht::HLT",           .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   _Steps["PFMHT120"]={.T=120,.c="hltPFMHTTightID::HLT", .n="PFMHT",.t="PFMHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
   _Steps["PFMET120"]={.T=120,.c="hltPFMETProducer::HLT",.n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
   _Steps["bPFM120"] ={.T=0, .c="hltmetwithmu120",       .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
@@ -821,8 +842,8 @@ Int_t MyTrigger::DefinePaths()
   //_Steps["MET90"]={.T=90, .c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   _Steps["METC80"]={.T=80, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   _Steps["METJ80"]={.T=80, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["PFMET170"]={.T=170,.c="hltPFMETProducer::HLT",     .n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["bMET170"] ={.T=0,  .c="hltmetwithmu170",           .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["PFMET170"]={.T=170,.c="hltPFMETProducer::HLT",   .n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["bMET170"] ={.T=0,  .c="hltmetwithmu170",         .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // CaloMET200
   _Steps["MET210"] ={.T=210,.c="hltMet::HLT",               .n="MET", .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
