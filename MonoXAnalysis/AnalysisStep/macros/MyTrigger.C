@@ -121,7 +121,7 @@ Int_t MyTrigger::ProdHistos()
     
     for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
       cout << "--- declare #" << iS << " : ";
-      nameStep = thePath.steps[iS].n;
+      nameStep = thePath.steps[iS].f;
 
       for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
 	for(UInt_t iF=0 ; iF<nF ; iF++) { // num/den
@@ -303,7 +303,7 @@ Int_t MyTrigger::ProdHistos()
       for(UInt_t iS=0 ; iS<nS ; iS++) {
 	//
 	nameColl=thePath.steps[iS].c;
-	nameStep=thePath.steps[iS].n;
+	nameStep=thePath.steps[iS].f;
 	fired=false;
 	if(DEBUG) cout << "---- step #" << iS
 		       << " nameStep="  << nameStep
@@ -363,7 +363,7 @@ Int_t MyTrigger::ProdHistos()
       for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 
 	if(DEBUG) cout << "---- step: ";
-	nameStep=thePath.steps[iS].n;
+	nameStep=thePath.steps[iS].f;
 	if(DEBUG) cout << nameStep << endl;
 
 	if(DEBUG) cout << "---- loop: x-axis var" << endl;
@@ -555,7 +555,7 @@ Int_t MyTrigger::GetHistos()
     if(DEBUG) cout << "-- loop: steps" << endl;
     for(UInt_t iS=0; iS<nS; iS++) {
 
-      nameStep=thePath.steps[iS].n;
+      nameStep=thePath.steps[iS].f;
       if(DEBUG) cout << "--- " << nameStep << endl;
 
       if(DEBUG) cout << "--- loop: var" << endl;
@@ -794,62 +794,62 @@ Int_t MyTrigger::DefinePaths()
   // STEPS //
 
   // Level-1 Seeds
-  _Steps["L1ETM60"]={.T=60,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
-  _Steps["L1ETM50"]={.T=50,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
+  _Steps["L1ETM60"]={.T=60,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.f="L1ETM60",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
+  _Steps["L1ETM50"]={.T=50,.c="hltL1extraParticles:MET:HLT",.n="L1",.t="L1",.f="L1ETM50",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};               
 
   // MonoPFJet
-  _Steps["Jet65"]={.T=65,.c="hltAK4CaloJetsCorrectedIDPassed::HLT",.n="Jet",  .t="Jet",  .C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["PFJet80"]={.T=80,.c="hltAK4PFJetsTightIDCorrected::HLT", .n="PFJet",.t="PFJet",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["bJ80MuPFM90"]={.T=0,.c="hltjetmet90",                    .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["bJ80MuPFM120"]={.T=0,.c="hltjetmet120",                  .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["Jet65"]={.T=65,.c="hltAK4CaloJetsCorrectedIDPassed::HLT",.n="Jet",  .t="Jet",  .f="Jet65",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["PFJet80"]={.T=80,.c="hltAK4PFJetsTightIDCorrected::HLT", .n="PFJet",.t="PFJet",.f="PFJet80",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["bJ80MuPFM90"]={.T=0,.c="hltjetmet90",                    .n="Full",.t="Full path",.f="bJ80MuPFM90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["bJ80MuPFM120"]={.T=0,.c="hltjetmet120",                  .n="Full",.t="Full path",.f="bJ80MuPFM120",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // OR
-  _Steps["bOR90GeV"] = {.T=0,.c="OR90GeV",                  .n="Full",.t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["bOR90GeV"] = {.T=0,.c="OR90GeV",                  .n="Full",.t="Full path",.f="bOR90GeV",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFMNoMu90
-  _Steps["MET65"]   ={.T=65,.c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
-  _Steps["METC55"]  ={.T=55,.c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};      
-  _Steps["METJ55"]  ={.T=55,.c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["MHT65"]   ={.T=65,.c="hltMht::HLT",               .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["MuMHT90"] ={.T=90,.c="hltPFMHTNoMuTightID::HLT",  .n="PFMHT",.t="PFMHTNoMu",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
-  _Steps["MuMET90"] ={.T=90,.c="hltPFMETNoMuProducer::HLT", .n="PFMET",.t="PFMETNoMu",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
-  _Steps["bMuPFM90"]={.T=0, .c="hltmet90",                  .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MET65"]   ={.T=65,.c="hltMet::HLT",               .n="MET",  .t="MET",.f="MET65",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
+  _Steps["METC55"]  ={.T=55,.c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.f="METC55",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};      
+  _Steps["METJ55"]  ={.T=55,.c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.f="METJ55",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MHT65"]   ={.T=65,.c="hltMht::HLT",               .n="MHT",  .t="MHT",.f="MHT65",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MuMHT90"] ={.T=90,.c="hltPFMHTNoMuTightID::HLT",  .n="PFMHT",.t="PFMHTNoMu",.f="MuMHT90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  _Steps["MuMET90"] ={.T=90,.c="hltPFMETNoMuProducer::HLT", .n="PFMET",.t="PFMETNoMu",.f="MuMET90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  _Steps["bMuPFM90"]={.T=0, .c="hltmet90",                  .n="Full", .t="Full path",.f="bMuPFM90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFMNoMu120
-  _Steps["MET80"] ={.T=80, .c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["METC70"]={.T=70, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["METJ70"]={.T=70, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["MHT80"]    ={.T=80, .c="hltMht::HLT",               .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["MuMHT120"] ={.T=120,.c="hltPFMHTNoMuTightID::HLT",  .n="PFMHT",.t="PFMHTNoMu",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["MuMET120"] ={.T=120,.c="hltPFMETNoMuProducer::HLT", .n="PFMET",.t="PFMETNoMu",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["bMuPFM120"]={.T=0,  .c="hltmet120",                 .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MET80"] ={.T=80, .c="hltMet::HLT",               .n="MET",  .t="MET",.f="MET80",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["METC70"]={.T=70, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.f="METC70",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["METJ70"]={.T=70, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.f="METJ70",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MHT80"]    ={.T=80, .c="hltMht::HLT",               .n="MHT",  .t="MHT",.f="MHT80",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MuMHT120"] ={.T=120,.c="hltPFMHTNoMuTightID::HLT",  .n="PFMHT",.t="PFMHTNoMu",.f="MuMHT120",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MuMET120"] ={.T=120,.c="hltPFMETNoMuProducer::HLT", .n="PFMET",.t="PFMETNoMu",.f="MuMET120",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["bMuPFM120"]={.T=0,  .c="hltmet120",                 .n="Full", .t="Full path",.f="bMuPFM120",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFM90
-  _Steps["MET70"]  ={.T=70,.c="hltMet::HLT",          .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
-  _Steps["MHT70"]  ={.T=70,.c="hltMht::HLT",          .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["PFMHT90"]={.T=90,.c="hltPFMHTTightID::HLT", .n="PFMHT",.t="PFMHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
-  _Steps["PFMET90"]={.T=90,.c="hltPFMETProducer::HLT",.n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
-  _Steps["bPFM90"] ={.T=0, .c="hltmetwithmu90",       .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MET70"]  ={.T=70,.c="hltMet::HLT",          .n="MET",  .t="MET",.f="MET70",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
+  _Steps["MHT70"]  ={.T=70,.c="hltMht::HLT",          .n="MHT",  .t="MHT",.f="MHT70",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["PFMHT90"]={.T=90,.c="hltPFMHTTightID::HLT", .n="PFMHT",.t="PFMHT",.f="PFMHT90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  _Steps["PFMET90"]={.T=90,.c="hltPFMETProducer::HLT",.n="PFMET",.t="PFMET",.f="PFMET90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  _Steps["bPFM90"] ={.T=0, .c="hltmetwithmu90",       .n="Full", .t="Full path",.f="bPFM90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFM120
-  _Steps["MET90"]   ={.T=90,.c="hltMet::HLT",           .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
-  _Steps["MHT90"]   ={.T=90,.c="hltMht::HLT",           .n="MHT",  .t="MHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["PFMHT120"]={.T=120,.c="hltPFMHTTightID::HLT", .n="PFMHT",.t="PFMHT",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
-  _Steps["PFMET120"]={.T=120,.c="hltPFMETProducer::HLT",.n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
-  _Steps["bPFM120"] ={.T=0, .c="hltmetwithmu120",       .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MET90"]   ={.T=90,.c="hltMet::HLT",           .n="MET",  .t="MET",.f="MET90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};              
+  _Steps["MHT90"]   ={.T=90,.c="hltMht::HLT",           .n="MHT",  .t="MHT",.f="MHT90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["PFMHT120"]={.T=120,.c="hltPFMHTTightID::HLT", .n="PFMHT",.t="PFMHT",.f="PFMHT120",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  _Steps["PFMET120"]={.T=120,.c="hltPFMETProducer::HLT",.n="PFMET",.t="PFMET",.f="PFMET120",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0}; 
+  _Steps["bPFM120"] ={.T=0, .c="hltmetwithmu120",       .n="Full", .t="Full path",.f="bPFM120",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // PFMET170
-  //_Steps["MET90"]={.T=90, .c="hltMet::HLT",               .n="MET",  .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["METC80"]={.T=80, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["METJ80"]={.T=80, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["PFMET170"]={.T=170,.c="hltPFMETProducer::HLT",   .n="PFMET",.t="PFMET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["bMET170"] ={.T=0,  .c="hltmetwithmu170",         .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  //_Steps["MET90"]={.T=90, .c="hltMet::HLT",               .n="MET",  .t="MET",.f="MET90",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["METC80"]={.T=80, .c="hltMetClean::HLT",          .n="METC", .t="Cleaned MET",.f="METC80",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["METJ80"]={.T=80, .c="hltMetCleanUsingJetID::HLT",.n="METJ", .t="JetID-cleaned MET",.f="METJ80",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["PFMET170"]={.T=170,.c="hltPFMETProducer::HLT",   .n="PFMET",.t="PFMET",.f="PFMET170",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["bMET170"] ={.T=0,  .c="hltmetwithmu170",         .n="Full", .t="Full path",.f="bMET170",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
   // CaloMET200
-  _Steps["MET210"] ={.T=210,.c="hltMet::HLT",               .n="MET", .t="MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["METC200"]={.T=200,.c="hltMetClean::HLT",          .n="METC",.t="Cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  _Steps["METJ200"]={.T=200,.c="hltMetCleanUsingJetID::HLT",.n="METJ",.t="JetID-cleaned MET",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
-  //_Steps["bMET170"]={.T=0,   .c="hltmetwithmu170",           .n="Full", .t="Full path",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["MET210"] ={.T=210,.c="hltMet::HLT",               .n="MET", .t="MET",.f="MET210",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["METC200"]={.T=200,.c="hltMetClean::HLT",          .n="METC",.t="Cleaned MET",.f="METC200",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  _Steps["METJ200"]={.T=200,.c="hltMetCleanUsingJetID::HLT",.n="METJ",.t="JetID-cleaned MET",.f="METJ200",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
+  //_Steps["bMET170"]={.T=0,   .c="hltmetwithmu170",           .n="Full", .t="Full path",.f="bMET170",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
 
   // PATHS //
