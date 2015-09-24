@@ -655,6 +655,7 @@ Int_t MyTrigger::FitEff()
   TFile* outfile = new TFile("results/"+_resultName+"/fits_"+_resultName+".root","recreate");
   outfile->cd();
 
+  UInt_t nS=0;
   const UInt_t nF=2;
   TString nameFunc[nF] = {"sigmoid","cb"};
   TString nameFuncLoc, nameTEff, s_eff95;
@@ -669,7 +670,9 @@ Int_t MyTrigger::FitEff()
   for(_itPathStepVarFitE=_Eff.begin() ; _itPathStepVarFitE!=_Eff.end() ; _itPathStepVarFitE++) {
 
     namePath = _itPathStepVarFitE->first;
-    namePathFull = _Paths[namePath].namePath;
+    thePath = _Paths[namePath];
+    namePathFull = thePath.namePath;
+    nS = thePath.nSteps;
     cout << "-- Path: " << namePath << " : " << namePathFull << endl;
 
     // loop: steps
@@ -677,7 +680,10 @@ Int_t MyTrigger::FitEff()
 
       nameStep = _itStepVarFitE->first;
       theStep  = _Steps[nameStep];
-      threshold= theStep.T;
+
+      // in case this step is the trigger bit, use the threshold from the last filter
+      if(nameStep[0]==TString("b")) threshold = thePath.steps[nS>=2 ? nS-2 : 0].T;
+      else                          threshold = theStep.T;
       cout << "--- Step: " << nameStep << " (threshold=" << threshold << ")" << endl;
 
       // loop: var
