@@ -65,13 +65,6 @@ Int_t MyTrigger::ProdHistos()
   UInt_t nIneff=0;
   UInt_t nEff=0;
 
-  // Trigger I/O
-  PATH thePath;
-  STEP theStep;
-  double toPt, toEta, toPhi;
-  TString toCol, nameColl, nameStep, namePath;
-  bool fired;
-
   // Histograms //
   cout << "- Define histograms." << endl;
   //vector<TH1F*> h[nV][nF][nP];
@@ -515,7 +508,7 @@ Int_t MyTrigger::ProdHistos()
   } // end loop over chain  
 
   // Write out histos //
-  TFile* outfile = new TFile("results/"+_resultName+"/f_"+_resultName+".root","recreate");
+  TFile* outfile = new TFile("results/"+_resultName+"/h_"+_resultName+".root","recreate");
   outfile->cd();
 
   // Write histograms //
@@ -528,8 +521,67 @@ Int_t MyTrigger::ProdHistos()
   return 0;
 }
 
+Int_t MyTrigger::GetHistos()
+{
+  cout << "- GetHistos(): start" << endl;
+
+  TString filepath="results/"+_resultName+"/h_"+_resultName+".root";
+  TFile* fHistos = new TFile(filepath,"read");
+  fHistos->cd();
+
+  cout << "- opened file: " << filepath << endl;
+
+  TH1F* hTemp;
+  TString hname;
+  PATH thePath;
+
+  // should make these arrays members of the class instead of copy-pastes...
+  UInt_t nS=0;
+  const UInt_t nF=2;
+  const UInt_t nV=6;
+  TString nameF[nF]={"denom","num"};
+  TString nameV[nV]={"mumet","t1mumet","pfmet","t1pfmet","signaljetpt","signaljetNHfrac"};
+
+  cout << "- loop: paths => get histos" << endl;
+  for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
+
+    thePath = _itPaths->second;
+    nS = thePath.nSteps;
+    namePath = thePath.nameP;
+    cout << "-- " << namePath << endl;
+
+    if(DEBUG) cout << "-- loop: steps" << endl;
+    for(UInt_t iS=0; iS<nS; iS++) {
+
+      nameStep=thePath.steps[iS].n;
+      if(DEBUG) cout << "--- " << nameStep << endl;
+
+      if(DEBUG) cout << "--- loop: var" << endl;
+      for(UInt_t iV=0; iV<nV; iV++) {
+
+	if(DEBUG) cout << "---- " << nameV[iV] << endl;
+	for(UInt_t iF=0; iF<nF; iF++) {
+
+	  if(DEBUG) cout << "----- " << nameF[iF] << endl;
+	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+namePath+"_"+nameStep;
+	  hTemp = (TH1F*)fHistos->Get(hname);
+	  if(hTemp) {
+	    cout << "------ got histo: " << hname << endl;
+	    _Histos[namePath][nameStep][nameV[iV]][nameF[iF]] = hTemp;
+	  }
+	}
+      }
+    }
+  }
+
+  return 0;
+}
+
 Int_t MyTrigger::ProdEff()
 {
+
+  TFile* outfile = new TFile("results/"+_resultName+"/eff_"+_resultName+".root","recreate");
+  outfile->cd();
 
   const UInt_t nF=2;
   TString nameFunc[nF] = {"sigmoid","cb"};
@@ -568,15 +620,149 @@ Int_t MyTrigger::ProdEff()
 	  if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen) ) {
 	    pEff = new TEfficiency(*hNum,*hDen);
 	    pEff->
-	      SetNameTitle( "t_"+nameVar+"_"+namePath+"_"+nameStep,
+	      SetNameTitle( "t_"+nameVar+"_"+namePath+"_"+nameStep+"_"+nameFunc[iF],
 			    namePathFull+";"+_Axis[nameVar]+";Efficiency" );
 	    _Eff[namePath][nameStep][nameVar][nameFunc[iF]] = pEff;
+	    _Eff[namePath][nameStep][nameVar][nameFunc[iF]]->Write();
 	  }
 	} // end loop: fit func
 
       } // end loop: var
     } // end loop: steps
   } // end loop: paths
+
+  return 0;
+}
+
+Int_t MyTrigger::FitEff()
+{
+
+  // Output file
+  TFile* outfile = new TFile("results/"+_resultName+"/fits_"+_resultName+".root","recreate");
+  outfile->cd();
+
+  const UInt_t nF=2;
+  TString nameFunc[nF] = {"sigmoid","cb"};
+  TString nameFuncLoc, nameTEff, s_eff95;
+
+  M_FIT_E theMap;
+  double threshold, eff95;
+  TEfficiency *pEff;
+  TF1 *func, *fitEffTemp;
+  TPaveText *pt2;
+
+  // Loop: paths
+  for(_itPathStepVarFitE=_Eff.begin() ; _itPathStepVarFitE!=_Eff.end() ; _itPathStepVarFitE++) {
+
+    //namePath = _itPathStepVarFitE->first;
+    //namePathFull = _Paths[namePath].namePath;
+
+    // loop: steps
+    for(_itStepVarFitE=_itPathStepVarFitE->second.begin() ; _itStepVarFitE!=_itPathStepVarFitE->second.end() ; _itStepVarFitE++) {
+
+      nameStep = _itStepVarFitE->first;
+      theStep  = _Steps[nameStep];
+      threshold= theStep.T;
+
+      // loop: var
+      for(_itVarFitE=_itStepVarFitE->second.begin() ; _itVarFitE!=_itStepVarFitE->second.end() ; _itVarFitE++) {
+
+	nameVar = _itVarFitE->first;
+	theMap  = _itVarFitE->second;
+
+	// loop: fit functions
+	for(UInt_t iF=0; iF<nF; iF++) {
+
+	  pEff = theMap[nameFunc[iF]];
+	  nameTEff = pEff->GetName();
+	  cout << "----- TEff: " << nameTEff << endl;
+
+	  // energy fractions: store but not fit
+	  if(!nameVar.Contains("frac")) {
+
+	    // prepare fit function
+	    nameFuncLoc = "func_"+nameTEff+"_"+nameFunc[iF];
+	    if(iF==0) func = new TF1(nameFuncLoc,evaluate,0,1000,5);
+	    else      func = new TF1(nameFuncLoc,evaluate2,0,1000,3);
+	    prepareFunc(func, nameFunc[iF], threshold);
+	    
+	    // perform the fit
+	    pEff->Fit(func , "R");
+	    
+	    // work w/ the fit results
+	    fitEffTemp = 
+	      (TF1*)(pEff->GetListOfFunctions()->FindObject(nameFuncLoc));
+	    eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *fitEffTemp, true);
+	    s_eff95 = "#epsilon = 95% @ "+TString(Form("%.0f", eff95))+" GeV";
+	  }
+	    
+	  // write
+	  pEff->Write();
+	  
+	  // draw
+	  TCanvas c("c","c",0,0,600,600);
+	  pEff->Draw("AP");
+	  
+	  // stat box (95% eff point)
+	  if(!nameVar.Contains("frac")) {
+	    gStyle->SetStatX(0.85);
+	    gStyle->SetStatY(0.4);
+	    gStyle->SetStatW(0.2);
+	    gStyle->SetStatH(0.1);
+	    pt2 = new TPaveText(0.58,0.15,0.85,0.22,"brNDC"); 
+	    pt2->SetLineColor(1);
+	    pt2->SetTextColor(1);
+	    pt2->SetTextFont(42);
+	    pt2->SetTextSize(0.03);
+	    pt2->SetFillColor(kWhite);
+	    pt2->SetShadowColor(kWhite);
+	    pt2->AddText(s_eff95);
+	    pt2->Draw();
+	  }
+
+	  // print	
+	  c.Print("results/"+_resultName+"/"+nameTEff+".pdf","pdf");
+
+	} // end loop: fit func
+      } // end loop: var
+    } // end loop: steps
+  } // end loop: paths
+
+  return 0;
+}
+
+Int_t MyTrigger::prepareFunc(TF1* func, TString type, double threshold)
+{
+
+  if(type=="cb") {
+    func->SetParName(0, "m0");
+    func->SetParName(1, "sigma");
+    func->SetParName(2, "alpha");
+    func->SetParName(3, "n");
+    func->SetParName(4, "norm");
+    func->SetParameter(0, threshold);
+    func->SetParameter(1, 1);
+    func->SetParameter(2, 1);
+    func->SetParameter(3, 5);
+    func->SetParameter(4, 1);
+    func->SetParLimits(1, 0.01, 50);
+    func->SetParLimits(2, 0.01, 8);
+    func->SetParLimits(3, 1.1, 35);
+    func->SetParLimits(4, 0.6, 1);
+  }
+  //
+  else {
+    func->SetParName(0, "midpoint");
+    func->SetParName(1, "steepness");
+    func->SetParName(2, "max");
+    func->SetParameter(0, threshold);
+    func->SetParameter(1, 0.06);
+    func->SetParameter(2, 1);
+    func->SetParLimits(2, 0.995, 1);
+    func->SetLineWidth(2);
+  }
+
+  func->SetLineWidth(2);
 
   return 0;
 }
