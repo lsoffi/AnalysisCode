@@ -51,9 +51,12 @@ class MyTrigger {
   Int_t DefinePaths();
   // histos
   Int_t ProdHistos();
+  Int_t GetHistos();
   // efficiencies
   Int_t ProdEff();
-  //Int_t FitEff();
+  Int_t FitEff();
+  // fit functions
+  Int_t prepareFunc(TF1* func, TString type, double threshold);
 
  private:
 
@@ -77,6 +80,15 @@ class MyTrigger {
   ofstream* _outIneff;
   TFile*    _outfile;
   TChain*   _ch;
+  //
+  PATH thePath;
+  STEP theStep;
+  double toPt, toEta, toPhi;
+  bool fired;
+
+  // misc
+  TString namePathFull, namePath, nameStep, nameVar;
+  TString toCol, nameColl;
 
   // trigger
   M_STEP _Steps;
