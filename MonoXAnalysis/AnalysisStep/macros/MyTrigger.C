@@ -113,20 +113,20 @@ Int_t MyTrigger::ProdHistos()
   cout << "- Declare histograms" << endl;
   for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-    thePath  = _itPaths->second;
-    namePath = thePath.nameP;
-    nS       = thePath.nSteps;
-    cout << "-- path: " << namePath << " ; nS=" << nS << endl;
+    _thePath  = _itPaths->second;
+    _namePath = _thePath.nameP;
+    nS       = _thePath.nSteps;
+    cout << "-- path: " << _namePath << " ; nS=" << nS << endl;
     
     for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
       cout << "--- declare #" << iS << " : ";
-      nameStep = thePath.steps[iS].f;
+      _nameStep = _thePath.steps[iS].f;
 
       for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
 	for(UInt_t iF=0 ; iF<nF ; iF++) { // num/den
 
-	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+namePath+"_"+nameStep;
-	  title = nameV[iV]+" "+nameF[iF]+" "+namePath+" "+nameStep;
+	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+_namePath+"_"+_nameStep;
+	  title = nameV[iV]+" "+nameF[iF]+" "+_namePath+" "+_nameStep;
 	  cout << hname << endl;
 
 	  if(_binning=="regular") {
@@ -139,7 +139,7 @@ Int_t MyTrigger::ProdHistos()
 	  setStyle(hTemp, kBlack);
 	  hTemp->SetXTitle(nameAxis[iV]);
 
-	  _Histos[namePath][nameStep][nameV[iV]][nameF[iF]] = hTemp;
+	  _Histos[_namePath][_nameStep][nameV[iV]][nameF[iF]] = hTemp;
 	}
       }
     }
@@ -236,12 +236,12 @@ Int_t MyTrigger::ProdHistos()
     if(DEBUG) cout << "-- initialize trigger output" << endl;
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-      thePath = _itPaths->second;
-      nS = thePath.nSteps;
+      _thePath = _itPaths->second;
+      nS = _thePath.nSteps;
 
       for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
-	thePath.steps[iS].pt = thePath.steps[iS].phi = 0;
-	thePath.steps[iS].pass = false;
+	_thePath.steps[iS].pt = _thePath.steps[iS].phi = 0;
+	_thePath.steps[iS].pass = false;
       }
 
     }
@@ -251,34 +251,34 @@ Int_t MyTrigger::ProdHistos()
     for(UInt_t iObj=0 ; iObj<(UInt_t)_trig_obj_n ; iObj++) {
      
       if(DEBUG) cout << "--- get trigger object's properties" << endl;
-      toPt  = (*_trig_obj_pt )[iObj];
-      toEta = (*_trig_obj_eta)[iObj];
-      toPhi = (*_trig_obj_phi)[iObj];
-      toCol    = (TString)(*_trig_obj_col)[iObj];
+      _toPt  = (*_trig_obj_pt )[iObj];
+      _toEta = (*_trig_obj_eta)[iObj];
+      _toPhi = (*_trig_obj_phi)[iObj];
+      _toCol    = (TString)(*_trig_obj_col)[iObj];
 
       // loop: paths
       if(DEBUG) cout << "--- loop: paths => read trigger objects" << endl;
       for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-	if(DEBUG) cout << "---- get thePath: ";
-	thePath  = _itPaths->second;
-	namePath = thePath.namePath;
-	nS = thePath.nSteps;
-	if(DEBUG) cout << namePath << " (" << nS << " steps)" << endl
+	if(DEBUG) cout << "---- get _thePath: ";
+	_thePath  = _itPaths->second;
+	_namePath = _thePath.namePath;
+	nS = _thePath.nSteps;
+	if(DEBUG) cout << _namePath << " (" << nS << " steps)" << endl
 		       << "---- loop: steps" << endl;
 
 	for(UInt_t iS=0 ; iS<nS ; iS++) {
 
-	  if(DEBUG) cout << "----- Step: " << thePath.steps[iS].f ;
+	  if(DEBUG) cout << "----- Step: " << _thePath.steps[iS].f ;
 
-	  if(toCol==thePath.steps[iS].c) {
-	    if( toPt > thePath.steps[iS].pt ) {
-	      thePath.steps[iS].pt  = toPt;
-	      thePath.steps[iS].phi = toPhi;
+	  if(_toCol==_thePath.steps[iS].c) {
+	    if( _toPt > _thePath.steps[iS].pt ) {
+	      _thePath.steps[iS].pt  = _toPt;
+	      _thePath.steps[iS].phi = _toPhi;
 	    }
-	    if(DEBUG) cout << " => thePath.steps[iS].pt=" 
-			   << thePath.steps[iS].pt 
-			   << " ; toPt=" << toPt << endl;
+	    if(DEBUG) cout << " => _thePath.steps[iS].pt=" 
+			   << _thePath.steps[iS].pt 
+			   << " ; _toPt=" << _toPt << endl;
 	  } 
 	  else if(DEBUG) cout << endl;
 	  
@@ -289,44 +289,44 @@ Int_t MyTrigger::ProdHistos()
     if(DEBUG) cout << "-- loop: paths => fill trigger output logic" << endl; 
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) {
 
-      if(DEBUG) cout << "--- get thePath: ";
-      thePath  = _itPaths->second;
-      nS       = thePath.nSteps;
-      namePath = thePath.nameP;
-      if(DEBUG) cout << namePath << "(" << nS << " steps)" << endl;
+      if(DEBUG) cout << "--- get _thePath: ";
+      _thePath  = _itPaths->second;
+      nS       = _thePath.nSteps;
+      _namePath = _thePath.nameP;
+      if(DEBUG) cout << _namePath << "(" << nS << " steps)" << endl;
 
       if(DEBUG) cout << "--- loop: steps" << endl;
       for(UInt_t iS=0 ; iS<nS ; iS++) {
 	//
-	nameColl=thePath.steps[iS].c;
-	nameStep=thePath.steps[iS].f;
-	fired=false;
+	_nameColl=_thePath.steps[iS].c;
+	_nameStep=_thePath.steps[iS].f;
+	_fired=false;
 	if(DEBUG) cout << "---- step #" << iS
-		       << " nameStep="  << nameStep
-		       << " nameColl="  << nameColl ;
+		       << " nameStep="  << _nameStep
+		       << " _nameColl="  << _nameColl ;
 	//
-	if(nameStep=="Full") { // check trigger bit
-	  if(     nameColl=="hltmet90")        fired=_hltmet90;
-	  else if(nameColl=="hltmet120")       fired=_hltmet120;
-	  else if(nameColl=="hltjetmet90")     fired=_hltjetmet90;
-	  else if(nameColl=="hltjetmet120")    fired=_hltjetmet120;
-	  else if(nameColl=="hltmetwithmu90")  fired=_hltmetwithmu90;
-	  else if(nameColl=="hltmetwithmu120") fired=_hltmetwithmu120;
-	  else if(nameColl=="hltmetwithmu170") fired=_hltmetwithmu170;
-	  else if(nameColl=="OR90GeV")         {
-	    fired=_hltmet90 || _hltjetmet90 || _hltmetwithmu170;
+	if(_nameStep=="Full") { // check trigger bit
+	  if(     _nameColl=="hltmet90")        _fired=_hltmet90;
+	  else if(_nameColl=="hltmet120")       _fired=_hltmet120;
+	  else if(_nameColl=="hltjetmet90")     _fired=_hltjetmet90;
+	  else if(_nameColl=="hltjetmet120")    _fired=_hltjetmet120;
+	  else if(_nameColl=="hltmetwithmu90")  _fired=_hltmetwithmu90;
+	  else if(_nameColl=="hltmetwithmu120") _fired=_hltmetwithmu120;
+	  else if(_nameColl=="hltmetwithmu170") _fired=_hltmetwithmu170;
+	  else if(_nameColl=="OR90GeV")         {
+	    _fired=_hltmet90 || _hltjetmet90 || _hltmetwithmu170;
 	  }
-	  else fired=false;
+	  else _fired=false;
 	}
 	//
 	else { // check trigger objects
-	  fired = (thePath.steps[iS].pt>thePath.steps[iS].T);
+	  _fired = (_thePath.steps[iS].pt>_thePath.steps[iS].T);
 	}
 	//
-	thePath.steps[iS].pass = fired;
-	if(DEBUG) cout << " : pt="     << thePath.steps[iS].pt
-		       << " : thresh=" << thePath.steps[iS].T
-		       << "   ==>   Fired=" << fired << endl;
+	_thePath.steps[iS].pass = _fired;
+	if(DEBUG) cout << " : pt="     << _thePath.steps[iS].pt
+		       << " : thresh=" << _thePath.steps[iS].T
+		       << "   ==>   _fired=" << _fired << endl;
       }
     }
 
@@ -334,15 +334,15 @@ Int_t MyTrigger::ProdHistos()
     if(DEBUG) cout << "-- loop: paths => serial trigger" << endl;
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) {
 
-      thePath = _itPaths->second;
-      nS = thePath.nSteps;
+      _thePath = _itPaths->second;
+      nS = _thePath.nSteps;
 
       for(UInt_t iS=0 ; iS<nS ; iS++) {
 	if(iS==0 || iS==nS-1) {
-	  thePath.steps[iS].serial = thePath.steps[iS].pass;
+	  _thePath.steps[iS].serial = _thePath.steps[iS].pass;
 	}
 	else {
-	  thePath.steps[iS].serial = thePath.steps[iS-1].serial && thePath.steps[iS].pass;
+	  _thePath.steps[iS].serial = _thePath.steps[iS-1].serial && _thePath.steps[iS].pass;
 	}
       }
     }
@@ -351,18 +351,18 @@ Int_t MyTrigger::ProdHistos()
     if(DEBUG) cout << "-- loop: paths => fill histograms" << endl;
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-      if(DEBUG) cout << "--- get thePath: " ;
-      thePath  = _itPaths->second;
-      namePath = thePath.nameP;
-      nS       = thePath.nSteps;
-      if(DEBUG) cout << namePath << "(" << nS << " steps)" << endl;
+      if(DEBUG) cout << "--- get _thePath: " ;
+      _thePath  = _itPaths->second;
+      _namePath = _thePath.nameP;
+      nS       = _thePath.nSteps;
+      if(DEBUG) cout << _namePath << "(" << nS << " steps)" << endl;
 
       if(DEBUG) cout << "--- loop: steps" << endl;
       for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 
 	if(DEBUG) cout << "---- step: ";
-	nameStep=thePath.steps[iS].f;
-	if(DEBUG) cout << nameStep << endl;
+	_nameStep=_thePath.steps[iS].f;
+	if(DEBUG) cout << _nameStep << endl;
 
 	if(DEBUG) cout << "---- loop: x-axis var" << endl;
 	for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
@@ -384,13 +384,13 @@ Int_t MyTrigger::ProdHistos()
 	  // denominator (eff2)
 	  if(DEBUG) cout << "----- fill denom" << endl;
 	  //h[iV][0][iP][iS]->Fill(var[iV]);
-	  _Histos[namePath][nameStep][nameV[iV]]["denom"]->Fill(var[iV]);
+	  _Histos[_namePath][_nameStep][nameV[iV]]["denom"]->Fill(var[iV]);
 	  
 	  // numerator
 	  if(DEBUG) cout << "----- fill num: ";
-	  if(thePath.steps[iS].serial) { // event fired step iS of path iP
+	  if(_thePath.steps[iS].serial) { // event fired step iS of path iP
 	    //h[iV][1][iP][iS]->Fill(var[iV]);
-	    _Histos[namePath][nameStep][nameV[iV]]["num"]->Fill(var[iV]);
+	    _Histos[_namePath][_nameStep][nameV[iV]]["num"]->Fill(var[iV]);
 	    if(DEBUG) cout << "done" << endl;
 	  }
 	  else {
@@ -533,7 +533,7 @@ Int_t MyTrigger::GetHistos()
 
   TH1F* hTemp;
   TString hname;
-  PATH thePath;
+  PATH _thePath;
 
   // should make these arrays members of the class instead of copy-pastes...
   UInt_t nS=0;
@@ -545,16 +545,16 @@ Int_t MyTrigger::GetHistos()
   cout << "- loop: paths => get histos" << endl;
   for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-    thePath = _itPaths->second;
-    nS = thePath.nSteps;
-    namePath = thePath.nameP;
-    cout << "-- " << namePath << endl;
+    _thePath = _itPaths->second;
+    nS = _thePath.nSteps;
+    _namePath = _thePath.nameP;
+    cout << "-- " << _namePath << endl;
 
     if(DEBUG) cout << "-- loop: steps" << endl;
     for(UInt_t iS=0; iS<nS; iS++) {
 
-      nameStep=thePath.steps[iS].f;
-      if(DEBUG) cout << "--- " << nameStep << endl;
+      _nameStep=_thePath.steps[iS].f;
+      if(DEBUG) cout << "--- " << _nameStep << endl;
 
       if(DEBUG) cout << "--- loop: var" << endl;
       for(UInt_t iV=0; iV<nV; iV++) {
@@ -563,11 +563,11 @@ Int_t MyTrigger::GetHistos()
 	for(UInt_t iF=0; iF<nF; iF++) {
 
 	  if(DEBUG) cout << "----- " << nameF[iF] << endl;
-	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+namePath+"_"+nameStep;
+	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+_namePath+"_"+_nameStep;
 	  hTemp = (TH1F*)fHistos->Get(hname);
 	  if(hTemp) {
 	    cout << "------ got histo: " << hname << endl;
-	    _Histos[namePath][nameStep][nameV[iV]][nameF[iF]] = hTemp;
+	    _Histos[_namePath][_nameStep][nameV[iV]][nameF[iF]] = hTemp;
 	  }
 	}
       }
@@ -593,26 +593,25 @@ Int_t MyTrigger::ProdEff()
   TH1F *hNum, *hDen;
   TEfficiency *pEff;
   M_NUM_H theMap;
-  //TString namePathFull, namePath, nameStep, nameVar;
   TString nameTEff;
 
   // Loop: paths
   for(_itPathStepVarNumH=_Histos.begin() ; _itPathStepVarNumH!=_Histos.end() ; _itPathStepVarNumH++) {
 
-    namePath = _itPathStepVarNumH->first;
-    namePathFull = _Paths[namePath].namePath;
-    cout << "-- " << namePath << " : " << namePathFull << endl;
+    _namePath = _itPathStepVarNumH->first;
+    _namePathFull = _Paths[_namePath].namePath;
+    cout << "-- " << _namePath << " : " << _namePathFull << endl;
 
     // loop: steps
     for(_itStepVarNumH=_itPathStepVarNumH->second.begin() ; _itStepVarNumH!=_itPathStepVarNumH->second.end() ; _itStepVarNumH++) {
 
-      nameStep = _itStepVarNumH->first;
-      cout << "--- " << nameStep << endl;
+      _nameStep = _itStepVarNumH->first;
+      cout << "--- " << _nameStep << endl;
 
       // loop: var
       for(_itVarNumH=_itStepVarNumH->second.begin() ; _itVarNumH!=_itStepVarNumH->second.end() ; _itVarNumH++) {
 
-	nameVar = _itVarNumH->first;
+	_nameVar = _itVarNumH->first;
 	theMap  = _itVarNumH->second;
 	hNum    = theMap["num"];
 	hDen    = theMap["denom"];
@@ -626,12 +625,12 @@ Int_t MyTrigger::ProdEff()
 	for(UInt_t iF=0; iF<nF; iF++) {
 	  if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen) ) {
 	    pEff = new TEfficiency(*hNum,*hDen);
-	    nameTEff = "t_"+nameVar+"_"+namePath+"_"+nameStep+"_"+nameFunc[iF];
+	    nameTEff = "t_"+_nameVar+"_"+_namePath+"_"+_nameStep+"_"+nameFunc[iF];
 	    cout << "----- produced TEff: " << nameTEff << endl;
 
-	    pEff->SetNameTitle(nameTEff, namePathFull+";"+_Axis[nameVar]+";Efficiency");
-	    _Eff[namePath][nameStep][nameVar][nameFunc[iF]] = pEff;
-	    _Eff[namePath][nameStep][nameVar][nameFunc[iF]]->Write();
+	    pEff->SetNameTitle(nameTEff, _namePathFull+";"+_Axis[_nameVar]+";Efficiency");
+	    _Eff[_namePath][_nameStep][_nameVar][nameFunc[iF]] = pEff;
+	    _Eff[_namePath][_nameStep][_nameVar][nameFunc[iF]]->Write();
 	  }
 	} // end loop: fit func
 
@@ -668,27 +667,27 @@ Int_t MyTrigger::FitEff()
   // Loop: paths
   for(_itPathStepVarFitE=_Eff.begin() ; _itPathStepVarFitE!=_Eff.end() ; _itPathStepVarFitE++) {
 
-    namePath = _itPathStepVarFitE->first;
-    thePath = _Paths[namePath];
-    namePathFull = thePath.namePath;
-    nS = thePath.nSteps;
-    cout << "-- Path: " << namePath << " : " << namePathFull << endl;
+    _namePath = _itPathStepVarFitE->first;
+    _thePath = _Paths[_namePath];
+    _namePathFull = _thePath.namePath;
+    nS = _thePath.nSteps;
+    cout << "-- Path: " << _namePath << " : " << _namePathFull << endl;
 
     // loop: steps
     for(_itStepVarFitE=_itPathStepVarFitE->second.begin() ; _itStepVarFitE!=_itPathStepVarFitE->second.end() ; _itStepVarFitE++) {
 
-      nameStep = _itStepVarFitE->first;
-      theStep  = _Steps[nameStep];
+      _nameStep = _itStepVarFitE->first;
+      _theStep  = _Steps[_nameStep];
 
       // in case this step is the trigger bit, use the threshold from the last filter
-      if(nameStep[0]==TString("b")) threshold = thePath.steps[nS>=2 ? nS-2 : 0].T;
-      else                          threshold = theStep.T;
-      cout << "--- Step: " << nameStep << " (threshold=" << threshold << ")" << endl;
+      if(_nameStep[0]==TString("b")) threshold = _thePath.steps[nS>=2 ? nS-2 : 0].T;
+      else                           threshold = _theStep.T;
+      cout << "--- Step: " << _nameStep << " (threshold=" << threshold << ")" << endl;
 
       // loop: var
       for(_itVarFitE=_itStepVarFitE->second.begin() ; _itVarFitE!=_itStepVarFitE->second.end() ; _itVarFitE++) {
 
-	nameVar = _itVarFitE->first;
+	_nameVar = _itVarFitE->first;
 	theMap  = _itVarFitE->second;
 
 	// loop: fit functions
@@ -699,7 +698,7 @@ Int_t MyTrigger::FitEff()
 	  cout << "----- TEff: " << nameTEff << endl;
 
 	  // energy fractions: store but not fit
-	  if(!nameVar.Contains("frac")) {
+	  if(!_nameVar.Contains("frac")) {
 
 	    // prepare fit function
 	    nameFuncLoc = "func_"+nameTEff+"_"+nameFunc[iF];
@@ -730,7 +729,7 @@ Int_t MyTrigger::FitEff()
 	  pEff->Draw("AP");
 	  
 	  // stat box (95% eff point)
-	  if(!nameVar.Contains("frac")) {
+	  if(!_nameVar.Contains("frac")) {
 	    gStyle->SetStatX(0.85);
 	    gStyle->SetStatY(0.4);
 	    gStyle->SetStatW(0.2);

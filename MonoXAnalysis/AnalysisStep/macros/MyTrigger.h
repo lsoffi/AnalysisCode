@@ -81,14 +81,14 @@ class MyTrigger {
   TFile*    _outfile;
   TChain*   _ch;
   //
-  PATH thePath;
-  STEP theStep;
-  double toPt, toEta, toPhi;
-  bool fired;
+  PATH _thePath;
+  STEP _theStep;
+  double _toPt, _toEta, _toPhi;
+  bool _fired;
 
   // misc
-  TString namePathFull, namePath, nameStep, nameVar;
-  TString toCol, nameColl;
+  TString _namePathFull, _namePath, _nameStep, _nameVar;
+  TString _toCol, _nameColl;
 
   // trigger
   M_STEP _Steps;
