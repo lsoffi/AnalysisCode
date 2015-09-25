@@ -1,7 +1,7 @@
 #include "MyTrigger.h"
 
 using namespace std;
-bool DEBUG = false;
+bool DEBUG = true;
 
 MyTrigger::~MyTrigger()
 {
@@ -111,7 +111,6 @@ Int_t MyTrigger::ProdHistos()
 
   // Declaration
   cout << "- Declare histograms" << endl;
-  //
   for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
     thePath  = _itPaths->second;
@@ -128,7 +127,6 @@ Int_t MyTrigger::ProdHistos()
 
 	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+namePath+"_"+nameStep;
 	  title = nameV[iV]+" "+nameF[iF]+" "+namePath+" "+nameStep;
-
 	  cout << hname << endl;
 
 	  if(_binning=="regular") {
@@ -149,6 +147,7 @@ Int_t MyTrigger::ProdHistos()
 
   // START LOOP //
   cout << "- Start looping over the chain" << endl;
+  UInt_t nProcessed=0;
 
   for(UInt_t iE=0 ; iE<entries ; iE++) {
 
@@ -203,6 +202,9 @@ Int_t MyTrigger::ProdHistos()
       if(!jetID1) continue;
     }
 
+    // Count entries passing offline selection
+    nProcessed++ ;
+
     // print out every 1000 events
     if(printOut) {
       cout << "-- _trig_obj_n=" << _trig_obj_n 
@@ -218,6 +220,7 @@ Int_t MyTrigger::ProdHistos()
 	   << " Lumi: "  << _lumi
 	   << " Event: " << _event
 	   << endl;
+      if(nProcessed>100) break; // ND debug mode: look only at 100 entries
     }
 
     // get x-axis variables //
@@ -253,49 +256,42 @@ Int_t MyTrigger::ProdHistos()
       toPhi = (*_trig_obj_phi)[iObj];
       toCol    = (TString)(*_trig_obj_col)[iObj];
 
-      // Check HLT Jets
-      if(DEBUG) {
-	if(toCol=="hltAK4CaloJetsCorrectedIDPassed::HLT" || 
-	   toCol=="hltAK4PFJetsTightIDCorrected::HLT") {
-	  cout << toCol << " "
-	       << toPt  << " "
-	       << toEta << " "
-	       << toPhi << " "
-	       << endl;
-	}
-      }
-
       // loop: paths
       if(DEBUG) cout << "--- loop: paths => read trigger objects" << endl;
       for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-	if(DEBUG) cout << "---- get thePath" << endl; 
-	thePath = _itPaths->second;
+	if(DEBUG) cout << "---- get thePath: ";
+	thePath  = _itPaths->second;
+	namePath = thePath.namePath;
 	nS = thePath.nSteps;
+	if(DEBUG) cout << namePath << " (" << nS << " steps)" << endl
+		       << "---- loop: steps" << endl;
 
-	if(DEBUG) cout << "---- loop: steps" << endl;
 	for(UInt_t iS=0 ; iS<nS ; iS++) {
 
-	  // use object only if it corresponds to step iS
+	  if(DEBUG) cout << "----- Step: " << thePath.steps[iS].f ;
+
 	  if(toCol==thePath.steps[iS].c) {
-	    // Take only the leading object in the collection
 	    if( toPt > thePath.steps[iS].pt ) {
 	      thePath.steps[iS].pt  = toPt;
 	      thePath.steps[iS].phi = toPhi;
-	    } //endif pT>stored pT
-	  } //endif coll<->step
-
+	    }
+	    if(DEBUG) cout << " => thePath.steps[iS].pt=" 
+			   << thePath.steps[iS].pt 
+			   << " ; toPt=" << toPt << endl;
+	  } 
+	  else if(DEBUG) cout << endl;
+	  
 	} // end loop: steps
       } // end loop: paths
-
     } // end loop: trigger objects
 
-    if(DEBUG) cout << "-- loop: paths => fill trigger output logic" << endl; // ND seg fault after this line
+    if(DEBUG) cout << "-- loop: paths => fill trigger output logic" << endl; 
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) {
 
       if(DEBUG) cout << "--- get thePath: ";
-      thePath = _itPaths->second;
-      nS = thePath.nSteps;
+      thePath  = _itPaths->second;
+      nS       = thePath.nSteps;
       namePath = thePath.nameP;
       if(DEBUG) cout << namePath << "(" << nS << " steps)" << endl;
 
@@ -307,8 +303,7 @@ Int_t MyTrigger::ProdHistos()
 	fired=false;
 	if(DEBUG) cout << "---- step #" << iS
 		       << " nameStep="  << nameStep
-		       << " nameColl="  << nameColl 
-		       << endl;
+		       << " nameColl="  << nameColl ;
 	//
 	if(nameStep=="Full") { // check trigger bit
 	  if(     nameColl=="hltmet90")        fired=_hltmet90;
@@ -329,6 +324,9 @@ Int_t MyTrigger::ProdHistos()
 	}
 	//
 	thePath.steps[iS].pass = fired;
+	if(DEBUG) cout << " : pt="     << thePath.steps[iS].pt
+		       << " : thresh=" << thePath.steps[iS].T
+		       << "   ==>   Fired=" << fired << endl;
       }
     }
 
@@ -641,6 +639,7 @@ Int_t MyTrigger::ProdEff()
     } // end loop: steps
   } // end loop: paths
 
+  outfile->Write();
   return 0;
 }
 
