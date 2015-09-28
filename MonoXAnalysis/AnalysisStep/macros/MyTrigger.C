@@ -1,7 +1,7 @@
 #include "MyTrigger.h"
 
 using namespace std;
-bool DEBUG = true;
+Bool_t DEBUG = false;
 
 MyTrigger::~MyTrigger()
 {
@@ -23,6 +23,11 @@ MyTrigger::MyTrigger(TString resultName, TString offlineSel, TString era,
   _skim       = skim; 
   _binning    = binning;
   _HBHECleaning = HBHECleaning; 
+
+  // Set TDR style for the plots
+  gROOT->Reset();
+  setTDRStyle();
+  gROOT->ForceStyle();
 
   // Define paths
   DefinePaths();
@@ -69,7 +74,6 @@ Int_t MyTrigger::ProdHistos()
 
   // Histograms //
   cout << "- Define histograms." << endl;
-  //vector<TH1F*> h[nV][nF][nP];
   TH1F* hTemp;
 
   // labels
@@ -113,14 +117,14 @@ Int_t MyTrigger::ProdHistos()
   cout << "- Declare histograms" << endl;
   for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-    _thePath  = _itPaths->second;
-    _namePath = _thePath.nameP;
-    nS       = _thePath.nSteps;
+    _thePath  = &(_itPaths->second);
+    _namePath = _thePath->nameP;
+    nS       = _thePath->nSteps;
     cout << "-- path: " << _namePath << " ; nS=" << nS << endl;
     
     for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
       cout << "--- declare #" << iS << " : ";
-      _nameStep = _thePath.steps[iS].f;
+      _nameStep = _thePath->steps[iS].f;
 
       for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
 	for(UInt_t iF=0 ; iF<nF ; iF++) { // num/den
@@ -148,6 +152,8 @@ Int_t MyTrigger::ProdHistos()
   // START LOOP //
   cout << "- Start looping over the chain" << endl;
   UInt_t nProcessed=0;
+  UInt_t nHLT90=0;
+  UInt_t nSeenHLT90=0;
 
   for(UInt_t iE=0 ; iE<entries ; iE++) {
 
@@ -204,6 +210,7 @@ Int_t MyTrigger::ProdHistos()
 
     // Count entries passing offline selection
     nProcessed++ ;
+    if(_hltmet90) nHLT90++ ;
 
     // print out every 1000 events
     if(printOut) {
@@ -220,7 +227,7 @@ Int_t MyTrigger::ProdHistos()
 	   << " Lumi: "  << _lumi
 	   << " Event: " << _event
 	   << endl;
-      if(nProcessed>100) break; // ND debug mode: look only at 100 entries
+      //if(nProcessed>100) break; // ND debug mode: look only at 100 entries
     }
 
     // get x-axis variables //
@@ -236,12 +243,12 @@ Int_t MyTrigger::ProdHistos()
     if(DEBUG) cout << "-- initialize trigger output" << endl;
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-      _thePath = _itPaths->second;
-      nS = _thePath.nSteps;
+      _thePath = &(_itPaths->second);
+      nS = _thePath->nSteps;
 
       for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
-	_thePath.steps[iS].pt = _thePath.steps[iS].phi = 0;
-	_thePath.steps[iS].pass = false;
+	_thePath->steps[iS].pt = _thePath->steps[iS].phi = 0;
+	_thePath->steps[iS].pass = false;
       }
 
     }
@@ -261,23 +268,23 @@ Int_t MyTrigger::ProdHistos()
       for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
 	if(DEBUG) cout << "---- get _thePath: ";
-	_thePath  = _itPaths->second;
-	_namePath = _thePath.namePath;
-	nS = _thePath.nSteps;
+	_thePath  = &(_itPaths->second);
+	_namePath = _thePath->namePath;
+	nS = _thePath->nSteps;
 	if(DEBUG) cout << _namePath << " (" << nS << " steps)" << endl
 		       << "---- loop: steps" << endl;
 
 	for(UInt_t iS=0 ; iS<nS ; iS++) {
 
-	  if(DEBUG) cout << "----- Step: " << _thePath.steps[iS].f ;
+	  if(DEBUG) cout << "----- Step: " << _thePath->steps[iS].f ;
 
-	  if(_toCol==_thePath.steps[iS].c) {
-	    if( _toPt > _thePath.steps[iS].pt ) {
-	      _thePath.steps[iS].pt  = _toPt;
-	      _thePath.steps[iS].phi = _toPhi;
+	  if(_toCol==_thePath->steps[iS].c) {
+	    if( _toPt > _thePath->steps[iS].pt ) {
+	      _thePath->steps[iS].pt  = _toPt;
+	      _thePath->steps[iS].phi = _toPhi;
 	    }
-	    if(DEBUG) cout << " => _thePath.steps[iS].pt=" 
-			   << _thePath.steps[iS].pt 
+	    if(DEBUG) cout << " => _thePath->steps[iS].pt=" 
+			   << _thePath->steps[iS].pt 
 			   << " ; _toPt=" << _toPt << endl;
 	  } 
 	  else if(DEBUG) cout << endl;
@@ -290,23 +297,24 @@ Int_t MyTrigger::ProdHistos()
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) {
 
       if(DEBUG) cout << "--- get _thePath: ";
-      _thePath  = _itPaths->second;
-      nS       = _thePath.nSteps;
-      _namePath = _thePath.nameP;
+      _thePath  = &(_itPaths->second);
+      nS        = _thePath->nSteps;
+      _namePath = _thePath->nameP;
       if(DEBUG) cout << _namePath << "(" << nS << " steps)" << endl;
 
       if(DEBUG) cout << "--- loop: steps" << endl;
       for(UInt_t iS=0 ; iS<nS ; iS++) {
 	//
-	_nameColl=_thePath.steps[iS].c;
-	_nameStep=_thePath.steps[iS].f;
+	_nameColl=_thePath->steps[iS].c;
+	//_nameStep=_thePath->steps[iS].f; // ND Fix bug with trigger bit
+	_nameStep=_thePath->steps[iS].n;
 	_fired=false;
 	if(DEBUG) cout << "---- step #" << iS
 		       << " nameStep="  << _nameStep
 		       << " _nameColl="  << _nameColl ;
 	//
-	if(_nameStep=="Full") { // check trigger bit
-	  if(     _nameColl=="hltmet90")        _fired=_hltmet90;
+	if(_nameStep=="Full") { // check trigger bit // ND: bug here => steps.f is never called 'Full' anymore
+	  if(     _nameColl=="hltmet90")       {_fired=_hltmet90; if(_fired) {nSeenHLT90++ ;} } // ND
 	  else if(_nameColl=="hltmet120")       _fired=_hltmet120;
 	  else if(_nameColl=="hltjetmet90")     _fired=_hltjetmet90;
 	  else if(_nameColl=="hltjetmet120")    _fired=_hltjetmet120;
@@ -320,12 +328,12 @@ Int_t MyTrigger::ProdHistos()
 	}
 	//
 	else { // check trigger objects
-	  _fired = (_thePath.steps[iS].pt>_thePath.steps[iS].T);
+	  _fired = (_thePath->steps[iS].pt>_thePath->steps[iS].T);
 	}
 	//
-	_thePath.steps[iS].pass = _fired;
-	if(DEBUG) cout << " : pt="     << _thePath.steps[iS].pt
-		       << " : thresh=" << _thePath.steps[iS].T
+	_thePath->steps[iS].pass = _fired;
+	if(DEBUG) cout << " : pt="     << _thePath->steps[iS].pt
+		       << " : thresh=" << _thePath->steps[iS].T
 		       << "   ==>   _fired=" << _fired << endl;
       }
     }
@@ -334,15 +342,15 @@ Int_t MyTrigger::ProdHistos()
     if(DEBUG) cout << "-- loop: paths => serial trigger" << endl;
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) {
 
-      _thePath = _itPaths->second;
-      nS = _thePath.nSteps;
+      _thePath = &(_itPaths->second);
+      nS = _thePath->nSteps;
 
       for(UInt_t iS=0 ; iS<nS ; iS++) {
 	if(iS==0 || iS==nS-1) {
-	  _thePath.steps[iS].serial = _thePath.steps[iS].pass;
+	  _thePath->steps[iS].serial = _thePath->steps[iS].pass;
 	}
 	else {
-	  _thePath.steps[iS].serial = _thePath.steps[iS-1].serial && _thePath.steps[iS].pass;
+	  _thePath->steps[iS].serial = _thePath->steps[iS-1].serial && _thePath->steps[iS].pass;
 	}
       }
     }
@@ -352,16 +360,16 @@ Int_t MyTrigger::ProdHistos()
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
       if(DEBUG) cout << "--- get _thePath: " ;
-      _thePath  = _itPaths->second;
-      _namePath = _thePath.nameP;
-      nS       = _thePath.nSteps;
+      _thePath  = &(_itPaths->second);
+      _namePath = _thePath->nameP;
+      nS       = _thePath->nSteps;
       if(DEBUG) cout << _namePath << "(" << nS << " steps)" << endl;
 
       if(DEBUG) cout << "--- loop: steps" << endl;
       for(UInt_t iS=0 ; iS<nS ; iS++) { // steps in the paths
 
 	if(DEBUG) cout << "---- step: ";
-	_nameStep=_thePath.steps[iS].f;
+	_nameStep=_thePath->steps[iS].f;
 	if(DEBUG) cout << _nameStep << endl;
 
 	if(DEBUG) cout << "---- loop: x-axis var" << endl;
@@ -388,7 +396,7 @@ Int_t MyTrigger::ProdHistos()
 	  
 	  // numerator
 	  if(DEBUG) cout << "----- fill num: ";
-	  if(_thePath.steps[iS].serial) { // event fired step iS of path iP
+	  if(_thePath->steps[iS].serial) { // event fired step iS of path iP
 	    //h[iV][1][iP][iS]->Fill(var[iV]);
 	    _Histos[_namePath][_nameStep][nameV[iV]]["num"]->Fill(var[iV]);
 	    if(DEBUG) cout << "done" << endl;
@@ -518,6 +526,14 @@ Int_t MyTrigger::ProdHistos()
 	for(_itNumH=_itVarNumH->second.begin() ; _itNumH!=_itVarNumH->second.end() ; _itNumH++)
 	  _itNumH->second->Write();
 
+  outfile->Write();
+  outfile->Close();
+
+  cout << endl
+       << "Processed: " << nProcessed << " events" << endl
+       << "HLT 90GeV: " << nHLT90 << endl
+       << "Seen it:   " << nSeenHLT90 << endl;
+
   return 0;
 }
 
@@ -533,7 +549,6 @@ Int_t MyTrigger::GetHistos()
 
   TH1F* hTemp;
   TString hname;
-  PATH _thePath;
 
   // should make these arrays members of the class instead of copy-pastes...
   UInt_t nS=0;
@@ -545,15 +560,15 @@ Int_t MyTrigger::GetHistos()
   cout << "- loop: paths => get histos" << endl;
   for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
 
-    _thePath = _itPaths->second;
-    nS = _thePath.nSteps;
-    _namePath = _thePath.nameP;
+    _thePath = &(_itPaths->second);
+    nS = _thePath->nSteps;
+    _namePath = _thePath->nameP;
     cout << "-- " << _namePath << endl;
 
     if(DEBUG) cout << "-- loop: steps" << endl;
     for(UInt_t iS=0; iS<nS; iS++) {
 
-      _nameStep=_thePath.steps[iS].f;
+      _nameStep=_thePath->steps[iS].f;
       if(DEBUG) cout << "--- " << _nameStep << endl;
 
       if(DEBUG) cout << "--- loop: var" << endl;
@@ -589,6 +604,8 @@ Int_t MyTrigger::ProdEff()
 
   const UInt_t nF=2;
   TString nameFunc[nF] = {"sigmoid","cb"};
+  //const UInt_t nF=1;
+  //TString nameFunc[nF] = {"sigmoid"};
 
   TH1F *hNum, *hDen;
   TEfficiency *pEff;
@@ -616,6 +633,10 @@ Int_t MyTrigger::ProdEff()
 	hNum    = theMap["num"];
 	hDen    = theMap["denom"];
 
+	cout << "---- hNum: " << hNum->GetEntries()
+	     << "---- hDen: " << hDen->GetEntries()
+	     << endl;
+
 	if(!hNum || !hDen) {
 	  cout << "---- ERROR: missing histo" << endl;
 	  continue;
@@ -628,9 +649,13 @@ Int_t MyTrigger::ProdEff()
 	    nameTEff = "t_"+_nameVar+"_"+_namePath+"_"+_nameStep+"_"+nameFunc[iF];
 	    cout << "----- produced TEff: " << nameTEff << endl;
 
-	    pEff->SetNameTitle(nameTEff, _namePathFull+";"+_Axis[_nameVar]+";Efficiency");
+	    pEff->SetNameTitle(nameTEff, _namePathFull+";"+_Axis[_nameVar]+";Efficiency"); //ND
 	    _Eff[_namePath][_nameStep][_nameVar][nameFunc[iF]] = pEff;
-	    _Eff[_namePath][_nameStep][_nameVar][nameFunc[iF]]->Write();
+	    //_Eff[_namePath][_nameStep][_nameVar][nameFunc[iF]]->Write();
+	    pEff->SetDirectory(gDirectory);
+	    pEff->Write();
+	    pEff->SetDirectory(0);
+	    DrawEff(pEff, nameTEff, _nameVar, "");
 	  }
 	} // end loop: fit func
 
@@ -638,7 +663,10 @@ Int_t MyTrigger::ProdEff()
     } // end loop: steps
   } // end loop: paths
 
+  outfile->cd();
   outfile->Write();
+  outfile->Close();
+
   return 0;
 }
 
@@ -655,7 +683,8 @@ Int_t MyTrigger::FitEff()
 
   UInt_t nS=0;
   const UInt_t nF=2;
-  TString nameFunc[nF] = {"sigmoid","cb"};
+  TString nameFunc[nF]  = {"sigmoid","cb"};
+  const UInt_t nPar[nF] = {3,5};
   TString nameFuncLoc, nameTEff, s_eff95;
 
   M_FIT_E theMap;
@@ -668,20 +697,20 @@ Int_t MyTrigger::FitEff()
   for(_itPathStepVarFitE=_Eff.begin() ; _itPathStepVarFitE!=_Eff.end() ; _itPathStepVarFitE++) {
 
     _namePath = _itPathStepVarFitE->first;
-    _thePath = _Paths[_namePath];
-    _namePathFull = _thePath.namePath;
-    nS = _thePath.nSteps;
+    _thePath  = &(_Paths[_namePath]);
+    _namePathFull = _thePath->namePath;
+    nS = _thePath->nSteps;
     cout << "-- Path: " << _namePath << " : " << _namePathFull << endl;
 
     // loop: steps
     for(_itStepVarFitE=_itPathStepVarFitE->second.begin() ; _itStepVarFitE!=_itPathStepVarFitE->second.end() ; _itStepVarFitE++) {
 
       _nameStep = _itStepVarFitE->first;
-      _theStep  = _Steps[_nameStep];
+      _theStep  = &(_Steps[_nameStep]);
 
       // in case this step is the trigger bit, use the threshold from the last filter
-      if(_nameStep[0]==TString("b")) threshold = _thePath.steps[nS>=2 ? nS-2 : 0].T;
-      else                           threshold = _theStep.T;
+      if(_nameStep[0]==TString("b")) threshold = _thePath->steps[nS>=2 ? nS-2 : 0].T;
+      else                           threshold = _theStep->T;
       cout << "--- Step: " << _nameStep << " (threshold=" << threshold << ")" << endl;
 
       // loop: var
@@ -702,10 +731,10 @@ Int_t MyTrigger::FitEff()
 
 	    // prepare fit function
 	    nameFuncLoc = "func_"+nameTEff+"_"+nameFunc[iF];
-	    if(iF==0) func = new TF1(nameFuncLoc,evaluate,0,1000,5);
-	    else      func = new TF1(nameFuncLoc,evaluate2,0,1000,3);
+	    if(iF==0) func = new TF1(nameFuncLoc,Sigmoid,0,1000,nPar[iF]);
+	    else      func = new TF1(nameFuncLoc,ErfCB,  0,1000,nPar[iF]);
 	    prepareFunc(func, nameFunc[iF], threshold);
-
+	    
 	    cout << "----- Fitting: " << nameTEff 
 		 << " using: " << nameFuncLoc
 		 << " (threshold=" << threshold << ")" 
@@ -719,39 +748,56 @@ Int_t MyTrigger::FitEff()
 	      (TF1*)(pEff->GetListOfFunctions()->FindObject(nameFuncLoc));
 	    eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *fitEffTemp, true);
 	    s_eff95 = "#epsilon = 95% @ "+TString(Form("%.0f", eff95))+" GeV";
-	  }
 	    
-	  // write
-	  pEff->Write();
-	  
-	  // draw
-	  TCanvas c("c","c",0,0,600,600);
-	  pEff->Draw("AP");
-	  
-	  // stat box (95% eff point)
-	  if(!_nameVar.Contains("frac")) {
-	    gStyle->SetStatX(0.85);
-	    gStyle->SetStatY(0.4);
-	    gStyle->SetStatW(0.2);
-	    gStyle->SetStatH(0.1);
-	    pt2 = new TPaveText(0.58,0.15,0.85,0.22,"brNDC"); 
-	    pt2->SetLineColor(1);
-	    pt2->SetTextColor(1);
-	    pt2->SetTextFont(42);
-	    pt2->SetTextSize(0.03);
-	    pt2->SetFillColor(kWhite);
-	    pt2->SetShadowColor(kWhite);
-	    pt2->AddText(s_eff95);
-	    pt2->Draw();
-	  }
-
-	  // print	
-	  c.Print("results/"+_resultName+"/"+nameTEff+".pdf","pdf");
+	    // write
+	    pEff->Write();
+	    
+	    // draw
+	    DrawEff(pEff, "fit_"+nameTEff, _nameVar, s_eff95);
+	    
+	  } // end if: var is a fraction
 
 	} // end loop: fit func
       } // end loop: var
     } // end loop: steps
   } // end loop: paths
+
+  outfile->Write();
+  outfile->Close();
+
+  return 0;
+}
+
+Int_t MyTrigger::DrawEff(TEfficiency* pEff, 
+			 TString nameTEff,
+			 TString nameVar, 
+			 TString s_eff95)
+{
+
+  TCanvas c("c","c",0,0,600,600);
+  TPaveText pt2(0.58,0.15,0.85,0.22,"brNDC");
+
+  gStyle->SetStatX(0.85);
+  gStyle->SetStatY(0.4);
+  gStyle->SetStatW(0.2);
+  gStyle->SetStatH(0.1);
+
+  pEff->Draw("AP");
+  
+  // stat box (95% eff point)
+  if(!nameVar.Contains("frac") && s_eff95!="") {
+    pt2.SetLineColor(1);
+    pt2.SetTextColor(1);
+    pt2.SetTextFont(42);
+    pt2.SetTextSize(0.03);
+    pt2.SetFillColor(kWhite);
+    pt2.SetShadowColor(kWhite);
+    pt2.AddText(s_eff95);
+    pt2.Draw();
+  }
+  
+  // print	
+  c.Print("results/"+_resultName+"/"+nameTEff+".pdf","pdf");
 
   return 0;
 }
@@ -876,6 +922,7 @@ Int_t MyTrigger::DefinePaths()
   _Paths["PFMNoMu90"].steps.push_back(_Steps["bMuPFM90"]);
   _Paths["PFMNoMu90"].nSteps = _Paths["PFMNoMu90"].steps.size();
 
+  /*
   _Paths["PFMNoMu120"]={.nameP="PFMNoMu120",.namePath="HLT_PFMETNoMu120_JetIdCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
   _Paths["PFMNoMu120"].steps.clear();
   //
@@ -1011,6 +1058,8 @@ Int_t MyTrigger::DefinePaths()
   _Paths["OR90GeV"].steps.clear();
   _Paths["OR90GeV"].steps.push_back(_Steps["bOR90GeV"]);
   _Paths["OR90GeV"].nSteps = _Paths["OR90GeV"].steps.size();
+
+  */
  
   return 0;
 }
