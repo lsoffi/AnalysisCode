@@ -55,6 +55,9 @@ class MyTrigger {
   // efficiencies
   Int_t ProdEff();
   Int_t FitEff();
+  Int_t DrawEff(TEfficiency* pEff, TString nameTeff, 
+		TString nameVar,   TString s_eff95);
+
   // fit functions
   Int_t prepareFunc(TF1* func, TString type, double threshold);
 
@@ -81,8 +84,8 @@ class MyTrigger {
   TFile*    _outfile;
   TChain*   _ch;
   //
-  PATH _thePath;
-  STEP _theStep;
+  PATH* _thePath;
+  STEP* _theStep;
   double _toPt, _toEta, _toPhi;
   bool _fired;
 
