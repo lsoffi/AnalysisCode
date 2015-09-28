@@ -80,8 +80,8 @@ bool AcceptEventByRunAndLumiSection(const int& runId, const int& lumiId,
 // maths
 pair<Double_t, Double_t> Integrate(TH1F* h);
 Double_t ApproxErf(Double_t arg);
-Double_t evaluate(double *x, double *par);
-Double_t evaluate2(double *x, double *par);
+Double_t Sigmoid(double *x, double *par);
+Double_t ErfCB(double *x, double *par);
 Double_t dichotomy(double eff, double a0, double b0, double relErr,
 		   TF1 f, bool verbose);
 
@@ -248,7 +248,7 @@ bool AcceptEventByRunAndLumiSection(const int& runId, const int& lumiId,
   return true;
 }
 
-Double_t evaluate(double *x, double *par)
+Double_t ErfCB(double *x, double *par)
 { 
   double m = x[0];
   double m0 = par[0];
@@ -294,7 +294,7 @@ Double_t ApproxErf(Double_t arg)
   return TMath::Erf(arg);
 }
 
-Double_t evaluate2(double *x, double *par)
+Double_t Sigmoid(double *x, double *par)
 { 
   return par[2] / (1 + TMath::Exp(-par[1]*(x[0] - par[0])));
 } 
