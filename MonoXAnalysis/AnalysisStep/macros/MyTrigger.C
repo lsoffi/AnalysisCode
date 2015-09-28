@@ -151,7 +151,6 @@ Int_t MyTrigger::ProdHistos()
   cout << "- Start looping over the chain" << endl;
   UInt_t nProcessed=0;
   UInt_t nHLT90=0;
-  UInt_t nSeenHLT90=0;
 
   for(UInt_t iE=0 ; iE<entries ; iE++) {
 
@@ -311,7 +310,7 @@ Int_t MyTrigger::ProdHistos()
 		       << " _nameColl="  << _nameColl ;
 	//
 	if(_nameStep=="Full") { // check trigger bit 
-	  if(     _nameColl=="hltmet90")       {_fired=_hltmet90; if(_fired) {nSeenHLT90++ ;} } //ND: checks
+	  if(     _nameColl=="hltmet90")        _fired=_hltmet90; 
 	  else if(_nameColl=="hltmet120")       _fired=_hltmet120;
 	  else if(_nameColl=="hltjetmet90")     _fired=_hltjetmet90;
 	  else if(_nameColl=="hltjetmet120")    _fired=_hltjetmet120;
@@ -334,7 +333,7 @@ Int_t MyTrigger::ProdHistos()
 		       << "   ==>   _fired=" << _fired << endl;
       }
     }
-
+    
     // serial trigger
     if(DEBUG) cout << "-- loop: paths => serial trigger" << endl;
     for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) {
@@ -434,8 +433,7 @@ Int_t MyTrigger::ProdHistos()
 
   cout << endl
        << "Processed: " << nProcessed << " events" << endl
-       << "HLT 90GeV: " << nHLT90 << endl
-       << "Seen it:   " << nSeenHLT90 << endl;
+       << "HLT 90GeV: " << nHLT90 << endl;
 
   return 0;
 }
@@ -495,7 +493,7 @@ Int_t MyTrigger::GetHistos()
   return 0;
 }
 
-Int_t MyTrigger::ProdEff()
+Int_t MyTrigger::ProdEff(Bool_t print=kFALSE)
 {
 
   cout << "- ProdEff()" << endl
@@ -526,6 +524,7 @@ Int_t MyTrigger::ProdEff()
     for(_itStepVarNumH=_itPathStepVarNumH->second.begin() ; _itStepVarNumH!=_itPathStepVarNumH->second.end() ; _itStepVarNumH++) {
 
       _nameStep = _itStepVarNumH->first;
+      _theStep  = &(_Steps[_nameStep]);
       cout << "--- " << _nameStep << endl;
 
       // loop: var
@@ -558,7 +557,7 @@ Int_t MyTrigger::ProdEff()
 	    pEff->SetDirectory(gDirectory);
 	    pEff->Write();
 	    pEff->SetDirectory(0);
-	    DrawEff(pEff, nameTEff, _nameVar, "");
+	    if(print) DrawEff(pEff, nameTEff, _nameVar, "", _theStep->C, _theStep->S);
 	  }
 	} // end loop: fit func
 
@@ -652,13 +651,13 @@ Int_t MyTrigger::FitEff()
 	    eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *fitEffTemp, true);
 	    s_eff95 = "#epsilon = 95% @ "+TString(Form("%.0f", eff95))+" GeV";
 	    
-	    // write
-	    pEff->Write();
-	    
-	    // draw
-	    DrawEff(pEff, "fit_"+nameTEff, _nameVar, s_eff95);
-	    
 	  } // end if: var is a fraction
+	  
+	  // draw
+	  DrawEff(pEff, "fit_"+nameTEff, _nameVar, s_eff95, _theStep->C, _theStep->S);
+	  
+	  // write
+	  pEff->Write();
 
 	} // end loop: fit func
       } // end loop: var
@@ -671,10 +670,9 @@ Int_t MyTrigger::FitEff()
   return 0;
 }
 
-Int_t MyTrigger::DrawEff(TEfficiency* pEff, 
-			 TString nameTEff,
-			 TString nameVar, 
-			 TString s_eff95)
+Int_t MyTrigger::DrawEff(TEfficiency* pEff, TString nameTEff,
+			 TString nameVar  , TString s_eff95,
+			 Int_t color      , Int_t style)
 {
 
   TCanvas c("c","c",0,0,600,600);
@@ -684,6 +682,10 @@ Int_t MyTrigger::DrawEff(TEfficiency* pEff,
   gStyle->SetStatY(0.4);
   gStyle->SetStatW(0.2);
   gStyle->SetStatH(0.1);
+
+  pEff->SetLineColor(  color);
+  pEff->SetMarkerColor(color);
+  pEff->SetMarkerStyle(style);
 
   pEff->Draw("AP");
   
@@ -804,6 +806,14 @@ Int_t MyTrigger::DefinePaths()
   _Steps["METJ200"]={.T=200,.c="hltMetCleanUsingJetID::HLT",.n="METJ",.t="JetID-cleaned MET",.f="METJ200",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
   //_Steps["bMET170"]={.T=0,   .c="hltmetwithmu170",           .n="Full", .t="Full path",.f="bMET170",.C=1,.S=1,.pt=0,.phi=0,.pass=0,.serial=0};
 
+  // Set STEP style
+  pair<Int_t, Int_t> theStyle = make_pair(0,0);
+  for(_itSteps=_Steps.begin();_itSteps!=_Steps.end();_itSteps++) {
+    _theStep = &(_itSteps->second);
+    theStyle = getStyle(_theStep->n);
+    _theStep->C = theStyle.first;
+    _theStep->S = theStyle.second;
+  }
 
   // PATHS //
   cout << "Define paths" << endl;
@@ -1338,4 +1348,19 @@ Int_t MyTrigger::FillIneff()
 	       << endl;
 
   return 0;
+}
+
+pair<Int_t, Int_t> MyTrigger::getStyle(TString name)
+{
+
+  if(name=="L1")    return make_pair(kBlack , kOpenSquare);
+  if(name=="MET")   return make_pair(kBlue+2, kOpenTriangleUp);
+  if(name=="METC")  return make_pair(kBlue  , kOpenTriangleDown);
+  if(name=="METJ")  return make_pair(kCyan+2, kFullTriangleUp);
+  if(name=="MHT")   return make_pair(kGreen+2,kFullTriangleDown);
+  if(name=="PFMHT") return make_pair(kRed+2,  kOpenCircle);
+  if(name=="PFMET") return make_pair(kRed,    kFullCircle);
+  if(name=="Full")  return make_pair(kRed,    kFullCircle);
+
+  return make_pair(kBlack,kFullCircle);
 }

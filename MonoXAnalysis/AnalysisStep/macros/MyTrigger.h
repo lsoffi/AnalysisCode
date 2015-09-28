@@ -53,14 +53,18 @@ class MyTrigger {
   Int_t ProdHistos();
   Int_t GetHistos();
   // efficiencies
-  Int_t ProdEff();
+  Int_t ProdEff(Bool_t print);
   Int_t FitEff();
   Int_t FillIneff();
   Int_t DrawEff(TEfficiency* pEff, TString nameTeff, 
-		TString nameVar,   TString s_eff95);
+		TString nameVar  , TString s_eff95,
+		Int_t color      , Int_t style);
 
   // fit functions
   Int_t prepareFunc(TF1* func, TString type, double threshold);
+
+  // style
+  pair<Int_t, Int_t> getStyle(TString name);
 
  private:
 
