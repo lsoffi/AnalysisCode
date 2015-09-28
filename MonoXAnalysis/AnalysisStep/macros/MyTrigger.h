@@ -55,6 +55,7 @@ class MyTrigger {
   // efficiencies
   Int_t ProdEff();
   Int_t FitEff();
+  Int_t FillIneff();
   Int_t DrawEff(TEfficiency* pEff, TString nameTeff, 
 		TString nameVar,   TString s_eff95);
 
