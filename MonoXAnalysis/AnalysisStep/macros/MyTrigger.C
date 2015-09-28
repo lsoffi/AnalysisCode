@@ -311,7 +311,7 @@ Int_t MyTrigger::ProdHistos()
 		       << " _nameColl="  << _nameColl ;
 	//
 	if(_nameStep=="Full") { // check trigger bit 
-	  if(     _nameColl=="hltmet90")        _fired=_hltmet90;
+	  if(     _nameColl=="hltmet90")       {_fired=_hltmet90; if(_fired) {nSeenHLT90++ ;} } //ND: checks
 	  else if(_nameColl=="hltmet120")       _fired=_hltmet120;
 	  else if(_nameColl=="hltjetmet90")     _fired=_hltjetmet90;
 	  else if(_nameColl=="hltjetmet120")    _fired=_hltjetmet120;
