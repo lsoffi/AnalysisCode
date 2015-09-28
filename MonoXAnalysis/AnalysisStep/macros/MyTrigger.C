@@ -61,8 +61,6 @@ Int_t MyTrigger::ProdHistos()
   // array sizes
   const UInt_t nV=6; // mumet, t1mumet, pfmet, t1pfmet, signaljetpt, signaljetNHfrac
   const UInt_t nF=2; // denom, num
-  //const UInt_t nP=_Paths.size(); 
-  // PFMNoMu90,120; Jet80PFMNoMu90,120; PFM90,120; PFM170; CM200; PFMNoMu90_Up, Jet80PFMNoMu90_Up; OR90GeV
   UInt_t nS;
 
   // initialize x-axis variables
@@ -306,15 +304,14 @@ Int_t MyTrigger::ProdHistos()
       for(UInt_t iS=0 ; iS<nS ; iS++) {
 	//
 	_nameColl=_thePath->steps[iS].c;
-	//_nameStep=_thePath->steps[iS].f; // ND Fix bug with trigger bit
 	_nameStep=_thePath->steps[iS].n;
 	_fired=false;
 	if(DEBUG) cout << "---- step #" << iS
 		       << " nameStep="  << _nameStep
 		       << " _nameColl="  << _nameColl ;
 	//
-	if(_nameStep=="Full") { // check trigger bit // ND: bug here => steps.f is never called 'Full' anymore
-	  if(     _nameColl=="hltmet90")       {_fired=_hltmet90; if(_fired) {nSeenHLT90++ ;} } // ND
+	if(_nameStep=="Full") { // check trigger bit 
+	  if(     _nameColl=="hltmet90")        _fired=_hltmet90;
 	  else if(_nameColl=="hltmet120")       _fired=_hltmet120;
 	  else if(_nameColl=="hltjetmet90")     _fired=_hltjetmet90;
 	  else if(_nameColl=="hltjetmet120")    _fired=_hltjetmet120;
@@ -391,13 +388,11 @@ Int_t MyTrigger::ProdHistos()
 
 	  // denominator (eff2)
 	  if(DEBUG) cout << "----- fill denom" << endl;
-	  //h[iV][0][iP][iS]->Fill(var[iV]);
 	  _Histos[_namePath][_nameStep][nameV[iV]]["denom"]->Fill(var[iV]);
 	  
 	  // numerator
 	  if(DEBUG) cout << "----- fill num: ";
 	  if(_thePath->steps[iS].serial) { // event fired step iS of path iP
-	    //h[iV][1][iP][iS]->Fill(var[iV]);
 	    _Histos[_namePath][_nameStep][nameV[iV]]["num"]->Fill(var[iV]);
 	    if(DEBUG) cout << "done" << endl;
 	  }
@@ -415,99 +410,7 @@ Int_t MyTrigger::ProdHistos()
     if(pfmet>400) {
       if(!_hltmet120 || !_hltmetwithmu120 || !_hltmetwithmu170) {
 	nIneff++ ;
-	outIneff << "INEFF: run " << _run 
-		 << " lumi "      << _lumi
-		 << " event "     << _event
-		 << endl
-		 << "hltmet120:"  << (_hltmet120 ? 1 : 0)
-		 << " hltmetwithmu120:" << (_hltmetwithmu120 ? 1 : 0)
-		 << " hltmetwithmu170:" << (_hltmetwithmu170 ? 1 : 0)
-		 << endl << endl
-		 << "1) Trigger objects" << endl
-		 << "L1ETM="     << _Paths[0].steps[0].pt
-		 << "   phi=" << _Paths[0].steps[0].phi 
-		 << endl
-		 << "MET="       << _Paths[0].steps[1].pt
- 		 << "   phi=" << _Paths[0].steps[1].phi 
-		 << endl
-		 << "HBHE-Cleaned MET="       << _Paths[0].steps[2].pt
- 		 << "   phi=" << _Paths[0].steps[2].phi 
-		 << endl
-		 << "JetID-Cleaned MET="       << _Paths[0].steps[3].pt
- 		 << "   phi=" << _Paths[0].steps[3].phi 
-		 << endl
-		 << "MHT="       << _Paths[0].steps[4].pt
- 		 << "   phi=" << _Paths[0].steps[4].phi 
-		 << endl
-		 << "PFMHTNoMu="       << _Paths[0].steps[5].pt
- 		 << "   phi=" << _Paths[0].steps[5].phi 
-		 << endl
-		 << "PFMETNoMu="       << _Paths[0].steps[6].pt
- 		 << "   phi=" << _Paths[0].steps[6].phi 
-		 << endl
-		 << "PFMHT="       << _Paths[2].steps[3].pt
- 		 << "   phi=" << _Paths[2].steps[3].phi 
-		 << endl
-		 << "PFMET="       << _Paths[2].steps[4].pt
- 		 << "   phi=" << _Paths[2].steps[4].phi 
-		 << endl << endl
-		 << "2) Offline MET objects"
-		 << endl
-		 << "mumet="   << _mumet
-		 << "   phi="  << _mumetphi   
-		 << endl
-		 << "t1mumet=" << _t1mumet
-		 << "   phi="  << _t1mumetphi 
-		 << endl
-		 << "pfmet="   << _pfmet
-		 << "   phi="  << _pfmetphi   
-		 << endl
-		 << "t1pfmet=" << _t1pfmet
-		 << "   phi="  << _t1pfmetphi 
-		 << endl << endl
-		 << "3) Offline objects"
-		 << endl
-		 << "Jet1(pt,eta,phi)="
-		 << "(" << _signaljetpt 
-		 << "," << _signaljeteta 
-		 << "," << _signaljetphi 
-		 << ")" << endl
-		 << "Jet2(pt,eta,phi)="
-		 << "(" << _secondjetpt 
-		 << "," << _secondjeteta 
-		 << "," << _secondjetphi 
-		 << ")" << endl
-		 <<"Jet3(pt,eta,phi)="
-		 << "(" << _thirdjetpt 
-		 << "," << _thirdjeteta 
-		 << "," << _thirdjetphi 
-		 << ")" << endl
-		 << "Mu1(pt,eta,phi)="
-		 << "(" << _mu1pt 
-		 << "," << _mu1eta 
-		 << "," << _mu1phi 
-		 << ")" << endl
-		 << "Mu2(pt,eta,phi)="
-		 << "(" << _mu2pt 
-		 << "," << _mu2eta 
-		 << "," << _mu2phi 
-		 << ")" << endl
-		 << "El1(pt,eta,phi)="
-		 << "(" << _el1pt 
-		 << "," << _el1eta 
-		 << "," << _el1phi 
-		 << ")" << endl
-		 << "El2(pt,eta,phi)="
-		 << "(" << _el2pt 
-		 << "," << _el2eta 
-		 << "," << _el2phi 
-		 << ")" << endl
-		 << "Ph1(pt,eta,phi)="
-		 << "(" << _loosephpt 
-		 << "," << _loosepheta 
-		 << "," << _loosephphi 
-		 << ")" << endl
-		 << endl;
+	FillIneff();
       }
       else nEff++ ;
     }
@@ -922,7 +825,6 @@ Int_t MyTrigger::DefinePaths()
   _Paths["PFMNoMu90"].steps.push_back(_Steps["bMuPFM90"]);
   _Paths["PFMNoMu90"].nSteps = _Paths["PFMNoMu90"].steps.size();
 
-  /*
   _Paths["PFMNoMu120"]={.nameP="PFMNoMu120",.namePath="HLT_PFMETNoMu120_JetIdCleaned_PFMHTNoMu120_IDTight",.nSteps=8,.steps=vStepEmpty};
   _Paths["PFMNoMu120"].steps.clear();
   //
@@ -1059,8 +961,6 @@ Int_t MyTrigger::DefinePaths()
   _Paths["OR90GeV"].steps.push_back(_Steps["bOR90GeV"]);
   _Paths["OR90GeV"].nSteps = _Paths["OR90GeV"].steps.size();
 
-  */
- 
   return 0;
 }
 
@@ -1333,6 +1233,109 @@ Int_t MyTrigger::SetBranches()
   _ch->SetBranchAddress("flaghnoiseloose", &_flaghnoiseloose);
   _ch->SetBranchAddress("flaghnoisetight", &_flaghnoisetight);
   _ch->SetBranchAddress("flaghnoisehilvl", &_flaghnoisehilvl);
+
+  return 0;
+}
+
+Int_t MyTrigger::FillIneff()
+{
+  // this method is a bit risky because it calls steps[i] 
+  // without knowing if there exists an element #i
+  // => I should add a size checker
+
+  (*_outIneff) << "INEFF: run " << _run 
+	       << " lumi "      << _lumi
+	       << " event "     << _event
+	       << endl
+	       << "hltmet120:"  << (_hltmet120 ? 1 : 0)
+	       << " hltmetwithmu120:" << (_hltmetwithmu120 ? 1 : 0)
+	       << " hltmetwithmu170:" << (_hltmetwithmu170 ? 1 : 0)
+	       << endl << endl
+	       << "1) Trigger objects" << endl
+	       << "L1ETM="  << _Paths["PFMNoMu90"].steps[0].pt
+	       << "   phi=" << _Paths["PFMNoMu90"].steps[0].phi 
+	       << endl
+	       << "MET="    << _Paths["PFMNoMu90"].steps[1].pt
+	       << "   phi=" << _Paths["PFMNoMu90"].steps[1].phi 
+	       << endl
+	       << "HBHE-Cleaned MET="  << _Paths["PFMNoMu90"].steps[2].pt
+	       << "   phi="            << _Paths["PFMNoMu90"].steps[2].phi 
+	       << endl
+	       << "JetID-Cleaned MET=" << _Paths["PFMNoMu90"].steps[3].pt
+	       << "   phi="            << _Paths["PFMNoMu90"].steps[3].phi 
+	       << endl
+	       << "MHT="       << _Paths["PFMNoMu90"].steps[4].pt
+	       << "   phi="    << _Paths["PFMNoMu90"].steps[4].phi 
+	       << endl
+	       << "PFMHTNoMu=" << _Paths["PFMNoMu90"].steps[5].pt
+	       << "   phi="    << _Paths["PFMNoMu90"].steps[5].phi 
+	       << endl
+	       << "PFMETNoMu=" << _Paths["PFMNoMu90"].steps[6].pt
+	       << "   phi="    << _Paths["PFMNoMu90"].steps[6].phi 
+	       << endl
+	       << "PFMHT="     << _Paths["PFMNoMu120"].steps[3].pt
+	       << "   phi="    << _Paths["PFMNoMu120"].steps[3].phi 
+	       << endl
+	       << "PFMET="     << _Paths["PFMNoMu120"].steps[4].pt
+	       << "   phi="    << _Paths["PFMNoMu120"].steps[4].phi 
+	       << endl << endl
+	       << "2) Offline MET objects"
+	       << endl
+	       << "mumet="   << _mumet
+	       << "   phi="  << _mumetphi   
+	       << endl
+	       << "t1mumet=" << _t1mumet
+	       << "   phi="  << _t1mumetphi 
+	       << endl
+	       << "pfmet="   << _pfmet
+	       << "   phi="  << _pfmetphi   
+	       << endl
+	       << "t1pfmet=" << _t1pfmet
+	       << "   phi="  << _t1pfmetphi 
+	       << endl << endl
+	       << "3) Offline objects"
+	       << endl
+	       << "Jet1(pt,eta,phi)="
+	       << "(" << _signaljetpt 
+	       << "," << _signaljeteta 
+	       << "," << _signaljetphi 
+	       << ")" << endl
+	       << "Jet2(pt,eta,phi)="
+	       << "(" << _secondjetpt 
+	       << "," << _secondjeteta 
+	       << "," << _secondjetphi 
+	       << ")" << endl
+	       <<"Jet3(pt,eta,phi)="
+	       << "(" << _thirdjetpt 
+	       << "," << _thirdjeteta 
+	       << "," << _thirdjetphi 
+	       << ")" << endl
+	       << "Mu1(pt,eta,phi)="
+	       << "(" << _mu1pt 
+	       << "," << _mu1eta 
+	       << "," << _mu1phi 
+	       << ")" << endl
+	       << "Mu2(pt,eta,phi)="
+	       << "(" << _mu2pt 
+	       << "," << _mu2eta 
+	       << "," << _mu2phi 
+	       << ")" << endl
+	       << "El1(pt,eta,phi)="
+	       << "(" << _el1pt 
+	       << "," << _el1eta 
+	       << "," << _el1phi 
+	       << ")" << endl
+	       << "El2(pt,eta,phi)="
+	       << "(" << _el2pt 
+	       << "," << _el2eta 
+	       << "," << _el2phi 
+	       << ")" << endl
+	       << "Ph1(pt,eta,phi)="
+	       << "(" << _loosephpt 
+	       << "," << _loosepheta 
+	       << "," << _loosephphi 
+	       << ")" << endl
+	       << endl;
 
   return 0;
 }
