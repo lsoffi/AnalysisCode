@@ -66,6 +66,7 @@ struct PATH{
 
 // style
 Int_t setStyle(TH1F* h, Int_t color);
+Int_t setStyle(TF1*  f, Int_t color, Int_t style);
 Int_t setStyle(TCanvas* c);
 Int_t setStyle(TLegend* leg);
 
@@ -104,6 +105,14 @@ pair<Double_t, Double_t> Integrate(TH1F* h)
   Double_t error = ent>0 ? TMath::Sqrt(ent) * (norm/ent) : -999;
 
   return make_pair(norm,error);
+}
+
+Int_t setStyle(TF1* f, Int_t color, Int_t style)
+{
+  f->SetLineColor(  color);
+  f->SetMarkerColor(color);
+  f->SetMarkerStyle(style);
+  return 0;
 }
 
 Int_t setStyle(TH1F* h, Int_t color)
