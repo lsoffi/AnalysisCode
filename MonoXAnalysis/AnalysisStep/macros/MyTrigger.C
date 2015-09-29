@@ -648,6 +648,7 @@ Int_t MyTrigger::FitEff()
 	    // work w/ the fit results
 	    fitEffTemp = 
 	      (TF1*)(pEff->GetListOfFunctions()->FindObject(nameFuncLoc));
+	    setStyle(fitEffTemp, _theStep->C, _theStep->S);
 	    eff95 = dichotomy(0.95, 0, 1000, 0.0000001, *fitEffTemp, true);
 	    s_eff95 = "#epsilon = 95% @ "+TString(Form("%.0f", eff95))+" GeV";
 	    
@@ -1354,10 +1355,12 @@ pair<Int_t, Int_t> MyTrigger::getStyle(TString name)
 {
 
   if(name=="L1")    return make_pair(kBlack , kOpenSquare);
-  if(name=="MET")   return make_pair(kBlue+2, kOpenTriangleUp);
+  if(name=="MET")   return make_pair(kBlue+2, kOpenDiamond);
+  if(name=="Jet")   return make_pair(kBlue+3, kOpenTriangleUp);
   if(name=="METC")  return make_pair(kBlue  , kOpenTriangleDown);
   if(name=="METJ")  return make_pair(kCyan+2, kFullTriangleUp);
   if(name=="MHT")   return make_pair(kGreen+2,kFullTriangleDown);
+  if(name=="PFJET") return make_pair(kRed+3,  kFullDiamond);
   if(name=="PFMHT") return make_pair(kRed+2,  kOpenCircle);
   if(name=="PFMET") return make_pair(kRed,    kFullCircle);
   if(name=="Full")  return make_pair(kRed,    kFullCircle);
