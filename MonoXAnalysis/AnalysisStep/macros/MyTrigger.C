@@ -1,7 +1,12 @@
 #include "MyTrigger.h"
 
+// file lists
+#include "list_SingleMuon_2015D_V2.h"
+
 using namespace std;
-Bool_t DEBUG = false;
+Bool_t DEBUG = kFALSE;
+Bool_t useCutoff=kFALSE;
+UInt_t cutoff=50000; // cut-off
 
 MyTrigger::~MyTrigger()
 {
@@ -208,6 +213,9 @@ Int_t MyTrigger::ProdHistos()
     // Count entries passing offline selection
     nProcessed++ ;
     if(_hltmet90) nHLT90++ ;
+
+    // cut-off
+    if(nProcessed>=cutoff && useCutoff) break;
 
     // print out every 1000 events
     if(printOut) {
@@ -977,8 +985,11 @@ Int_t MyTrigger::DefinePaths()
 
 Int_t MyTrigger::DefineJson()
 {
-  
-  if(_json=="DCS") {
+ 
+  if(_json=="MC") {
+    _applyJson = false;
+  }
+  else if(_json=="DCS") {
     _applyJson = true;
     if(_field=="38T")
       _jsonMap = readJSONFile(_dirJson+"/DCSOnly/json_DCSONLY.txt");
@@ -990,9 +1001,9 @@ Int_t MyTrigger::DefineJson()
     //
     if(_period=="25ns") {
       if(_field=="38T")
-	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-255031_13TeV_PromptReco_Collisions15_25ns_JSON_v2.txt");
+	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-256869_13TeV_PromptReco_Collisions15_25ns_JSON.txt");
       else if(_field=="0T") {
-	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-256406_13TeV_PromptReco_Collisions15_ZeroTesla_25ns_JSON.txt");
+	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-256869_13TeV_PromptReco_Collisions15_ZeroTesla_25ns_JSON.txt");
       }
       else {
 	cout << "ERROR: Please choose field: 38T, 0T. Exit ==> []" << endl;
@@ -1002,9 +1013,9 @@ Int_t MyTrigger::DefineJson()
     //
     else if(_period=="50ns") {
       if(_field=="38T")
-	_jsonMap = readJSONFile(_dirJson+"Cert_246908-255031_13TeV_PromptReco_Collisions15_50ns_JSON_v2.txt");
+	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-255031_13TeV_PromptReco_Collisions15_50ns_JSON_v2.txt");
       else if(_field=="0T") {
-	_jsonMap = readJSONFile(_dirJson+"Cert_246908-252126_13TeV_PromptReco_Collisions15_ZeroTesla_50ns_JSON.txt");
+	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-252126_13TeV_PromptReco_Collisions15_ZeroTesla_50ns_JSON.txt");
       }
       else {
 	cout << "ERROR: Please choose field: 38T, 0T. Exit ==> []" << endl;
@@ -1071,6 +1082,8 @@ Int_t MyTrigger::GetInput()
   if(_skim=="skim") nameChain="tree";
   _ch = new TChain(nameChain);
 
+  vector<TString> f2015D = list_SingleMuon_2015D_V2();
+
   if(_era=="2015B")
     _ch->Add("/user/ndaci/Data/XMET/Run2015B/SingleMuon/V3/skim.root");
   else if(_era=="2015C") {
@@ -1080,7 +1093,13 @@ Int_t MyTrigger::GetInput()
       _ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/38T_V5/skim_met30.root");
   }
   else if(_era=="2015D") {
-    _ch->Add("/user/ndaci/Data/XMET/Run2015D/SingleMuon/V1/tree_*.root");
+    //_ch->Add("/user/ndaci/Data/XMET/Run2015D/SingleMuon/V1/tree_*.root");
+    for(UInt_t iF=0 ; iF<f2015D.size() ; iF++) {
+      _ch->Add(f2015D[iF]);
+    }
+  }
+  else if(_era=="MC") {
+    _ch->Add("/user/ndaci/Data/XMET/MonteCarloSpring15/V2/tree_*.root");
   }
   else {
     cout << "ERROR: Please specify input source in the output dir name: " 
