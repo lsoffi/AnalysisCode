@@ -1,7 +1,7 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_Run2015C_V2'
+name = 'EffAN_7413_Run2015C_V1'
 proc = 'SingleMu'
 dataset = '/SingleMuon/Run2015C-PromptReco-v1/MINIAOD'
 
@@ -17,8 +17,8 @@ config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'nadirData.py'
 #config.JobType.pyCfgParams = ['reEmulation=True','reEmulMuons=True','reEmulCalos=True','patchNtuple=True','force2012Config=True','customDTTF=True','dttfLutsFile=sqlite:src/L1TriggerDPG/L1Menu/data/dttf_config.db','useUct2015=True','globalTag=POSTLS162_V2::All','runOnMC=True','runOnPostLS1=True','whichPU=40']
-#config.JobType.inputFiles = '../../data/dttf_config.db'
-config.JobType.inputFiles = ['Summer15_50nsV4_DATA.db']
+##config.JobType.inputFiles = '../../data/dttf_config.db'
+#config.JobType.inputFiles = ['Summer15_50nsV4_DATA.db']
 config.JobType.allowUndistributedCMSSW = True
 
 # INPUT DATA
