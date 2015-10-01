@@ -87,6 +87,8 @@ LeptonTnPInfoProducer::LeptonTnPInfoProducer(const edm::ParameterSet& iConfig):
 {
     produces<edm::ValueMap<float> >("munvtxmap");
     produces<edm::ValueMap<float> >("muwgtmap");
+    produces<pat::MuonRefVector>("hltmu20muonrefs");
+    produces<pat::MuonRefVector>("hlttkmu20muonrefs");
     produces<pat::MuonRefVector>("loosemuonrefs");
     produces<pat::MuonRefVector>("tightmuonrefs");
     produces<pat::MuonCollection>("tightmuons");
@@ -140,6 +142,8 @@ void LeptonTnPInfoProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
 
     std::auto_ptr<edm::ValueMap<float> > outputmunvtxmap(new ValueMap<float>());
     std::auto_ptr<edm::ValueMap<float> > outputmuwgtmap(new ValueMap<float>());
+    std::auto_ptr<pat::MuonRefVector> outputhltmu20muonrefs(new pat::MuonRefVector);
+    std::auto_ptr<pat::MuonRefVector> outputhlttkmu20muonrefs(new pat::MuonRefVector);
     std::auto_ptr<pat::MuonRefVector> outputloosemuonrefs(new pat::MuonRefVector);
     std::auto_ptr<pat::MuonRefVector> outputtightmuonrefs(new pat::MuonRefVector);
     std::auto_ptr<pat::MuonCollection> outputtightmuons(new pat::MuonCollection);
@@ -167,16 +171,22 @@ void LeptonTnPInfoProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
         isoval /= muons_iter->pt();
 
         bool triggermatched = false;
+        bool hltisomu20matched = false;
+        bool hltisotkmu20matched = false;
         for (pat::TriggerObjectStandAlone trgobj : *triggerObjectsH) {
             trgobj.unpackPathNames(trigNames);
             for (std::string trigpath : tagmuontriggers) {
                 if (trgobj.hasPathName(trigpath, true, true) && deltaR(trgobj.eta(), trgobj.phi(), muons_iter->eta(), muons_iter->phi()) < tagmuontrigmatchdR) triggermatched = true;
             }
+            if (trgobj.hasPathName("HLT_IsoMu20_v*"  , true, true) && deltaR(trgobj.eta(), trgobj.phi(), muons_iter->eta(), muons_iter->phi()) < tagmuontrigmatchdR) hltisomu20matched   = true;
+            if (trgobj.hasPathName("HLT_IsoTkMu20_v*", true, true) && deltaR(trgobj.eta(), trgobj.phi(), muons_iter->eta(), muons_iter->phi()) < tagmuontrigmatchdR) hltisotkmu20matched = true;
         }
         if (!requiremuonhlt) triggermatched = true;
 
-        if (verticesH->size() != 0 && muon::isLooseMuon(*muons_iter)                        && isoval <= loosemuisocut) outputloosemuonrefs->push_back(pat::MuonRef(muonsH, muons_iter - muonsH->begin()));
-        if (verticesH->size() != 0 && muon::isTightMuon(*muons_iter, *(verticesH->begin())) && isoval <= tightmuisocut) outputtightmuonrefs->push_back(pat::MuonRef(muonsH, muons_iter - muonsH->begin()));
+        if (verticesH->size() != 0 && hltisomu20matched                                                               ) outputhltmu20muonrefs  ->push_back(pat::MuonRef(muonsH, muons_iter - muonsH->begin()));
+        if (verticesH->size() != 0 && hltisotkmu20matched                                                             ) outputhlttkmu20muonrefs->push_back(pat::MuonRef(muonsH, muons_iter - muonsH->begin()));
+        if (verticesH->size() != 0 && muon::isLooseMuon(*muons_iter)                        && isoval <= loosemuisocut) outputloosemuonrefs    ->push_back(pat::MuonRef(muonsH, muons_iter - muonsH->begin()));
+        if (verticesH->size() != 0 && muon::isTightMuon(*muons_iter, *(verticesH->begin())) && isoval <= tightmuisocut) outputtightmuonrefs    ->push_back(pat::MuonRef(muonsH, muons_iter - muonsH->begin()));
         if (verticesH->size() != 0 && muon::isTightMuon(*muons_iter, *(verticesH->begin())) && isoval <= tightmuisocut) {
             if (triggermatched && muons_iter->pt() > tagmuonptcut && fabs(muons_iter->eta()) < tagmuonetacut) outputtightmuons->push_back(*muons_iter);
         }
@@ -226,6 +236,8 @@ void LeptonTnPInfoProducer::produce(edm::Event& iEvent, const edm::EventSetup& i
 
     iEvent.put(outputmunvtxmap, "munvtxmap");
     iEvent.put(outputmuwgtmap, "muwgtmap");
+    iEvent.put(outputhltmu20muonrefs, "hltmu20muonrefs");
+    iEvent.put(outputhlttkmu20muonrefs, "hlttkmu20muonrefs");
     iEvent.put(outputloosemuonrefs, "loosemuonrefs");
     iEvent.put(outputtightmuonrefs, "tightmuonrefs");
     iEvent.put(outputtightmuons, "tightmuons");

@@ -7,7 +7,7 @@ process = cms.Process("TNP")
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.StandardSequences.GeometryDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
-process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 
 # Message Logger settings
 process.load("FWCore.MessageService.MessageLogger_cfi")
@@ -31,16 +31,7 @@ isMCFlag = True
 # Define the input source
 process.source = cms.Source("PoolSource", 
     fileNames = cms.untracked.vstring([
-        #'/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt50ns_MCRUN2_74_V9A-v2/00000/00C4781D-6B08-E511-8A0A-0025905A6084.root'
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/0E4B7E28-8D2C-E511-BFDA-02163E01477B.root',
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/1247CF12-932C-E511-B9ED-02163E01354D.root',
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/3A437BCB-912C-E511-96D0-02163E012934.root',
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/7077210E-8F2C-E511-97D5-02163E0138EC.root',
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/9EFCB7EB-C12C-E511-B8BB-02163E012158.root',
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/A42F5B12-9C2C-E511-AAB3-02163E0134C3.root',
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/C2E62796-942C-E511-8869-02163E0121A1.root',
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/CCA6600A-912C-E511-B1EF-02163E0133D0.root',
-        '/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/643/00000/D84DA8FC-8F2C-E511-9B5A-02163E01420D.root',
+        '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/009D49A5-7314-E511-84EF-0025905A605E.root'
     ])
 )
 
@@ -48,11 +39,10 @@ process.source = cms.Source("PoolSource",
 process.TFileService = cms.Service("TFileService", fileName = cms.string("tnptree.root"))
 
 # Set the global tag depending on the sample type
-process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 if isMCFlag:
-    process.GlobalTag.globaltag = 'MCRUN2_74_V9A::All'   # for Simulation
+    process.GlobalTag.globaltag = '74X_mcRun2_asymptotic_v2'   # for Simulation
 else:
-    process.GlobalTag.globaltag = 'GR_P_V56::All'        # for Data
+    process.GlobalTag.globaltag = '74X_dataRun2_v2'            # for Data
 
 # Select good primary vertices
 process.goodVertices = cms.EDFilter("VertexSelector",
@@ -108,7 +98,7 @@ process.probeinfo = cms.EDProducer("LeptonTnPInfoProducer",
     tagelectronptcut = cms.double(40.0),
     tagelectronetacut = cms.double(2.1),
     tagelectrontrigmatchdR = cms.double(0.3),
-    requireelectronhlt = cms.bool(False),
+    requireelectronhlt = cms.bool(True),
     tagelectrontriggers = cms.vstring([
         "HLT_Ele27_eta2p1_WPLoose_Gsf_v*",
         "HLT_Ele27_eta2p1_WPTight_Gsf_v*",
@@ -161,6 +151,8 @@ process.muontnptree = cms.EDAnalyzer("TagProbeFitTreeProducer",
     ),
     flags = cms.PSet(
         pfid = cms.string("isPFMuon"),
+        hltmu20 = cms.InputTag("probeinfo", "hltmu20muonrefs"),
+        hlttkmu20 = cms.InputTag("probeinfo", "hlttkmu20muonrefs"),
         looseid = cms.InputTag("probeinfo", "loosemuonrefs"),
         tightid = cms.InputTag("probeinfo", "tightmuonrefs"),
     ),

@@ -461,8 +461,8 @@ void TreeDumper::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup
     else wgt = 1.0;
 
     // MET information 
-    pfmet           = t1pfmetH->front().uncorrectedPt();
-    pfmetphi        = t1pfmetH->front().uncorrectedPhi();
+    pfmet           = t1pfmetH->front().uncorPt();
+    pfmetphi        = t1pfmetH->front().uncorPhi();
 
     t1pfmet         = t1pfmetH->front().et();
     t1pfmetphi      = t1pfmetH->front().phi();

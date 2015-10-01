@@ -41,16 +41,6 @@ class PFCleaner : public edm::EDProducer {
 
         bool randomConeOverlaps(double, double, double, std::vector<pat::Jet>);
 
-        edm::InputTag vertices;
-        edm::InputTag pfcands;
-        edm::InputTag jets;
-        edm::InputTag muons;
-        edm::InputTag electrons;
-        edm::InputTag photons;
-        edm::InputTag electronVetoIdMap;
-        edm::InputTag electronMediumIdMap;
-        edm::InputTag photonLooseIdMap;
-
         edm::EDGetTokenT<std::vector<reco::Vertex> > verticesToken;
         edm::EDGetTokenT<edm::View<reco::Candidate> > pfcandsToken;
         edm::EDGetTokenT<std::vector<pat::Jet> > jetsToken;
@@ -60,18 +50,21 @@ class PFCleaner : public edm::EDProducer {
         edm::EDGetTokenT<edm::ValueMap<bool> > electronVetoIdMapToken;
         edm::EDGetTokenT<edm::ValueMap<bool> > electronMediumIdMapToken;
         edm::EDGetTokenT<edm::ValueMap<bool> > photonLooseIdMapToken;
+
+        bool userandomphi;
 };
 
 PFCleaner::PFCleaner(const edm::ParameterSet& iConfig): 
-    vertices(iConfig.getParameter<edm::InputTag>("vertices")),
-    pfcands(iConfig.getParameter<edm::InputTag>("pfcands")),
-    jets(iConfig.getParameter<edm::InputTag>("jets")),
-    muons(iConfig.getParameter<edm::InputTag>("muons")),
-    electrons(iConfig.getParameter<edm::InputTag>("electrons")),
-    photons(iConfig.getParameter<edm::InputTag>("photons")),
-    electronVetoIdMap(iConfig.getParameter<edm::InputTag>("electronidveto")),
-    electronMediumIdMap(iConfig.getParameter<edm::InputTag>("electronidmedium")),
-    photonLooseIdMap(iConfig.getParameter<edm::InputTag>("photonidloose"))
+    verticesToken            (consumes<std::vector<reco::Vertex> > (iConfig.getParameter<edm::InputTag>("vertices"))),
+    pfcandsToken             (consumes<edm::View<reco::Candidate> > (iConfig.getParameter<edm::InputTag>("pfcands"))),
+    jetsToken                (consumes<std::vector<pat::Jet> > (iConfig.getParameter<edm::InputTag>("jets"))),
+    muonsToken               (consumes<std::vector<pat::Muon> > (iConfig.getParameter<edm::InputTag>("muons"))), 
+    electronsToken           (consumes<std::vector<pat::Electron> > (iConfig.getParameter<edm::InputTag>("electrons"))),
+    photonsToken             (consumes<std::vector<pat::Photon> > (iConfig.getParameter<edm::InputTag>("photons"))),
+    electronVetoIdMapToken   (consumes<edm::ValueMap<bool> >(iConfig.getParameter<edm::InputTag>("electronidveto"))),
+    electronMediumIdMapToken (consumes<edm::ValueMap<bool> >(iConfig.getParameter<edm::InputTag>("electronidmedium"))),
+    photonLooseIdMapToken    (consumes<edm::ValueMap<bool> >(iConfig.getParameter<edm::InputTag>("photonidloose"))),
+    userandomphi             (iConfig.existsAs<bool>("userandomphiforRC") ? iConfig.getParameter<bool>("userandomphiforRC") : false)
 {
     produces<pat::MuonRefVector>("muons");
     produces<pat::ElectronRefVector>("electrons");
@@ -82,16 +75,6 @@ PFCleaner::PFCleaner(const edm::ParameterSet& iConfig):
     produces<pat::PhotonRefVector>("loosephotons");
     produces<edm::ValueMap<float> >("rndgammaiso");
     produces<edm::ValueMap<float> >("rndchhadiso");
-
-    verticesToken  = consumes<std::vector<reco::Vertex> > (vertices);
-    pfcandsToken   = consumes<edm::View<reco::Candidate> > (pfcands);
-    jetsToken      = consumes<std::vector<pat::Jet> > (jets); 
-    muonsToken     = consumes<std::vector<pat::Muon> > (muons); 
-    electronsToken = consumes<std::vector<pat::Electron> > (electrons); 
-    photonsToken   = consumes<std::vector<pat::Photon> > (photons); 
-    electronVetoIdMapToken   = consumes<edm::ValueMap<bool> >(electronVetoIdMap);
-    electronMediumIdMapToken = consumes<edm::ValueMap<bool> >(electronMediumIdMap);
-    photonLooseIdMapToken    = consumes<edm::ValueMap<bool> >(photonLooseIdMap);
 }
 
 
@@ -175,9 +158,12 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     for (vector<pat::Photon>::const_iterator photons_iter = photonsH->begin(); photons_iter != photonsH->end(); ++photons_iter) {
         float gaisoval = 0.;
         float chisoval = 0.;
-        double rndphi = rand.Uniform(-M_PI, M_PI);
-        while (randomConeOverlaps(rndphi, photons_iter->eta(), photons_iter->phi(), *jetsH)) rndphi = rand.Uniform(-M_PI, M_PI);
-        
+        double rndphi = photons_iter->phi() + M_PI/2.0;
+        if (userandomphi) {
+            rndphi = rand.Uniform(-M_PI, M_PI);
+            while (randomConeOverlaps(rndphi, photons_iter->eta(), photons_iter->phi(), *jetsH)) rndphi = rand.Uniform(-M_PI, M_PI);
+        }
+
         for(size_t i = 0; i < pfcandsH->size(); i++) {
             const auto& pfcand = pfcandsH->ptrAt(i);
             if (    pfcand->pdgId()  ==  22 && deltaR(photons_iter->eta(), rndphi, pfcand->eta(), pfcand->phi()) <= 0.3) gaisoval += pfcand->pt();
