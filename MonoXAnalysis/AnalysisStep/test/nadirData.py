@@ -22,11 +22,11 @@ process.options = cms.untracked.PSet(
 
 # How many events to process
 process.maxEvents = cms.untracked.PSet( 
-    input = cms.untracked.int32(20)
+    input = cms.untracked.int32(100)
 )
 
 # Test code
-myTest = False
+myTest = True
 
 # Is this a simulation or real data
 isMC = False
@@ -55,7 +55,8 @@ process.source = cms.Source(
     fileNames = cms.untracked.vstring([
             #'/store/mc/RunIISpring15MiniAODv2/TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/74X_mcRun2_asymptotic_v2-v1/00000/0014DC94-DC5C-E511-82FB-7845C4FC39F5.root'
             #'file:/user/ndaci/Data/Spring15/0EA9D83D-DAF3-E411-9DFE-002590DBDFE0.root'
-            'file:/user/ndaci/Data/XMET/Run2015C/SingleElectron/MINIAOD_0T/A2A0552B-CE45-E511-BE5D-02163E013865.root'
+            #'file:/user/ndaci/Data/XMET/Run2015C/SingleElectron/MINIAOD_0T/A2A0552B-CE45-E511-BE5D-02163E013865.root'
+            '/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/60FF8405-EA26-E511-A892-02163E01387D.root'
             ])
     )
 
