@@ -1,9 +1,9 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413_Run2015B_V3'
-proc = 'ZeroBias'
-dataset = '/ZeroBias/Run2015B-PromptReco-v1/MINIAOD'
+name = 'EffAN_7413_Run2015D_V3'
+proc = 'MET'
+dataset = '/MET/Run2015D-PromptReco-v3/MINIAOD'
 
 # GENERAL
 config.section_("General")
@@ -18,6 +18,7 @@ config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'nadirDataPrompt.py'
 #config.JobType.pyCfgParams = ['reEmulation=True','reEmulMuons=True','reEmulCalos=True','patchNtuple=True','force2012Config=True','customDTTF=True','dttfLutsFile=sqlite:src/L1TriggerDPG/L1Menu/data/dttf_config.db','useUct2015=True','globalTag=POSTLS162_V2::All','runOnMC=True','runOnPostLS1=True','whichPU=40']
 ##config.JobType.inputFiles = '../../data/dttf_config.db'
+#config.JobType.inputFiles = ['Summer15_50nsV4_DATA.db']
 config.JobType.allowUndistributedCMSSW = True
 
 # INPUT DATA
@@ -47,4 +48,4 @@ config.User.voGroup = 'becms'
 config.section_("Site")
 config.Site.storageSite = 'T2_BE_IIHE'
 #config.Site.whitelist = 
-config.Site.blacklist = ['T1_US_FNAL']
+#config.Site.blacklist = ['T1_US_FNAL']

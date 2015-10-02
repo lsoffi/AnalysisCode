@@ -1,9 +1,9 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413_Run2015B_V3'
-proc = 'ZeroBias'
-dataset = '/ZeroBias/Run2015B-PromptReco-v1/MINIAOD'
+name = 'EffAN_7413_Run2015B_23Sep2015_V3'
+proc = 'SingleMu'
+dataset = '/SingleMuon/Run2015B-23Sep2015-v1/MINIAOD'
 
 # GENERAL
 config.section_("General")
@@ -15,9 +15,10 @@ config.General.transferLogs    = True
 # JOB TYPE
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
-config.JobType.psetName = 'nadirDataPrompt.py'
+config.JobType.psetName = 'nadirDataReReco.py'
 #config.JobType.pyCfgParams = ['reEmulation=True','reEmulMuons=True','reEmulCalos=True','patchNtuple=True','force2012Config=True','customDTTF=True','dttfLutsFile=sqlite:src/L1TriggerDPG/L1Menu/data/dttf_config.db','useUct2015=True','globalTag=POSTLS162_V2::All','runOnMC=True','runOnPostLS1=True','whichPU=40']
 ##config.JobType.inputFiles = '../../data/dttf_config.db'
+##config.JobType.inputFiles = ['Summer15_50nsV4_DATA.db']
 config.JobType.allowUndistributedCMSSW = True
 
 # INPUT DATA

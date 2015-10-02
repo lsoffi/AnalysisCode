@@ -1,7 +1,7 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413_Run2015B_V1'
+name = 'EffAN_7413_Run2015B_V3'
 proc = 'MinBias'
 dataset = '/MinimumBias/Run2015B-PromptReco-v1/MINIAOD'
 
@@ -24,8 +24,8 @@ config.JobType.allowUndistributedCMSSW = True
 config.section_("Data")
 config.Data.inputDataset = dataset
 config.Data.inputDBS = 'https://cmsweb.cern.ch/dbs/prod/global/DBSReader/'
-config.Data.splitting = 'LumiBased'
-config.Data.unitsPerJob = 10
+config.Data.splitting = 'EventAwareLumiBased'
+config.Data.unitsPerJob = 50000
 #config.Data.totalUnits  = 1976
 config.Data.publication = False
 config.Data.publishDBS  = 'https://cmsweb.cern.ch/dbs/prod/phys03/DBSWriter/'
