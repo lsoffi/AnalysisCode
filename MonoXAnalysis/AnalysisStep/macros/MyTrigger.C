@@ -15,7 +15,7 @@
 using namespace std;
 Bool_t DEBUG = kFALSE;
 Bool_t useCutoff=kTRUE;
-UInt_t cutoff=50000; // cut-off
+UInt_t cutoff=10000; // cut-off
 
 MyTrigger::~MyTrigger()
 {
@@ -180,8 +180,10 @@ Int_t MyTrigger::ProdHistos()
     // PRINT OUT //
     printOut = (iE%1000==0);
     if(printOut) {
-      cout << "-- processing entry #" 
+      cout << "-- getting entry #" 
 	   << iE << "/" << entries
+	   << "   nProcessed=" << nProcessed
+	   << "   nHLT90="     << nHLT90
 	   << endl;
     }
 
@@ -452,12 +454,17 @@ Int_t MyTrigger::ProdHistos()
 	for(_itNumH=_itVarNumH->second.begin() ; _itNumH!=_itVarNumH->second.end() ; _itNumH++)
 	  _itNumH->second->Write();
 
+  _hIneff->Write();
+
   outfile->Write();
   outfile->Close();
 
   cout << endl
-       << "Processed: " << nProcessed << " events" << endl
-       << "HLT 90GeV: " << nHLT90 << endl;
+       << "Processed: "    << nProcessed 
+       << "   HLT 90GeV: " << nHLT90 
+       << "   nIneff:"     << nIneff
+       << "   nEff:"       << nEff
+       << endl;
 
   return 0;
 }
@@ -1017,7 +1024,7 @@ Int_t MyTrigger::DefineJson()
     //
     if(_period=="25ns") {
       if(_field=="38T")
-	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-256869_13TeV_PromptReco_Collisions15_25ns_JSON.txt");
+	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-257599_13TeV_PromptReco_Collisions15_25ns_JSON.txt");
       else if(_field=="0T") {
 	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-256869_13TeV_PromptReco_Collisions15_ZeroTesla_25ns_JSON.txt");
       }
@@ -1428,7 +1435,7 @@ Int_t MyTrigger::DefineIneff()
 
   _outIneff = new ofstream(_dirOut+_resultName+"/outIneff.txt");
   //
-  _hIneff   = new TH1D("hIneff","Ineff",3,0,3);
+  _hIneff   = new TH1D("hIneff","Inefficient events per flag",3,0,3);
   _hIneff->SetStats(0);
   _hIneff->SetCanExtend(TH1::kAllAxes);
   //
