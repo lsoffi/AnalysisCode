@@ -33,7 +33,8 @@ class MyTrigger {
  public:
 
   // Constructor, destructor
-  MyTrigger(TString resultName, TString offlineSel, TString era,
+  MyTrigger(TString resultName, TString offlineSel, 
+	    TString era, TString reco, TString sample,
 	    TString period, TString seed, TString json, TString field,
 	    TString skim, TString HBHECleaning, TString binning);
   ~MyTrigger();
@@ -69,16 +70,11 @@ class MyTrigger {
  private:
 
   // arguments
-  TString _resultName; 
-  TString _offlineSel; 
-  TString _era;
-  TString _period; 
-  TString _seed; 
-  TString _json; 
-  TString _field;
-  TString _skim; 
-  TString _HBHECleaning; 
-  TString _binning;
+  TString _resultName, _offlineSel, _era, 
+    _reco, _sample, _period, _seed, _json, 
+    _field, _skim, _HBHECleaning, _binning;
+
+  TString _dirOut;
 
   // I/O
   MAP_RLE   _mapRunLumiEvents;
@@ -144,6 +140,7 @@ class MyTrigger {
   //
   // offline flags
   uint8_t  _flagcsctight, _flaghbhenoise, _flaghcallaser, _flagecaltrig, _flageebadsc, _flagecallaser, _flagtrkfail, _flagtrkpog, _flaghnoiseloose, _flaghnoisetight, _flaghnoisehilvl;
+  // uint8_t  _flagcsctight, _flaghbhenoise, _flaghbheloose, _flaghbhetight, _flaghcallaser, _flagecaltrig, _flageebadsc, _flagecallaser, _flagtrkfail, _flagtrkpog, _flaghnoiseloose, _flaghnoisetight, _flaghnoisehilvl;
   //
   // jets/met
   double   _pfmet, _pfmetphi, _t1pfmet, _t1pfmetphi, _pfmupt, _pfmuphi, _mumet, _mumetphi, _phmet, _phmetphi, _t1mumet, _t1mumetphi, _t1phmet, _t1phmetphi;

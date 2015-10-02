@@ -1,6 +1,15 @@
 #include "MyTrigger.h"
 
 // file lists
+#include "list_MET_2015D.h"
+#include "list_SingleMu_2015B.h"
+#include "list_SingleMu_2015B_23Sep2015.h"
+#include "list_SingleMu_2015C.h"
+#include "list_SingleMu_2015C_23Sep2015.h"
+#include "list_SingleMu_2015D.h"
+#include "list_ZNN600ToInf_Spring15.h"
+
+// old one 
 #include "list_SingleMuon_2015D_V2.h"
 
 using namespace std;
@@ -12,7 +21,8 @@ MyTrigger::~MyTrigger()
 {
 }
 
-MyTrigger::MyTrigger(TString resultName, TString offlineSel, TString era,
+MyTrigger::MyTrigger(TString resultName, TString offlineSel, 
+		     TString era, TString reco, TString sample,
 		     TString period, TString seed, TString json, TString field,
 		     TString skim, TString HBHECleaning, TString binning)
 {
@@ -21,6 +31,8 @@ MyTrigger::MyTrigger(TString resultName, TString offlineSel, TString era,
   _resultName = resultName; 
   _offlineSel = offlineSel; 
   _era        = era;
+  _reco       = reco;
+  _sample     = sample;
   _period     = period; 
   _seed       = seed; 
   _json       = json; 
@@ -37,8 +49,11 @@ MyTrigger::MyTrigger(TString resultName, TString offlineSel, TString era,
   // Define paths
   DefinePaths();
 
+  // Define output results path
+  _dirOut = "/user/ndaci/Results/Monojet/Trigger/Efficiency/CMSSW_7413/";
+
   // Define log file for inefficiencies
-  _outIneff = new ofstream("results/"+_resultName+"/outIneff.txt");
+  _outIneff = new ofstream(_dirOut+_resultName+"/outIneff.txt");
 
   // Define JSON file
   _dirJson="/user/ndaci/Data/json/13TeV/";
@@ -413,20 +428,18 @@ Int_t MyTrigger::ProdHistos()
     // end fill histograms //
 
     // INVESTIGATE INEFFICIENCIES //
-    /*
-    if(pfmet>400) {
-      if(!_hltmet120 || !_hltmetwithmu120 || !_hltmetwithmu170) {
+    if(_t1mumet>200) {
+      if(!_hltmet90) {
 	nIneff++ ;
 	FillIneff();
       }
       else nEff++ ;
     }
-    */
 
   } // end loop over chain  
 
   // Write out histos //
-  TFile* outfile = new TFile("results/"+_resultName+"/h_"+_resultName+".root","recreate");
+  TFile* outfile = new TFile(_dirOut+_resultName+"/h_"+_resultName+".root","recreate");
   outfile->cd();
 
   // Write histograms //
@@ -450,7 +463,7 @@ Int_t MyTrigger::GetHistos()
 {
   cout << "- GetHistos(): start" << endl;
 
-  TString filepath="results/"+_resultName+"/h_"+_resultName+".root";
+  TString filepath=_dirOut+_resultName+"/h_"+_resultName+".root";
   TFile* fHistos = new TFile(filepath,"read");
   fHistos->cd();
 
@@ -508,7 +521,7 @@ Int_t MyTrigger::ProdEff(Bool_t print=kFALSE)
        << "- using _Histos.size()=" << _Histos.size()
        << endl;
 
-  TFile* outfile = new TFile("results/"+_resultName+"/eff_"+_resultName+".root","recreate");
+  TFile* outfile = new TFile(_dirOut+_resultName+"/eff_"+_resultName+".root","recreate");
   outfile->cd();
 
   const UInt_t nF=2;
@@ -588,7 +601,7 @@ Int_t MyTrigger::FitEff()
        << endl;
 
   // Output file
-  TFile* outfile = new TFile("results/"+_resultName+"/fits_"+_resultName+".root","recreate");
+  TFile* outfile = new TFile(_dirOut+_resultName+"/fits_"+_resultName+".root","recreate");
   outfile->cd();
 
   UInt_t nS=0;
@@ -711,7 +724,7 @@ Int_t MyTrigger::DrawEff(TEfficiency* pEff, TString nameTEff,
   }
   
   // print	
-  c.Print("results/"+_resultName+"/"+nameTEff+".pdf","pdf");
+  c.Print(_dirOut+_resultName+"/"+nameTEff+".pdf","pdf");
 
   return 0;
 }
@@ -1082,24 +1095,23 @@ Int_t MyTrigger::GetInput()
   if(_skim=="skim") nameChain="tree";
   _ch = new TChain(nameChain);
 
-  vector<TString> f2015D = list_SingleMuon_2015D_V2();
-
-  if(_era=="2015B")
-    _ch->Add("/user/ndaci/Data/XMET/Run2015B/SingleMuon/V3/skim.root");
+  vector<TString> fList; 
+  
+  if(_era=="2015B") {
+    if(     _reco=="Prompt")    fList = list_SingleMu_2015B();
+    else if(_reco=="23Sep2015") fList = list_SingleMu_2015B_23Sep2015();
+  }
   else if(_era=="2015C") {
-    if(_field=="0T") 
-      _ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/V2/skim_met30.root");
-    else if(_field=="38T") 
-      _ch->Add("/user/ndaci/Data/XMET/Run2015C/SingleMuon/38T_V5/skim_met30.root");
+    if(     _reco=="Prompt")    fList = list_SingleMu_2015C();
+    else if(_reco=="23Sep2015") fList = list_SingleMu_2015C_23Sep2015();
   }
   else if(_era=="2015D") {
-    //_ch->Add("/user/ndaci/Data/XMET/Run2015D/SingleMuon/V1/tree_*.root");
-    for(UInt_t iF=0 ; iF<f2015D.size() ; iF++) {
-      _ch->Add(f2015D[iF]);
-    }
+    if(     _reco=="Prompt")    fList = list_SingleMu_2015D();
+    else if(_reco=="old")       fList = list_SingleMu_2015D_V2();
+    //else if(_reco=="23Sep2015") fList = list_SingleMu_2015D_23Sep2015();
   }
   else if(_era=="MC") {
-    _ch->Add("/user/ndaci/Data/XMET/MonteCarloSpring15/V2/tree_*.root");
+    fList = list_ZNN600ToInf_Spring15();
   }
   else {
     cout << "ERROR: Please specify input source in the output dir name: " 
@@ -1107,6 +1119,10 @@ Int_t MyTrigger::GetInput()
 	 << "Please specify field: 38T, 0T. Exit ==> []"
 	 << endl;
     return -1;
+  }
+  
+  for(UInt_t iF=0 ; iF<fList.size() ; iF++) {
+    _ch->Add(fList[iF]);
   }
 
   return 0;
@@ -1263,6 +1279,22 @@ Int_t MyTrigger::SetBranches()
   _ch->SetBranchAddress("flaghnoiseloose", &_flaghnoiseloose);
   _ch->SetBranchAddress("flaghnoisetight", &_flaghnoisetight);
   _ch->SetBranchAddress("flaghnoisehilvl", &_flaghnoisehilvl);
+
+  /*
+    tree->Branch("flagcsctight"         , &_flagcsctight         ); 
+    tree->Branch("flaghbhenoise"        , &_flaghbhenoise        ); 
+    tree->Branch("flaghbheloose"        , &_flaghbheloose        ); 
+    tree->Branch("flaghbhetight"        , &_flaghbhetight        ); 
+    tree->Branch("flaghcallaser"        , &_flaghcallaser        ); 
+    tree->Branch("flagecaltrig"         , &_flagecaltrig         ); 
+    tree->Branch("flageebadsc"          , &_flageebadsc          ); 
+    tree->Branch("flagecallaser"        , &_flagecallaser        ); 
+    tree->Branch("flagtrkfail"          , &_flagtrkfail          ); 
+    tree->Branch("flagtrkpog"           , &_flagtrkpog           ); 
+    tree->Branch("flaghnoiseloose"      , &_flaghnoiseloose      ); 
+    tree->Branch("flaghnoisetight"      , &_flaghnoisetight      ); 
+    tree->Branch("flaghnoisehilvl"      , &_flaghnoisehilvl      ); 
+  */
 
   return 0;
 }
