@@ -30,6 +30,7 @@ myTest = True
 
 # Is this a simulation or real data
 isMC = False
+isPrompt = False
 
 # Filter on high MET events
 filterHighMETEvents = True
@@ -47,7 +48,10 @@ usePrivateSQlite = False
 applyL2L3Residuals = False
 
 # Process name used in MiniAOD -- needed to get the correct trigger results, and also for redoing the MET
-miniAODProcess = "PAT"
+if isPrompt:
+    miniAODProcess = "RECO"
+else:
+    miniAODProcess = "PAT"
 
 # Define the input source
 process.source = cms.Source(
