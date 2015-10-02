@@ -1,0 +1,44 @@
+vector<TString> list_ZNN600ToInf_Spring15()
+{
+vector<TString> list;
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_1.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_10.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_12.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_13.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_14.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_15.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_16.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_18.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_19.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_2.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_20.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_21.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_22.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_23.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_24.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_25.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_26.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_27.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_29.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_3.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_35.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_37.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_38.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_4.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_40.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_41.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_42.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_44.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_45.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_46.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_47.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_5.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_50.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_54.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_57.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_6.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_7.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_8.root");
+list.push_back("dcap://maite.iihe.ac.be//pnfs/iihe/cms/store/user/ndaci/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/EffAN_Spring15_V4_ZNuNu_HT600toInf/150923_073146/0000/tree_9.root");
+return list;
+}
