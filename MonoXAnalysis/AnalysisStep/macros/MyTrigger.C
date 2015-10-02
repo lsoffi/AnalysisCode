@@ -1107,7 +1107,7 @@ Int_t MyTrigger::GetInput()
   }
   else if(_era=="2015D") {
     if(     _reco=="Prompt")    fList = list_SingleMu_2015D();
-    else if(_reco=="old")       fList = list_SingleMu_2015D_V2();
+    else if(_reco=="old")       fList = list_SingleMuon_2015D_V2();
     //else if(_reco=="23Sep2015") fList = list_SingleMu_2015D_23Sep2015();
   }
   else if(_era=="MC") {
