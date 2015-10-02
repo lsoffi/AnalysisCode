@@ -53,7 +53,7 @@ MyTrigger::MyTrigger(TString resultName, TString offlineSel,
   _dirOut = "/user/ndaci/Results/Monojet/Trigger/Efficiency/CMSSW_7413/";
 
   // Define log file for inefficiencies
-  _outIneff = new ofstream(_dirOut+_resultName+"/outIneff.txt");
+  DefineIneff();
 
   // Define JSON file
   _dirJson="/user/ndaci/Data/json/13TeV/";
@@ -1399,6 +1399,10 @@ Int_t MyTrigger::FillIneff()
 	       << ")" << endl
 	       << endl;
 
+  for(UInt_t i=0; i<_nameIneff.size(); i++) {
+    _hIneff->Fill(_nameIneff[i], 1);
+  }
+
   return 0;
 }
 
@@ -1417,4 +1421,47 @@ pair<Int_t, Int_t> MyTrigger::getStyle(TString name)
   if(name=="Full")  return make_pair(kRed,    kFullCircle);
 
   return make_pair(kBlack,kFullCircle);
+}
+
+Int_t DefineIneff()
+{
+
+  _outIneff = new ofstream(_dirOut+_resultName+"/outIneff.txt");
+  //
+  _hIneff   = new TH1D("hIneff","Ineff",3,0,3);
+  _hIneff->SetStats(0);
+  _hIneff->SetCanExtend(TH1::kAllAxes);
+  //
+  _nameIneff.clear();
+  // old flags
+  _nameIneff.push_back("flagcsctight");
+  _nameIneff.push_back("flaghbhenoise");
+  _nameIneff.push_back("flaghcallaser");
+  _nameIneff.push_back("flagecaltrig");
+  _nameIneff.push_back("flageebadsc");
+  _nameIneff.push_back("flagecallaser");
+  _nameIneff.push_back("flagtrkfail");
+  _nameIneff.push_back("flagtrkpog");
+  _nameIneff.push_back("flaghnoiseloose");
+  _nameIneff.push_back("flaghnoisetight");
+  _nameIneff.push_back("flaghnoisehilvl");
+  //  
+  // new flags
+  /*
+  _nameIneff.push_back("flagcsctight");
+  _nameIneff.push_back("flaghbhenoise");
+  _nameIneff.push_back("flaghbheloose");
+  _nameIneff.push_back("flaghbhetight");
+  _nameIneff.push_back("flaghcallaser");
+  _nameIneff.push_back("flagecaltrig");
+  _nameIneff.push_back("flageebadsc");
+  _nameIneff.push_back("flagecallaser");
+  _nameIneff.push_back("flagtrkfail");
+  _nameIneff.push_back("flagtrkpog");
+  _nameIneff.push_back("flaghnoiseloose");
+  _nameIneff.push_back("flaghnoisetight");
+  _nameIneff.push_back("flaghnoisehilvl");
+  */
+
+  return 0;
 }

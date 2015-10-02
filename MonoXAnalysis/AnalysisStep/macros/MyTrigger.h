@@ -54,6 +54,7 @@ class MyTrigger {
   Int_t ProdHistos();
   Int_t GetHistos();
   // efficiencies
+  Int_t DefineIneff();
   Int_t ProdEff(Bool_t print);
   Int_t FitEff();
   Int_t FillIneff();
@@ -107,6 +108,10 @@ class MyTrigger {
   M_VAR_NUM_H::iterator           _itVarNumH;
   M_STEP_VAR_NUM_H::iterator      _itStepVarNumH;
   M_PATH_STEP_VAR_NUM_H::iterator _itPathStepVarNumH;
+  
+  // histogram for inefficiency checks
+  TH1D* _hIneff;
+  vector<TString> _nameIneff;
 
   // variables and axes
   M_VAR_AXIS _Axis;
