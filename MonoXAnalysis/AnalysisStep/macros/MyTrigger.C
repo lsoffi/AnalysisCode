@@ -1080,7 +1080,7 @@ Int_t MyTrigger::InitEvent()
   _jetjetdphi = _jetmetdphimin = _incjetmetdphimin = 0;
 
   // leptons/photons
-  _wzid = _l1id = _l2id = _i1id = _i2id = _i3id = _mu1pid = _mu2pid = _mu1id = _mu2id = _el1pid = _el2pid = _el1id = _el2id = 0; 
+  _wzid = _l1id = _l2id = _mu1pid = _mu2pid = _mu1id = _mu2id = _el1pid = _el2pid = _el1id = _el2id = 0; 
   _mu1pt =_mu1eta =_mu1phi =_mu2pt =_mu2eta =_mu2phi = 0;
   _el1pt =_el1eta =_el1phi =_el2pt =_el2eta =_el2phi =_phpt =_pheta =_phphi = 0;
   _loosephpt =_loosepheta =_loosephphi =_loosephsieie = _loosephrndiso = 0;
@@ -1216,9 +1216,6 @@ Int_t MyTrigger::SetBranches()
   _ch->SetBranchAddress("wzid", &_wzid); 
   _ch->SetBranchAddress("l1id", &_l1id); 
   _ch->SetBranchAddress("l2id", &_l2id); 
-  _ch->SetBranchAddress("i1id", &_i1id); 
-  _ch->SetBranchAddress("i2id", &_i2id); 
-  _ch->SetBranchAddress("i3id", &_i3id); 
   //
   _ch->SetBranchAddress("mu1pid", &_mu1pid); 
   _ch->SetBranchAddress("mu1pt", &_mu1pt); 

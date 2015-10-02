@@ -155,7 +155,7 @@ class MyTrigger {
   double   _jetjetdphi, _jetmetdphimin, _incjetmetdphimin;
   //
   // leptons/photons
-  int32_t _wzid, _l1id, _l2id, _i1id, _i2id, _i3id, _mu1pid, _mu2pid, _mu1id, _mu2id, _el1pid, _el2pid, _el1id, _el2id; 
+  int32_t _wzid, _l1id, _l2id, _mu1pid, _mu2pid, _mu1id, _mu2id, _el1pid, _el2pid, _el1id, _el2id; 
   double  _mu1pt, _mu1eta, _mu1phi, _mu2pt, _mu2eta, _mu2phi;
   double  _el1pt, _el1eta, _el1phi, _el2pt, _el2eta, _el2phi, _phpt, _pheta, _phphi;
   double  _loosephpt, _loosepheta, _loosephphi, _loosephsieie, _loosephrndiso;
