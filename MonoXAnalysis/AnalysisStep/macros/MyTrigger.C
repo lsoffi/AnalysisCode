@@ -14,7 +14,7 @@
 
 using namespace std;
 Bool_t DEBUG = kFALSE;
-Bool_t useCutoff=kFALSE;
+Bool_t useCutoff=kTRUE;
 UInt_t cutoff=50000; // cut-off
 
 MyTrigger::~MyTrigger()
@@ -26,6 +26,9 @@ MyTrigger::MyTrigger(TString resultName, TString offlineSel,
 		     TString period, TString seed, TString json, TString field,
 		     TString skim, TString HBHECleaning, TString binning)
 {
+
+  // Issue a warning about the cutoff
+  if(useCutoff) cout << "WARNING: Using cutoff value: " << cutoff << endl;
 
   // Record arguments in members
   _resultName = resultName; 
@@ -1420,7 +1423,7 @@ pair<Int_t, Int_t> MyTrigger::getStyle(TString name)
   return make_pair(kBlack,kFullCircle);
 }
 
-Int_t DefineIneff()
+Int_t MyTrigger::DefineIneff()
 {
 
   _outIneff = new ofstream(_dirOut+_resultName+"/outIneff.txt");
