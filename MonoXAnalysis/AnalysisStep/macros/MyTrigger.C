@@ -15,7 +15,7 @@
 using namespace std;
 Bool_t DEBUG = kFALSE;
 Bool_t useCutoff=kTRUE;
-UInt_t cutoff=10000; // cut-off
+UInt_t cutoff=100000; // cut-off
 
 MyTrigger::~MyTrigger()
 {
@@ -433,6 +433,18 @@ Int_t MyTrigger::ProdHistos()
     // end fill histograms //
 
     // INVESTIGATE INEFFICIENCIES //
+    _flags["flagcsctight"] = _flagcsctight ;
+    _flags["flaghbhenoise"] = _flaghbhenoise ;
+    _flags["flaghcallaser"] = _flaghcallaser ;
+    _flags["flagecaltrig"] = _flagecaltrig ;
+    _flags["flageebadsc"] = _flageebadsc ;
+    _flags["flagecallaser"] = _flagecallaser ;
+    _flags["flagtrkfail"] = _flagtrkfail ;
+    _flags["flagtrkpog"] = _flagtrkpog ;
+    _flags["flaghnoiseloose"] = _flaghnoiseloose ;
+    _flags["flaghnoisetight"] = _flaghnoisetight ;
+    _flags["flaghnoisehilvl"] = _flaghnoisehilvl ;
+
     if(_t1mumet>200) {
       if(!_hltmet90) {
 	nIneff++ ;
@@ -1407,7 +1419,7 @@ Int_t MyTrigger::FillIneff()
 	       << endl;
 
   for(UInt_t i=0; i<_nameIneff.size(); i++) {
-    _hIneff->Fill(_nameIneff[i], 1);
+    if(_flags[_nameIneff[i]]) _hIneff->Fill(_nameIneff[i], 1);
   }
 
   return 0;

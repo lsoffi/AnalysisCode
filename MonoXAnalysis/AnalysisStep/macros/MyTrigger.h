@@ -112,6 +112,7 @@ class MyTrigger {
   // histogram for inefficiency checks
   TH1D* _hIneff;
   vector<TString> _nameIneff;
+  map<TString, bool> _flags;
 
   // variables and axes
   M_VAR_AXIS _Axis;
