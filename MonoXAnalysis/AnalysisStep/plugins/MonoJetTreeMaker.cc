@@ -153,13 +153,15 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         Int_t _trig_obj_n;
         std::vector< double > _trig_obj_pt, _trig_obj_eta, _trig_obj_phi;
         std::vector< std::string > _trig_obj_col, _trig_obj_lab;
-        std::vector< std::string > _trig_obj_path_FF, _trig_obj_path_FT, 
-          _trig_obj_path_TF, _trig_obj_path_TT ;
-        std::vector< std::vector<int> > _trig_obj_ids;
+        //std::vector< std::string > _trig_obj_path_FF, _trig_obj_path_FT, 
+        //_trig_obj_path_TF, _trig_obj_path_TT ;
+        //std::vector< std::vector<int> > _trig_obj_ids;
 
         // Jet informations
-        std::vector< double > _jet_pt, _jet_eta, _jet_phi, 
-	  _jet_CHfrac, _jet_NHfrac, _jet_EMfrac, _jet_CEMfrac;
+        const static UInt_t _nMaxJets=20;
+        uint32_t _jet_n;
+        double _jet_pt[_nMaxJets], _jet_eta[_nMaxJets], _jet_phi[_nMaxJets], 
+	  _jet_CHfrac[_nMaxJets], _jet_NHfrac[_nMaxJets], _jet_EMfrac[_nMaxJets], _jet_CEMfrac[_nMaxJets];
 
         struct PatJetPtSorter {
             bool operator() (pat::JetRef i, pat::JetRef j) {
@@ -489,11 +491,10 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       return;
     }
 
-    //const edm::TriggerNames & triggerNames = iEvent.triggerNames(*triggerResultsH);
     string trgColl,trgFiltStr,trgPathsFFStr;
     vector<int> trgIds;
     vector<string> trgFilt, trgPathsFF, trgPathsFT, trgPathsTF, trgPathsTT;
-    bool isNone, isL3, isLF, isBoth;
+    ///bool isNone, isL3, isLF, isBoth;
     int iObj=0;
 
     // Loop over trigger objects    
@@ -521,7 +522,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       if(_verbose>1) cout << "\t   Type IDs:   ";
       trgIds = obj.filterIds();
       //
-      _trig_obj_ids.push_back(trgIds);
+      //_trig_obj_ids.push_back(trgIds);
       //
       for (unsigned h = 0; h < trgIds.size(); ++h) {
 	if(_verbose>1) cout << " " << trgIds[h] ;
@@ -539,6 +540,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       _trig_obj_lab.push_back(trgFiltStr);
       
       // Trigger paths
+      /*
       trgPathsFF = obj.pathNames(false,false);
       trgPathsFT = obj.pathNames(false,true);
       trgPathsTF = obj.pathNames(true,false);
@@ -550,8 +552,9 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       //
       if(_verbose>1) cout << "\t   Paths (" << trgPathsFF.size()<<"/"<<trgPathsTT.size()<<"):    ";
       //
-      
+
       // Loop over all associated paths
+
       for (unsigned h = 0, n = trgPathsFF.size(); h < n; ++h) {
 	
 	trgPathsFFStr += trgPathsFF[h]+"_%_";      
@@ -572,6 +575,7 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
       if(_verbose>1) cout << endl;
       //
       _trig_obj_path_FF.push_back(trgPathsFFStr);
+      */
       
       // Clear vectors
       trgIds.clear();
@@ -752,17 +756,21 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     // AK4 Jets
     njets     = 0;
     nbjets    = 0;
+    _jet_n = 0;
     for (size_t i = 0; i < jets.size(); i++) {
 
         if (jets[i]->pt() > 30) { 
 	  njets++;
-	  _jet_pt     .push_back(jets[i]->pt());
-	  _jet_eta    .push_back(jets[i]->eta());
-	  _jet_phi    .push_back(jets[i]->phi());
-	  _jet_CHfrac .push_back(jets[i]->chargedHadronEnergyFraction());
-	  _jet_NHfrac .push_back(jets[i]->neutralHadronEnergyFraction());
-	  _jet_EMfrac .push_back(jets[i]->neutralEmEnergyFraction());
-	  _jet_CEMfrac.push_back(jets[i]->chargedEmEnergyFraction());
+	  if(_jet_n <= _nMaxJets) {
+	    _jet_n++ ;
+	    _jet_pt     [i] = jets[i]->pt();
+	    _jet_eta    [i] = jets[i]->eta();
+	    _jet_phi    [i] = jets[i]->phi();
+	    _jet_CHfrac [i] = jets[i]->chargedHadronEnergyFraction();
+	    _jet_NHfrac [i] = jets[i]->neutralHadronEnergyFraction();
+	    _jet_EMfrac [i] = jets[i]->neutralEmEnergyFraction();
+	    _jet_CEMfrac[i] = jets[i]->chargedEmEnergyFraction();
+	  }
 	}
 
         if (jets[i]->pt() > 30 && jets[i]->bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.814) nbjets++;
@@ -1235,7 +1243,7 @@ void MonoJetTreeMaker::beginJob() {
 
     edm::Service<TFileService> fs;
     tree = fs->make<TTree>("tree"       , "tree");
-    int buffersize = 32000; // trig_obj vectors
+    int buffersize = 1000; // trig_obj vectors
     // Run, Lumi, Event info
     tree->Branch("event"                , &event                , "event/i");
     tree->Branch("run"                  , &run                  , "run/i");
@@ -1275,21 +1283,22 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("trig_obj_eta","std::vector<double>",&_trig_obj_eta,buffersize);
     tree->Branch("trig_obj_phi","std::vector<double>",&_trig_obj_phi,buffersize);
     tree->Branch("trig_obj_col","std::vector<std::string>",&_trig_obj_col,buffersize);
-    tree->Branch("trig_obj_ids","std::vector<std::vector<std::int>>",&_trig_obj_ids,buffersize);
     tree->Branch("trig_obj_lab", "std::vector<std::string>",&_trig_obj_lab, buffersize);
-    tree->Branch("trig_obj_path_FF","std::vector<std::string>",&_trig_obj_path_FF,buffersize);
-    tree->Branch("trig_obj_path_FT","std::vector<std::string>",&_trig_obj_path_FT,buffersize);
-    tree->Branch("trig_obj_path_TF","std::vector<std::string>",&_trig_obj_path_TF,buffersize);
-    tree->Branch("trig_obj_path_TT","std::vector<std::string>",&_trig_obj_path_TT,buffersize);
+    //tree->Branch("trig_obj_ids","std::vector<std::vector<std::int>>",&_trig_obj_ids,buffersize);
+    //tree->Branch("trig_obj_path_FF","std::vector<std::string>",&_trig_obj_path_FF,buffersize);
+    //tree->Branch("trig_obj_path_FT","std::vector<std::string>",&_trig_obj_path_FT,buffersize);
+    //tree->Branch("trig_obj_path_TF","std::vector<std::string>",&_trig_obj_path_TF,buffersize);
+    //tree->Branch("trig_obj_path_TT","std::vector<std::string>",&_trig_obj_path_TT,buffersize);
 
     // Jet vectors
-    tree->Branch("jet_pt" ,"std::vector<double>",&_jet_pt ,buffersize);
-    tree->Branch("jet_eta","std::vector<double>",&_jet_eta,buffersize);
-    tree->Branch("jet_phi","std::vector<double>",&_jet_phi,buffersize);
-    tree->Branch("jet_CHfrac", "std::vector<double>",&_jet_CHfrac, buffersize);
-    tree->Branch("jet_NHfrac", "std::vector<double>",&_jet_NHfrac, buffersize);
-    tree->Branch("jet_EMfrac", "std::vector<double>",&_jet_EMfrac, buffersize);
-    tree->Branch("jet_CEMfrac","std::vector<double>",&_jet_CEMfrac,buffersize);
+    tree->Branch("jet_n" ,&_jet_n );
+    tree->Branch("jet_pt[jet_n]" ,&_jet_pt );
+    tree->Branch("jet_eta[jet_n]",&_jet_eta);
+    tree->Branch("jet_phi[jet_n]",&_jet_phi);
+    tree->Branch("jet_CHfrac[jet_n]",&_jet_CHfrac);
+    tree->Branch("jet_NHfrac[jet_n]",&_jet_NHfrac);
+    tree->Branch("jet_EMfrac[jet_n]",&_jet_EMfrac);
+    tree->Branch("jet_CEMfrac[jet_n]",&_jet_CEMfrac);
 
     // MET filters
     tree->Branch("flagcsctight"         , &flagcsctight         , "flagcsctight/b");
@@ -1563,21 +1572,22 @@ void MonoJetTreeMaker::beginRun(edm::Run const& iRun, edm::EventSetup const& iSe
     _trig_obj_phi.clear();
     _trig_obj_col.clear();
     _trig_obj_lab.clear();
-    _trig_obj_ids.clear();
-    _trig_obj_path_FF.clear();
-    _trig_obj_path_FT.clear();
-    _trig_obj_path_TF.clear();
-    _trig_obj_path_TT.clear();
+    //_trig_obj_ids.clear();
+    //_trig_obj_path_FF.clear();
+    //_trig_obj_path_FT.clear();
+    //_trig_obj_path_TF.clear();
+    //_trig_obj_path_TT.clear();
 
     // jets
-    _jet_pt     .clear(); 
-    _jet_eta    .clear(); 
-    _jet_phi    .clear(); 
-    _jet_CHfrac .clear(); 
-    _jet_NHfrac .clear(); 
-    _jet_EMfrac .clear(); 
-    _jet_CEMfrac.clear(); 
-
+    for (size_t i = 0; i < _nMaxJets; i++) {
+      _jet_pt     [i] = 0; 
+      _jet_eta    [i] = 0; 
+      _jet_phi    [i] = 0; 
+      _jet_CHfrac [i] = 0; 
+      _jet_NHfrac [i] = 0; 
+      _jet_EMfrac [i] = 0; 
+      _jet_CEMfrac[i] = 0; 
+    }
 
     // MET filter Paths
     filterPathsVector.push_back("Flag_CSCTightHaloFilter");
@@ -1674,11 +1684,21 @@ void MonoJetTreeMaker::Init()
   _trig_obj_phi.clear();
   _trig_obj_col.clear();
   _trig_obj_lab.clear();
-  _trig_obj_ids.clear();
-  _trig_obj_path_FF.clear();
-  _trig_obj_path_FT.clear();
-  _trig_obj_path_TF.clear();
-  _trig_obj_path_TT.clear();
+  //_trig_obj_ids.clear();
+  //_trig_obj_path_FF.clear();
+  //_trig_obj_path_FT.clear();
+  //_trig_obj_path_TF.clear();
+  //_trig_obj_path_TT.clear();
+
+  for (size_t i = 0; i < _nMaxJets; i++) {
+    _jet_pt     [i] = 0; 
+    _jet_eta    [i] = 0; 
+    _jet_phi    [i] = 0; 
+    _jet_CHfrac [i] = 0; 
+    _jet_NHfrac [i] = 0; 
+    _jet_EMfrac [i] = 0; 
+    _jet_CEMfrac[i] = 0; 
+  }
 
 }
 
