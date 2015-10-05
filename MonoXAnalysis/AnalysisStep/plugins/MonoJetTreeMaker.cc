@@ -1292,13 +1292,13 @@ void MonoJetTreeMaker::beginJob() {
 
     // Jet vectors
     tree->Branch("jet_n" ,&_jet_n );
-    tree->Branch("jet_pt[jet_n]" ,&_jet_pt );
-    tree->Branch("jet_eta[jet_n]",&_jet_eta);
-    tree->Branch("jet_phi[jet_n]",&_jet_phi);
-    tree->Branch("jet_CHfrac[jet_n]",&_jet_CHfrac);
-    tree->Branch("jet_NHfrac[jet_n]",&_jet_NHfrac);
-    tree->Branch("jet_EMfrac[jet_n]",&_jet_EMfrac);
-    tree->Branch("jet_CEMfrac[jet_n]",&_jet_CEMfrac);
+    tree->Branch("jet_pt" ,&_jet_pt , "jet_pt[jet_n]/D");
+    tree->Branch("jet_eta",&_jet_eta, "jet_eta[jet_n]/D");
+    tree->Branch("jet_phi",&_jet_phi,"jet_phi[jet_n]/D");
+    tree->Branch("jet_CHfrac",&_jet_CHfrac,"jet_CHfrac[jet_n]/D");
+    tree->Branch("jet_NHfrac",&_jet_NHfrac,"jet_NHfrac[jet_n]/D");
+    tree->Branch("jet_EMfrac",&_jet_EMfrac,"jet_EMfrac[jet_n]/D");
+    tree->Branch("jet_CEMfrac",&_jet_CEMfrac,"jet_CEMfrac[jet_n]/D");
 
     // MET filters
     tree->Branch("flagcsctight"         , &flagcsctight         , "flagcsctight/b");
