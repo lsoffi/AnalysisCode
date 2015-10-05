@@ -1,9 +1,9 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413_Run2015D_V5'
-proc = 'SingleMu'
-dataset = '/SingleMuon/Run2015D-PromptReco-v3/MINIAOD'
+name = 'EffAN_7413_Run2015D_V1'
+proc = 'SingleEle'
+dataset = '/SingleElectron/Run2015D-PromptReco-v3/MINIAOD'
 
 # GENERAL
 config.section_("General")
