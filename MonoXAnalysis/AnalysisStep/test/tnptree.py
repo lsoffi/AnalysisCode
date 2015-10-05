@@ -75,6 +75,27 @@ process.probeelectrons = cms.EDFilter("PATElectronSelector",
     filter = cms.bool(True)  
 )
 
+tagmuontriggernames = cms.vstring([
+    "HLT_IsoMu20_eta2p1_v*",
+    "HLT_IsoMu24_eta2p1_v*",
+    "HLT_IsoTkMu20_eta2p1_v*",
+    "HLT_IsoTkMu24_eta2p1_v*"
+])
+
+if isMCFlag : 
+    tagelectrontriggernames = cms.vstring([
+        "HLT_Ele27_WP85_Gsf_v*",
+        "HLT_Ele27_eta2p1_WP75_Gsf_v*",
+        "HLT_Ele32_eta2p1_WP75_Gsf_v_v*"
+    ])    
+else :
+    tagelectrontriggernames = cms.vstring([
+        "HLT_Ele27_eta2p1_WPLoose_Gsf_v*",
+        "HLT_Ele27_eta2p1_WPTight_Gsf_v*",
+        "HLT_Ele32_eta2p1_WPLoose_Gsf_v*",
+        "HLT_Ele32_eta2p1_WPTight_Gsf_v*"
+    ])
+
 # Make the ValueMap for muon tight ID -- cannot pass it through a string selection due to the vertex argument
 process.probeinfo = cms.EDProducer("LeptonTnPInfoProducer",
     muons = cms.InputTag("probemuons"),
@@ -89,22 +110,12 @@ process.probeinfo = cms.EDProducer("LeptonTnPInfoProducer",
     tagmuonetacut = cms.double(2.1),
     tagmuontrigmatchdR = cms.double(0.3),
     requiremuonhlt = cms.bool(True),
-    tagmuontriggers = cms.vstring([
-        "HLT_IsoMu20_eta2p1_v*", 
-        "HLT_IsoMu24_eta2p1_v*", 
-        "HLT_IsoTkMu20_eta2p1_v*", 
-        "HLT_IsoTkMu24_eta2p1_v*"
-    ]),
+    tagmuontriggers = tagmuontriggernames,
     tagelectronptcut = cms.double(40.0),
     tagelectronetacut = cms.double(2.1),
     tagelectrontrigmatchdR = cms.double(0.3),
     requireelectronhlt = cms.bool(True),
-    tagelectrontriggers = cms.vstring([
-        "HLT_Ele27_eta2p1_WPLoose_Gsf_v*",
-        "HLT_Ele27_eta2p1_WPTight_Gsf_v*",
-        "HLT_Ele32_eta2p1_WPLoose_Gsf_v*",
-        "HLT_Ele32_eta2p1_WPTight_Gsf_v*"
-    ]),
+    tagelectrontriggers = tagelectrontriggernames,
     electronvetoid = cms.InputTag("egmGsfElectronIDs:cutBasedElectronID-Spring15-25ns-V1-standalone-veto"),
     electronlooseid = cms.InputTag("egmGsfElectronIDs:cutBasedElectronID-Spring15-25ns-V1-standalone-loose"),
     electronmediumid = cms.InputTag("egmGsfElectronIDs:cutBasedElectronID-Spring15-25ns-V1-standalone-medium"),

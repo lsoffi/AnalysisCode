@@ -416,6 +416,16 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         if (i == 43 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
         if (i == 44 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
         if (i == 45 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 46 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 47 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 48 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 49 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 50 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 51 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 52 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 53 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 54 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 55 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
     }
 
     bool triggered = false;
@@ -625,8 +635,8 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     pmetphi = 0.;
     ometphi = 0.;
 
-    t1pfmet        = t1pfmetH->front().et();
-    t1pfmetphi     = t1pfmetH->front().phi();
+    t1pfmet        = t1pfmetH->front().corPt();
+    t1pfmetphi     = t1pfmetH->front().corPhi();
 
     calomet        = t1pfmetH->front().caloMETPt();
     calometphi     = t1pfmetH->front().caloMETPhi();
@@ -1543,6 +1553,16 @@ void MonoJetTreeMaker::beginRun(edm::Run const& iRun, edm::EventSetup const& iSe
     triggerPathsVector.push_back("HLT_Ele32_eta2p1_WPLoose_Gsf");
     triggerPathsVector.push_back("HLT_Ele32_eta2p1_WPTight_Gsf");
     triggerPathsVector.push_back("HLT_Ele27_WPLoose_Gsf_WHbbBoost");
+    triggerPathsVector.push_back("HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_v"); //ND: Spring15 MC single ele
+    triggerPathsVector.push_back("HLT_Ele17_Ele12_CaloIdL_TrackIdL_IsoVL_v");
+    triggerPathsVector.push_back("HLT_Ele23_CaloIdL_TrackIdL_IsoVL_v");
+    triggerPathsVector.push_back("HLT_Ele12_CaloIdL_TrackIdL_IsoVL_v");
+    triggerPathsVector.push_back("HLT_Ele22_eta2p1_WP75_Gsf_v");
+    triggerPathsVector.push_back("HLT_Ele27_WP85_Gsf_v");
+    triggerPathsVector.push_back("HLT_Ele27_eta2p1_WP75_Gsf_v");
+    triggerPathsVector.push_back("HLT_Ele32_eta2p1_WP75_Gsf_v");
+    triggerPathsVector.push_back("HLT_Ele105_CaloIdVT_GsfTrkIdT_v");
+    triggerPathsVector.push_back("HLT_Ele25WP60_SC4_Mass55_v");
 
     HLTConfigProvider hltConfig;
     bool changedConfig = false;

@@ -67,8 +67,8 @@ void MuonCorrectedMETProducer::produce(edm::Event& iEvent, const edm::EventSetup
 
     std::auto_ptr<METCollection> output(new METCollection);
 
-    double met    = (useuncorrmet ? metH->front().uncorPt()  : metH->front().et());
-    double metphi = (useuncorrmet ? metH->front().uncorPhi() : metH->front().phi());
+    double met    = (useuncorrmet ? metH->front().uncorPt()  : metH->front().corPt());
+    double metphi = (useuncorrmet ? metH->front().uncorPhi() : metH->front().corPhi());
     
     double ccmetx = (muptonly ? 0.0 : met * cos(metphi));
     double ccmety = (muptonly ? 0.0 : met * sin(metphi));

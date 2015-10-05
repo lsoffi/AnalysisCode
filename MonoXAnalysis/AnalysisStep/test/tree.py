@@ -26,7 +26,7 @@ process.maxEvents = cms.untracked.PSet(
 )
 
 # Is this a simulation or real data
-isMC = True
+isMC = False
 
 # Filter on high MET events
 filterHighMETEvents = False
@@ -35,21 +35,21 @@ filterHighMETEvents = False
 filterOnHLT = True
 
 # Redo jets and MET with updated JEC
-redoJetsMET = False
+redoJetsMET = True
 
 # Use private JECs since the GTs are not updated
-usePrivateSQlite = False
+usePrivateSQlite = True
 
 # Apply L2L3 residual corrections
-applyL2L3Residuals = False
+applyL2L3Residuals = True
 
 # Process name used in MiniAOD -- needed to get the correct trigger results, and also for redoing the MET
-miniAODProcess = "PAT"
+miniAODProcess = "RECO"
 
 # Define the input source
 process.source = cms.Source("PoolSource", 
     fileNames = cms.untracked.vstring([
-        '/store/mc/RunIISpring15MiniAODv2/TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/74X_mcRun2_asymptotic_v2-v1/00000/0014DC94-DC5C-E511-82FB-7845C4FC39F5.root'
+        '/store/data/Run2015D/DoubleMuon/MINIAOD/PromptReco-v3/000/256/629/00000/E2B8C5F0-F45E-E511-ADC8-02163E01410C.root'
     ])
 )
 
@@ -67,7 +67,7 @@ else:
 if usePrivateSQlite:
     from CondCore.DBCommon.CondDBSetup_cfi import *
     import os
-    era = "Summer15_50nsV4"
+    era = "Summer15_25nsV5"
     if isMC : 
         era += "_MC"
     else :
@@ -135,7 +135,8 @@ if redoJetsMET :
         isData = (not isMC),
     )
     if miniAODProcess != "PAT" :
-        process.genMetExtractor.metSource= cms.InputTag("slimmedMETs", "", miniAODProcess)   
+        if isMC : 
+            process.genMetExtractor.metSource= cms.InputTag("slimmedMETs", "", miniAODProcess)   
         process.slimmedMETs.t01Variation = cms.InputTag("slimmedMETs", "", miniAODProcess) 
 
     if not applyL2L3Residuals : 
@@ -234,20 +235,20 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     hcalnoise = cms.InputTag("hcalnoise"),
     hbheloose = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Loose"),
     hbhetight = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Tight"),
-    xsec = cms.double(831.76),
+    xsec = cms.double(0.001),
     cleanMuonJet = cms.bool(True),
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
     applyHLTFilter = cms.bool(filterOnHLT),
-    uselheweights = cms.bool(True),
-    isWorZMCSample = cms.bool(True)
+    uselheweights = cms.bool(False),
+    isWorZMCSample = cms.bool(False)
 )
 
 # Tree for the generator weights
 process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
     lheinfo = cms.InputTag("externalLHEProducer"),
     geninfo = cms.InputTag("generator"),
-    uselheweights = cms.bool(True),
+    uselheweights = cms.bool(False),
     addqcdpdfweights = cms.bool(False)
 )
 
