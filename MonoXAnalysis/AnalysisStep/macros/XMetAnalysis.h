@@ -17,7 +17,7 @@ class XMetAnalysis {
 
  public:
 
-  XMetAnalysis(TString tag);
+  XMetAnalysis(TString tag, TString subdir);
   ~XMetAnalysis();
 
   // Chains
@@ -28,7 +28,7 @@ class XMetAnalysis {
   Int_t Analysis();
   Int_t AnalysisRun1();
   Int_t AnalysisAN15();
-  Int_t StudyQCDKiller(TString);
+  Int_t StudyQCDKiller(TString signal);
   
   Int_t plot(TString select, 			 
 	     const UInt_t nCut, TString* scanCut, Bool_t* scanReset,
@@ -46,7 +46,7 @@ class XMetAnalysis {
   MAP_PROCESS _mapProcess;
   MAP_PROCESS::iterator _itProcess;
   //
-  TString  _tag,  _path;
+  TString  _tag,  _pathMC, _pathData, _dirOut;
   Bool_t   _isAN15, _isRun1;
   Double_t _lumi, _rescale, _qcdScale;
   

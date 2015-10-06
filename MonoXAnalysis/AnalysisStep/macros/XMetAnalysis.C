@@ -3,21 +3,29 @@
 using namespace std;
 Int_t verbose = 2;
 
-XMetAnalysis::XMetAnalysis(TString tag)
+XMetAnalysis::XMetAnalysis(TString tag, TString subdir="AN")
 {
 
   _tag = tag;
   _isAN15 = _tag.Contains("AN15");
   _isRun1 = _tag.Contains("Run1");
 
-  _outfile = new TFile("plots/"+_tag+"/plots_"+_tag+".root","recreate");
-  _outlog  = new ofstream("plots/"+_tag+"/yields_"+_tag+".txt",ios::out);
+  _dirOut  = "/user/ndaci/Results/Monojet/"+subdir+"/";
+  _outfile = new TFile(_dirOut+"/"+_tag+"/plots_"+_tag+".root","recreate");
+  _outlog  = new ofstream(_dirOut+"/"+_tag+"/yields_"+_tag+".txt",ios::out);
 
   // Define the chains
   if(_isRun1)      DefineChainsRun1();
   else if(_isAN15) DefineChainsAN15();
-  else DefineChainsRun1();
+  else             DefineChainsRun1();
 
+  cout << "Will use trees for: ";
+  if(_isRun1) cout << "8TeV analysis" << endl;
+  if(_isAN15) cout << "2015 analysis" << endl;
+  cout << "MC   trees: "  << _pathMC
+       << "Data trees: "  << _pathData
+       << "Results in: "  << _dirOut+"/"+_tag+"/";
+       << endl;
 }
 
 XMetAnalysis::~XMetAnalysis()
@@ -43,8 +51,8 @@ Int_t XMetAnalysis::AnalysisAN15()
 
   // MC backgrounds
   locProcesses.push_back("znn"); 
-  //locProcesses.push_back("zll"); 
-  locProcesses.push_back("wjets"); 
+  locProcesses.push_back("zll"); 
+  locProcesses.push_back("wln"); 
   locProcesses.push_back("ttbar"); 
   locProcesses.push_back("top"); 
   locProcesses.push_back("vv"); 
@@ -116,7 +124,7 @@ Int_t XMetAnalysis::AnalysisRun1()
   // MC backgrounds
   locProcesses.push_back("znn"); 
   locProcesses.push_back("zll"); 
-  locProcesses.push_back("wjets"); 
+  locProcesses.push_back("wln"); 
   locProcesses.push_back("ttbar"); 
   locProcesses.push_back("top"); 
   locProcesses.push_back("vv"); 
@@ -182,35 +190,40 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   const UInt_t nS=6;
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet","4jet"};
 
+  const UInt_t nCut=1;
+  TString scanCut[  nCut] = {"NoCut"};
+  Bool_t  scanReset[nCut] = {true};
+
+  /*
   const UInt_t nCut=4;
   TString scanCut[  nCut] = {"Met200", "MetFrom200to250", "MetFrom250to350", "Met350"};
   Bool_t  scanReset[nCut] = {true,true,true,true};
+  */
 
+  /*
   const UInt_t nV=2;
   TString var[nV] = {"jetmetdphimin", "incjetmetdphimin"};
   UInt_t  nBins[nV]  = {10000, 10000};
   Float_t xFirst[nV] = {0,  0};
   Float_t xLast[nV]  = {3.2, 3.2};
-
-  /*
-  const UInt_t nV=7;
-  TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
-			"jetjetdphi","jetmetdphimin",
-			"dphiJ1J3","dphiJ2J3"};
-
-  UInt_t  nBins[nV]  = {8000, 10000, 10000, 10000};//, 10000};//, 10000, 10000};
-  Float_t xFirst[nV] = {0,  0,  0,  0};//,   0  };//, 0  , 0};
-  Float_t xLast[nV]  = {2,  3.2, 3.2, 3.2};//, 3.2, 3.2};
   */
 
+  const UInt_t nV=11;
+  TString var[nV]    = {"jetmetdphimin"   , "incjetmetdphimin",
+			"signaljetmetdphi", "secondjetmetdphi", 
+			"thirdjetmetdphi" , "jetjetdphi",
+			"dphiJ1J3"        , "dphiJ2J3",
+			"apcjetmetmax"    , "apcjetmetmin",
+			"alphat"};
+
+  UInt_t  nBins[nV]  = {10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 8000};
+  Float_t xFirst[nV] = {    0,     0,     0,     0,     0,     0,     0,     0,     0,     0,    0};
+  Float_t xLast[nV]  = {  3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,    2};
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
-
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
-
     plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
-
   }
 
   _outfile->Close();
@@ -272,7 +285,7 @@ Int_t XMetAnalysis::plot(TString select,
     }
     else { 
       if(_isRun1) weight = "puwgt*wgt"; 
-      else if(_isAN15) weight = "xsec*(wgt/wgtsum)*puwgt";
+      else if(_isAN15) weight = "xsec*(wgt/wgtsum)*puwgt"; 
     }
 
     // Choose the phase space region
@@ -294,7 +307,7 @@ Int_t XMetAnalysis::plot(TString select,
       else { region = "wctrl"; }
     }
     //
-    else if(_isAN15 && nameDir.Contains("znn")) { //fixme: remove when we get real znn mc
+    else if(_isAN15 && nameDir.Contains("znnfromw")) { //fixme: remove when we get real znn mc
       region = "zfromw";
       weight *= "0.75";
     }
@@ -383,7 +396,7 @@ Int_t XMetAnalysis::plot(TString select,
   pair<Double_t, Double_t> theNum, theDen, theSF;
   //
   // DD scale-factor-like
-  TString myNum[nDD]    = {"znn","wjets"};
+  TString myNum[nDD]    = {"znn","wln"};
   TString myDen[nDD]    = {"zn_cr_MC","wj_cr_MC"};
   // DD corrected-like
   TString myDD[nDD]     = {"zn","wj"};
@@ -695,31 +708,64 @@ Int_t XMetAnalysis::DefineChainsAN15()
 
   if(verbose>1) cout << "- begin DefineChainsAN15()" << endl;
 
-  _path    = "/user/ndaci/Data/XMET/Spring15/";
-  _lumi    = 5.0; // assume 5.0 /fb
+  _pathMC   = "/user/ndaci/Data/XMET/Spring15MC_25ns/";
+  _pathData = "/user/ndaci/Data/XMET/Run2015D/";
+  _lumi    = 0.220; // fixme: we have 220 /fb
   _rescale = 1.0; 
-  _qcdScale= 1.0; // will need update
+  _qcdScale= 1.0; // fixme: will need update
 
   // MC backgrounds
-  _mapProcess["znn"  ] = XMetProcess("znn",   kAzure+7,  "reducedtreewithwgt.root");
-  //_mapProcess["zll"  ] = XMetProcess("zll",   kPink+9,   "reducedtreewithwgt.root");
-  _mapProcess["wjets"] = XMetProcess("wjets", kGreen+2,  "reducedtreewithwgt.root");
-  _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3,"reducedtreewithwgt.root");
-  _mapProcess["qcd"  ] = XMetProcess("qcd",   kRed,      "reducedtreewithwgt.root");
-  _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "reducedtreewithwgt.root");
-  _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "reducedtreewithwgt.root");
+  _mapProcess["znn"  ] = XMetProcess("znn",   kAzure+7,  "skimMumet100WgtSum.root");
+  _mapProcess["zll"  ] = XMetProcess("zll",   kPink+9,   "skimMumet100WgtSum.root");
+  _mapProcess["wln"  ] = XMetProcess("wln",   kGreen+2,  "skimMumet100WgtSum.root");
+  _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3,"skimMumet100WgtSum.root");
+  _mapProcess["qcd"  ] = XMetProcess("qcd",   kRed,      "skimMumet100WgtSum.root");
+  _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "skimMumet100WgtSum.root");
+  _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "skimMumet100WgtSum.root");
 
   // Sub-directories in _path
   //
+  // data
+  //_mapProcess["data"].AddDir("met");
+  //
   // mc backgrounds
-  //_mapProcess["znn"].AddDir("znn");
-  _mapProcess["znn"].AddDir("wln"); //fixme: waiting for real znn mc
-  //_mapProcess["zll"].AddDir("zll");
-  _mapProcess["wjets"].AddDir("wln");
+  //
+  _mapProcess["znn"].AddDir("znn100to200");
+  _mapProcess["znn"].AddDir("znn200to400");
+  _mapProcess["znn"].AddDir("znn400to600");
+  _mapProcess["znn"].AddDir("znn600toinf");
+  //
+  _mapProcess["wln"].AddDir("wln100to200");
+  _mapProcess["wln"].AddDir("wln200to400");
+  _mapProcess["wln"].AddDir("wln400to600");
+  _mapProcess["wln"].AddDir("wln600toinf");
+  //_mapProcess["wln"].AddDir("wln"); //fixme: is this the merge ?
+  //
+  _mapProcess["zll"].AddDir("zll100to200");
+  _mapProcess["zll"].AddDir("zll200to400");
+  _mapProcess["zll"].AddDir("zll400to600");
+  _mapProcess["zll"].AddDir("zll600toinf");
+  //_mapProcess["zll"].AddDir("zll"); //fixme: is this the merge ?
+  //
   _mapProcess["ttbar"].AddDir("ttbar");
-  _mapProcess["top"].AddDir("top");
-  _mapProcess["qcd"].AddDir("qcd");
-  _mapProcess["vv"].AddDir("dibosons");
+  //
+  _mapProcess["top"].AddDir("singletbart");
+  _mapProcess["top"].AddDir("singletbarw");
+  _mapProcess["top"].AddDir("singlett");
+  _mapProcess["top"].AddDir("singletw");
+  //
+  _mapProcess["qcd"].AddDir("qcdht1000to1500");
+  _mapProcess["qcd"].AddDir("qcdht100to200");
+  _mapProcess["qcd"].AddDir("qcdht1500to2000");
+  _mapProcess["qcd"].AddDir("qcdht2000toinf");
+  _mapProcess["qcd"].AddDir("qcdht200to300");
+  _mapProcess["qcd"].AddDir("qcdht300to500");
+  _mapProcess["qcd"].AddDir("qcdht500to700");
+  _mapProcess["qcd"].AddDir("qcdht700to1000");
+  //
+  _mapProcess["vv"].AddDir("ww");
+  _mapProcess["vv"].AddDir("wz");
+  _mapProcess["vv"].AddDir("zz");
   //
 
   if(verbose>1) cout << "#entries in mapProcess : " << _mapProcess.size() << endl;
@@ -727,7 +773,8 @@ Int_t XMetAnalysis::DefineChainsAN15()
   // Add the files to the chains
   for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++ ) {
     _itProcess->second.SetNameTree("tree/tree");
-    _itProcess->second.SetPath(_path);
+    if(_itProcess->first=="data") _itProcess->second.SetPath(_pathData);
+    else                          _itProcess->second.SetPath(_pathMC);
     _itProcess->second.AddTrees();
   }
 
@@ -739,7 +786,8 @@ Int_t XMetAnalysis::DefineChainsRun1()
 
   if(verbose>1) cout << "- begin DefineChainsRun1()" << endl;
 
-  _path    = "/user/ndaci/Data/XMET/5Xtrees/";
+  _pathData= "/user/ndaci/Data/XMET/5Xtrees/";
+  _pathMC  = "/user/ndaci/Data/XMET/5Xtrees/";
   _lumi    = 19.7; // Adish
   //_lumi    = 19.5; // Run1 AN
   _rescale = 1.0;
@@ -748,7 +796,7 @@ Int_t XMetAnalysis::DefineChainsRun1()
   // MC backgrounds
   _mapProcess["znn"  ] = XMetProcess("znn",   kAzure+7,  "reducedtree.root");
   _mapProcess["zll"  ] = XMetProcess("zll",   kPink+9,   "reducedtree.root");
-  _mapProcess["wjets"] = XMetProcess("wjets", kGreen+2,  "reducedtree.root");
+  _mapProcess["wln"  ] = XMetProcess("wln", kGreen+2,  "reducedtree.root");
   _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3,"reducedtree.root");
   _mapProcess["qcd"  ] = XMetProcess("qcd",   kRed,      "reducedtree.root");
   _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "reducedtree.root");
@@ -814,7 +862,7 @@ Int_t XMetAnalysis::DefineChainsRun1()
   /// mc backgrounds
   _mapProcess["znn"].AddDir("znn");
   _mapProcess["zll"].AddDir("zll");
-  _mapProcess["wjets"].AddDir("wjets");
+  _mapProcess["wln"].AddDir("wln");
   _mapProcess["ttbar"].AddDir("ttbar");
   _mapProcess["top"].AddDir("singletop");
   _mapProcess["qcd"].AddDir("qcd");
@@ -823,7 +871,7 @@ Int_t XMetAnalysis::DefineChainsRun1()
   _mapProcess["zn_cr_DA"].AddDir("met");
   _mapProcess["zn_cr_MC"].AddDir("zll");
   _mapProcess["wj_cr_DA"].AddDir("met");
-  _mapProcess["wj_cr_MC"].AddDir("wjets");
+  _mapProcess["wj_cr_MC"].AddDir("wln");
   /// data-driven (corr)
   _mapProcess["zn_cr_corr_DA"].AddDir("met");
   _mapProcess["zn_cr_corr_MC"].AddDir("bkgz");
@@ -838,7 +886,8 @@ Int_t XMetAnalysis::DefineChainsRun1()
   // Add the files to the chains
   for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++ ) {
     _itProcess->second.SetNameTree("tree/tree");
-    _itProcess->second.SetPath(_path);
+    if(_itProcess->first=="data") _itProcess->second.SetPath(_pathData);
+    else                          _itProcess->second.SetPath(_pathMC);
     _itProcess->second.AddTrees();
   }
 
