@@ -710,7 +710,7 @@ Int_t XMetAnalysis::DefineChainsAN15()
 
   _pathMC   = "/user/ndaci/Data/XMET/Spring15MC_25ns/";
   _pathData = "/user/ndaci/Data/XMET/Run2015D/";
-  _lumi    = 0.220; // fixme: we have 220 /fb
+  _lumi    = 0.210; // fixme: we have 210 /fb
   _rescale = 1.0; 
   _qcdScale= 1.0; // fixme: will need update
 
