@@ -20,11 +20,11 @@ XMetAnalysis::XMetAnalysis(TString tag, TString subdir="AN")
   else             DefineChainsRun1();
 
   cout << "Will use trees for: ";
-  if(_isRun1) cout << "8TeV analysis" << endl;
-  if(_isAN15) cout << "2015 analysis" << endl;
-  cout << "MC   trees: "  << _pathMC
-       << "Data trees: "  << _pathData
-       << "Results in: "  << _dirOut+"/"+_tag+"/";
+  if(_isRun1) cout << "8TeV analysis"  << endl;
+  if(_isAN15) cout << "2015 analysis"  << endl;
+  cout << "MC   trees: "  << _pathMC   << endl
+       << "Data trees: "  << _pathData << endl
+       << "Results in: "  << _dirOut+"/"+_tag+"/"
        << endl;
 }
 
@@ -714,6 +714,13 @@ Int_t XMetAnalysis::DefineChainsAN15()
   _rescale = 1.0; 
   _qcdScale= 1.0; // fixme: will need update
 
+  // Data
+  _mapProcess["data_met"] = XMetProcess("data_met", kBlack, "skimMumet100WgtSum.root");
+  _mapProcess["data_2m" ] = XMetProcess("data_2m",  kBlack, "skimMumet100WgtSum.root");
+  _mapProcess["data_1m" ] = XMetProcess("data_1m",  kBlack, "skimMumet100WgtSum.root");
+  _mapProcess["data_1ph"] = XMetProcess("data_1ph", kBlack, "skimMumet100WgtSum.root");
+  _mapProcess["data_2e" ] = XMetProcess("data_2e",  kBlack, "skimMumet100WgtSum.root");
+  
   // MC backgrounds
   _mapProcess["znn"  ] = XMetProcess("znn",   kAzure+7,  "skimMumet100WgtSum.root");
   _mapProcess["zll"  ] = XMetProcess("zll",   kPink+9,   "skimMumet100WgtSum.root");
@@ -726,7 +733,11 @@ Int_t XMetAnalysis::DefineChainsAN15()
   // Sub-directories in _path
   //
   // data
-  //_mapProcess["data"].AddDir("met");
+  _mapProcess["data_met"].AddDir("met");
+  _mapProcess["data_1ph"].AddDir("singleph");
+  _mapProcess["data_2e" ].AddDir("doubleel");
+  _mapProcess["data_1m" ].AddDir("singlemu");
+  _mapProcess["data_2m" ].AddDir("doublemu");
   //
   // mc backgrounds
   //
