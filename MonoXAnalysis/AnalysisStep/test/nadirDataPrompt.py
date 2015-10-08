@@ -25,44 +25,36 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(100)
 )
 
-# Test code
-myTest = True
+# Nadir's tests
+myTest = False
 
 # Is this a simulation or real data
 isMC = False
-isPrompt = True
 
 # Filter on high MET events
 filterHighMETEvents = True
 
 # Filter on triggered events
-filterOnHLT = False
+filterOnHLT = True
 
 # Redo jets and MET with updated JEC
-redoJetsMET = False
+redoJetsMET = True
 
 # Use private JECs since the GTs are not updated
-usePrivateSQlite = False
+usePrivateSQlite = True
 
 # Apply L2L3 residual corrections
-applyL2L3Residuals = False
+applyL2L3Residuals = True
 
 # Process name used in MiniAOD -- needed to get the correct trigger results, and also for redoing the MET
-if isPrompt:
-    miniAODProcess = "RECO"
-else:
-    miniAODProcess = "PAT"
+miniAODProcess = "RECO"
 
 # Define the input source
-process.source = cms.Source(
-    "PoolSource", 
+process.source = cms.Source("PoolSource", 
     fileNames = cms.untracked.vstring([
-            #'/store/mc/RunIISpring15MiniAODv2/TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/74X_mcRun2_asymptotic_v2-v1/00000/0014DC94-DC5C-E511-82FB-7845C4FC39F5.root'
-            #'file:/user/ndaci/Data/Spring15/0EA9D83D-DAF3-E411-9DFE-002590DBDFE0.root'
-            #'file:/user/ndaci/Data/XMET/Run2015C/SingleElectron/MINIAOD_0T/A2A0552B-CE45-E511-BE5D-02163E013865.root'
-            '/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/60FF8405-EA26-E511-A892-02163E01387D.root'
-            ])
-    )
+        '/store/data/Run2015D/DoubleMuon/MINIAOD/PromptReco-v3/000/256/629/00000/E2B8C5F0-F45E-E511-ADC8-02163E01410C.root'
+    ])
+)
 
 # Setup the service to make a ROOT TTree
 process.TFileService = cms.Service("TFileService", fileName = cms.string("tree.root"))
@@ -78,7 +70,7 @@ else:
 if usePrivateSQlite:
     from CondCore.DBCommon.CondDBSetup_cfi import *
     import os
-    era = "Summer15_50nsV4"
+    era = "Summer15_25nsV5"
     if isMC : 
         era += "_MC"
     else :
@@ -146,7 +138,8 @@ if redoJetsMET :
         isData = (not isMC),
     )
     if miniAODProcess != "PAT" :
-        process.genMetExtractor.metSource= cms.InputTag("slimmedMETs", "", miniAODProcess)   
+        if isMC : 
+            process.genMetExtractor.metSource= cms.InputTag("slimmedMETs", "", miniAODProcess)   
         process.slimmedMETs.t01Variation = cms.InputTag("slimmedMETs", "", miniAODProcess) 
 
     if not applyL2L3Residuals : 
@@ -215,9 +208,7 @@ process.QGTagger.srcJets = jetCollName
 process.QGTagger.srcVertexCollection = "goodVertices"
 
 # Make the tree 
-print "Make the tree"
-process.tree = cms.EDAnalyzer(
-    "MonoJetTreeMaker",
+process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     pileup = cms.InputTag("addPileupInfo"),
     genevt = cms.InputTag("generator"),
     vertices = cms.InputTag("goodVertices"),
@@ -248,13 +239,13 @@ process.tree = cms.EDAnalyzer(
     hcalnoise = cms.InputTag("hcalnoise"),
     hbheloose = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Loose"),
     hbhetight = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Tight"),
-    xsec = cms.double(831.76),
+    xsec = cms.double(0.001),
     cleanMuonJet = cms.bool(True),
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
     applyHLTFilter = cms.bool(filterOnHLT),
-    uselheweights = cms.bool(True),
-    isWorZMCSample = cms.bool(True),
+    uselheweights = cms.bool(False),
+    isWorZMCSample = cms.bool(False),
     verbose        = cms.int32(1)
 )
 
@@ -262,7 +253,7 @@ process.tree = cms.EDAnalyzer(
 process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
     lheinfo = cms.InputTag("externalLHEProducer"),
     geninfo = cms.InputTag("generator"),
-    uselheweights = cms.bool(True),
+    uselheweights = cms.bool(False),
     addqcdpdfweights = cms.bool(False)
 )
 
