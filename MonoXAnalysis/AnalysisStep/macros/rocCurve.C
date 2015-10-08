@@ -34,13 +34,13 @@ Int_t rocCurve(TString _tag="",
 {
 
   // Input file
-  TFile* file = new TFile("plots/"+_tag+"/plots_"+_tag+".root","read");
+  TFile* file = new TFile("/user/ndaci/Results/Monojet/QCD/"+_tag+"/plots_"+_tag+".root","read");
 
   // Output log
-  ofstream outlog("plots/"+_tag+"/wp_"+_tag+".txt",ios::out);
+  ofstream outlog("/user/ndaci/Results/Monojet/QCD/"+_tag+"/wp_"+_tag+".txt",ios::out);
   outlog << setw(10) << "Selection"
-	 << setw(14) << "Variable"
-	 << setw(12) << "Cut"
+	 << setw(15) << "Variable"
+	 << setw(9)  << "Cut"
 	 << setw(14) << "N0(QCD)"
 	 << setw(14) << "N0(ZNN)"
 	 << setw(7 ) << "wpQCD"
@@ -67,40 +67,42 @@ Int_t rocCurve(TString _tag="",
   //
   if(dolog) gPad->SetLogy();
 
-  // Selections and variables
-  const UInt_t nWd=2; // forward/backward cumulative distribution
-  const UInt_t nS=6;  // selections
-  const UInt_t nGZ=2;  // full/zoomed
+  // Selections and variables //
 
+  // Exploration //
+  const UInt_t nGZ=2;  // full/zoomed
   TString tzoom[nGZ] = {"_full", "_zoom"}; 
+  //
+  const UInt_t nWd=2; // forward/backward cumulative distribution
   TString wd[nWd]    = {"upcut","lowcut"};
-  TString wdT[nWd]   = {"upper","lower"};
+  TString wdT[nWd]   = {"UP","LO"};
+
+  // SELECTIONS //
+  const UInt_t nS=6;  // selections
   TString select[nS] = {"alljets","monojet","1jet","2jet","3jet","4jet"};
 
-  //const UInt_t nV=3;  // variables
-  //TString var[nV]    = {"alphat","jetjetdphi","jetmetdphimin"};//, "leadjetmetdphi"};
-  const UInt_t nV=2;  // variables
-  TString var[nV]    = {"jetmetdphimin","incjetmetdphimin"};
-  UInt_t idxWd[nV]   = {1,1};
-
+  // CUTS //
   /*
-  TString var[nV]    = {"alphat","apcjetmetmax","apcjetmetmin",
-			"jetjetdphi","jetmetdphimin"};
-			"dphiJ1J3","dphiJ2J3"};
+  const UInt_t nCut=4;
+  TString scanCut[  nCut] = {"Met200", "MetFrom200to250", "MetFrom250to350", "Met350"};
   */
+  const UInt_t nCut=1;
+  TString scanCut[  nCut] = {"NoCut"};
 
-  Int_t colors[nV]   = {kBlack, kBlue};//, kRed};//, kGreen+2};
+  // VARIABLES //
+  const UInt_t nV=10;  // variables
+  TString var[nV]    = {"jetmetdphimin"   , "incjetmetdphimin",
+			"signaljetmetdphi", "secondjetmetdphi",
+			"thirdjetmetdphi" , "jetjetdphi",
+			"dphiJ1J3"        , "dphiJ2J3",
+			"apcjetmetmax"    , "apcjetmetmin"};
+                        //"alphat"}; // fixme: removed from trees because memory issues
+
+  UInt_t idxWd[nS][nV]   = {1,1,1,1,1,1,1,1,1,1};
+  Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kAzure+7, kPink+9, kOrange-3, kMagenta+3, kAzure-9, kSpring};
 
   TGraph* gRoc[nS][nV][nWd][nGZ];
   //TH1F*   hBoS[nS][nV];
-
-  /*
-  const UInt_t nCut=1;
-  TString scanCut[  nCut] = {"1"};
-  */
-
-  const UInt_t nCut=4;
-  TString scanCut[  nCut] = {"Met200", "MetFrom200to250", "MetFrom250to350", "Met350"};
 
   Int_t  wpQCD_bin,wpZNN_bin;
   Float_t wpQCD_cut,wpZNN_cut;
@@ -153,7 +155,7 @@ Int_t rocCurve(TString _tag="",
 	if(!h_qcd || !h_znn) return -1;
 
 	// Print the integral of the histograms
-	cout << "--- going to print the fucking integral." << endl;
+	cout << "--- compute the integrals" << endl;
 	yieldQCD = h_qcd->Integral();
 	yieldZNN = h_znn->Integral();
 	if(unity && yieldQCD!=0) h_qcd->Scale(1/yieldQCD);
@@ -222,8 +224,8 @@ Int_t rocCurve(TString _tag="",
 	  //
 	  // Write out values
 	  outlog << setw(10) << select[iS]
-		 << setw(14) << var[iV]
-		 << setw(12) << wdT[iWd]
+		 << setw(15) << var[iV]
+		 << setw(9)  << wdT[iWd]
 		 << setw(14) << yieldQCD
 		 << setw(14) << yieldZNN
 		 << setw(7 ) << wpQCD
@@ -250,17 +252,21 @@ Int_t rocCurve(TString _tag="",
 	  setStyle(gRoc[iS][iV][iWd][0], kOpenSquare, colors[iV], nB,
 		   "ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd], 
 		   kFALSE);
-	  gRoc[iS][iV][iWd][0]->SetTitle("Selection: "+select[iS]);
+
+	  // title is set by setStyle function
+	  //gRoc[iS][iV][iWd][0]->SetTitle("Selection: "+select[iS]);
+	  //gRoc[iS][iV][iWd][0]->SetTitle(select[iS]+" "+var[iV]+" "+wdT[iWd]);
+
 	  if(gRoc[iS][iV][iWd][0]) gRoc[iS][iV][iWd][0]->Draw("AL");	
-	  ///
+
 	  /// print the graph in a single pdf file
 	  TString pdftitle = "Title:"+select[iS]+" "+var[iV]+" "+wd[iWd];
 	  if(iS==0 && iV==0 && iWd==0) 
-	    cRoc.Print("plots/"+_tag+"/rocfull_"+scanCut[iC]+".pdf(",pdftitle);
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+scanCut[iC]+".pdf(",pdftitle);
 	  else if(iS==nS-1 && iV==nV-1 && iWd==nWd-1)
-	    cRoc.Print("plots/"+_tag+"/rocfull_"+scanCut[iC]+".pdf)",pdftitle);
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+scanCut[iC]+".pdf)",pdftitle);
 	  else
-	    cRoc.Print("plots/"+_tag+"/rocfull_"+scanCut[iC]+".pdf",pdftitle);
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+scanCut[iC]+".pdf",pdftitle);
 	  // end full version
 
 	  // Prepare zoomed version by extracting interesting region
@@ -285,16 +291,17 @@ Int_t rocCurve(TString _tag="",
 	  setStyle(gRoc[iS][iV][iWd][1], kOpenSquare, colors[iV], nZ,
 		   "ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd],
 		   kTRUE);
-	  gRoc[iS][iV][iWd][1]->SetTitle("Selection: "+select[iS]);
+	  //gRoc[iS][iV][iWd][1]->SetTitle("Selection: "+select[iS]);
+
 	  if(gRoc[iS][iV][iWd][1]) gRoc[iS][iV][iWd][1]->Draw("AL");	
-	  ///
+
 	  /// print the graph in a single pdf file
 	  if(iS==0 && iV==0 && iWd==0) 
-	    cRoc.Print("plots/"+_tag+"/roczoom_"+scanCut[iC]+".pdf(",pdftitle);
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+scanCut[iC]+".pdf(",pdftitle);
 	  else if(iS==nS-1 && iV==nV-1 && iWd==nWd-1)
-	    cRoc.Print("plots/"+_tag+"/roczoom_"+scanCut[iC]+".pdf)",pdftitle);
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+scanCut[iC]+".pdf)",pdftitle);
 	  else
-	    cRoc.Print("plots/"+_tag+"/roczoom_"+scanCut[iC]+".pdf",pdftitle);
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+scanCut[iC]+".pdf",pdftitle);
 	  // end zoomed version
 	  ///////////////////////////////////////////////////////////////////////////////
 
@@ -351,11 +358,11 @@ Int_t rocCurve(TString _tag="",
 	TString mysel = select[iS]+"_"+metCut;
 
 	if(iS==0) 
-	  cRoc.Print("plots/"+_tag+"/allroc_"+scanCut[iC]+tzoom[iGZ]+".pdf(","Title:"+mysel);
+	  cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+scanCut[iC]+tzoom[iGZ]+".pdf(","Title:"+mysel);
 	else if(iS==nS-1)
-	  cRoc.Print("plots/"+_tag+"/allroc_"+scanCut[iC]+tzoom[iGZ]+".pdf)","Title:"+mysel);
+	  cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+scanCut[iC]+tzoom[iGZ]+".pdf)","Title:"+mysel);
 	else
-	  cRoc.Print("plots/"+_tag+"/allroc_"+scanCut[iC]+tzoom[iGZ]+".pdf","Title:"+mysel);
+	  cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+scanCut[iC]+tzoom[iGZ]+".pdf","Title:"+mysel);
 
       }
     }
@@ -400,7 +407,10 @@ Int_t setStyle(TGraph* g, Int_t marker, Int_t color,
 
   g->GetXaxis()->Set(nB, 0, 1);
   g->GetYaxis()->Set(nB, 0, 1);
-  if(zoom) g->GetXaxis()->Set(nB, 0.6, 1);
+  if(zoom) {
+    g->GetXaxis()->Set(nB, 0.6, 1);
+    g->GetYaxis()->Set(nB, 0  , 0.5);
+  }
 
   g->GetXaxis()->SetTitle("Z(#nu#nu) efficiency");
   g->GetYaxis()->SetTitle("QCD efficiency");
