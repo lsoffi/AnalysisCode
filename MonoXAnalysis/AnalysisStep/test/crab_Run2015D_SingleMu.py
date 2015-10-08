@@ -1,7 +1,7 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413_Run2015D_V5'
+name = 'EffAN_7413_Run2015D_V8'
 proc = 'SingleMu'
 dataset = '/SingleMuon/Run2015D-PromptReco-v3/MINIAOD'
 
@@ -18,7 +18,7 @@ config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'nadirDataPrompt.py'
 #config.JobType.pyCfgParams = ['reEmulation=True','reEmulMuons=True','reEmulCalos=True','patchNtuple=True','force2012Config=True','customDTTF=True','dttfLutsFile=sqlite:src/L1TriggerDPG/L1Menu/data/dttf_config.db','useUct2015=True','globalTag=POSTLS162_V2::All','runOnMC=True','runOnPostLS1=True','whichPU=40']
 ##config.JobType.inputFiles = '../../data/dttf_config.db'
-#config.JobType.inputFiles = ['Summer15_50nsV4_DATA.db']
+config.JobType.inputFiles = ['Summer15_25nsV5_DATA.db']
 config.JobType.allowUndistributedCMSSW = True
 
 # INPUT DATA
@@ -46,6 +46,6 @@ config.User.voGroup = 'becms'
 
 # GRID
 config.section_("Site")
-config.Site.storageSite = 'T2_BE_UCL'
+config.Site.storageSite = 'T2_BE_IIHE'
 #config.Site.whitelist = 
 #config.Site.blacklist = ['T1_US_FNAL']
