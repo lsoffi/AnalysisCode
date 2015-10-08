@@ -98,7 +98,7 @@ Int_t rocCurve(TString _tag="",
 			"apcjetmetmax"    , "apcjetmetmin"};
                         //"alphat"}; // fixme: removed from trees because memory issues
 
-  UInt_t idxWd[nS][nV]   = {1,1,1,1,1,1,1,1,1,1};
+  UInt_t idxWd[nV]   = {1,1,1,1,1,1,1,1,1,1};
   Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kAzure+7, kPink+9, kOrange-3, kMagenta+3, kAzure-9, kSpring};
 
   TGraph* gRoc[nS][nV][nWd][nGZ];
