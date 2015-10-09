@@ -35,25 +35,27 @@ isMC = True
 filterHighMETEvents = True
 
 # Filter on triggered events
-filterOnHLT = True
+filterOnHLT = False
 
 # Redo jets and MET with updated JEC
-redoJetsMET = True
+redoJetsMET = False
 
 # Use private JECs since the GTs are not updated
 usePrivateSQlite = False
 
 # Apply L2L3 residual corrections
-applyL2L3Residuals = True
+applyL2L3Residuals = False
 
 # Process name used in MiniAOD -- needed to get the correct trigger results, and also for redoing the MET
 miniAODProcess = "PAT" # MC and ReReco
 #miniAODProcess = "RECO" # PromptReco
 
 # Define the input source
-process.source = cms.Source("PoolSource", 
+process.source = cms.Source(
+    "PoolSource", 
     fileNames = cms.untracked.vstring([
-        '/store/data/Run2015D/DoubleMuon/MINIAOD/PromptReco-v3/000/256/629/00000/E2B8C5F0-F45E-E511-ADC8-02163E01410C.root'
+            #'/store/data/Run2015D/DoubleMuon/MINIAOD/PromptReco-v3/000/256/629/00000/E2B8C5F0-F45E-E511-ADC8-02163E01410C.root'
+            '/store/mc/RunIISpring15DR74/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/20000/1EF69926-A332-E511-8AB2-00259073E3A0.root'
     ])
 )
 
