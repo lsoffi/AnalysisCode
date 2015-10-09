@@ -208,17 +208,18 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   Float_t xLast[nV]  = {3.2, 3.2};
   */
 
-  const UInt_t nV=11;
-  TString var[nV]    = {"jetmetdphimin"   , "incjetmetdphimin",
-			"signaljetmetdphi", "secondjetmetdphi", 
-			"thirdjetmetdphi" , "jetjetdphi",
-			"dphiJ1J3"        , "dphiJ2J3",
-			"apcjetmetmax"    , "apcjetmetmin",
-			"alphat"};
+  const UInt_t nV=12;
+  TString var[nV]    = {"jetmetdphimin"     , "incjetmetdphimin",
+			"signaljetmetdphi"  , "secondjetmetdphi", 
+			"thirdjetmetdphi"   , "jetjetdphi"      , 
+			"cosjetjetdphiover2", "abscosjetjetdphiover2",
+			"dphiJ1J3"          , "dphiJ2J3",
+			"apcjetmetmax"      , "apcjetmetmin"};
+			//"alphat"}; // removed from the trees because memory issues
 
-  UInt_t  nBins[nV]  = {10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 8000};
-  Float_t xFirst[nV] = {    0,     0,     0,     0,     0,     0,     0,     0,     0,     0,    0};
-  Float_t xLast[nV]  = {  3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,    2};
+  UInt_t  nBins[nV]  = {10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000};//, 8000};
+  Float_t xFirst[nV] = {    0,     0,     0,     0,     0,     0,     0,     0,     0,     0};//,    0};
+  Float_t xLast[nV]  = {  3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2};//,    2};
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
@@ -349,7 +350,9 @@ Int_t XMetAnalysis::plot(TString select,
 	if(var[iV].Contains("phi"))  locVar = "abs("+var[iV]+")";
 	if(     var[iV]=="dphiJ1J3") locVar = "abs(signaljetphi-thirdjetphi)";
 	else if(var[iV]=="dphiJ2J3") locVar = "abs(secondjetphi-thirdjetphi)";
-	else if(var[iV]=="leadjetmetdphi") locVar = "abs(signaljetphi-t1mumetphi)";
+	else if(var[iV]=="leadjetmetdphi")        locVar = "abs(signaljetphi-t1mumetphi)";
+	else if(var[iV]=="cosjetjetdphiover2")    locVar = "cos(jetjetdphi/2.)";
+	else if(var[iV]=="abscosjetjetdphiover2") locVar = "abs(cos(jetjetdphi/2.))";
 
 	_mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
 	if(verbose>1) cout << "--- drew variable: " << locVar << endl;
