@@ -6,7 +6,8 @@
 #include "list_SingleMu_2015B_23Sep2015.h"
 #include "list_SingleMu_2015C.h"
 #include "list_SingleMu_2015C_23Sep2015.h"
-#include "list_SingleMu_2015D.h"
+//#include "list_SingleMu_2015D.h"
+#include "list_SingleMu_2015D_V8.h"
 #include "list_ZNN600ToInf_Spring15.h"
 
 // old one 
@@ -14,7 +15,7 @@
 
 using namespace std;
 Bool_t DEBUG = kFALSE;
-Bool_t useCutoff=kTRUE;
+Bool_t useCutoff=kFALSE;
 UInt_t cutoff=100000; // cut-off
 
 MyTrigger::~MyTrigger()
@@ -710,6 +711,60 @@ Int_t MyTrigger::FitEff()
 
   outfile->Write();
   outfile->Close();
+
+  return 0;
+}
+
+Int_t MyTrigger::CompareEff()
+{
+
+  const UInt_t nComp=3;
+  TString stepsCompare[nComp] = {"", "", ""};
+  TString fitFunc[nComp]      = {"", "", ""};
+
+  const UInt_t nF=2;
+  TString nameFunc[nF] = {"sigmoid","cb"};
+
+  const UInt_t nV=6;
+  TString nameV[nV]={"mumet","t1mumet","pfmet","t1pfmet","signaljetpt","signaljetNHfrac"};
+
+  M_VAR_FIT_E theMap;
+  TEfficiency* pEff;
+  bool hasDrawn=false;
+
+  // Loop: paths
+  for(_itPathStepVarFitE=_Eff.begin() ; _itPathStepVarFitE!=_Eff.end() ; _itPathStepVarFitE++) {
+    _namePath = _itPathStepVarFitE->first;
+    _thePath  = &(_Paths[_namePath]);
+    _namePathFull = _thePath->namePath;
+    nS = _thePath->nSteps;
+    cout << "-- Path: " << _namePath << " : " << _namePathFull << endl;
+
+    // loop: var
+    for(UInt_t iV=0; iV<nV; iV++) {
+      _nameVar = nameV[iV];
+
+      // loop: fit functions
+      for(UInt_t iF=0; iF<nF; iF++) {
+
+	TCanvas c("c","c",0,0,600,600);
+	gStyle->SetOptStat(0);
+	hasDrawn = false;
+
+	// loop: steps
+	for(_itStepVarFitE=_itPathStepVarFitE->second.begin() ; _itStepVarFitE!=_itPathStepVarFitE->second.end() ; _itStepVarFitE++) {
+	  _nameStep = _itStepVarFitE->first;
+	  theMap    = _itStepVarFitE->second;
+	  
+	  pEff = theMap[_nameVar][nameFunc[iF]];
+	  if(hasDrawn) pEff->Draw("APSAME");
+	  else         pEff->Draw("AP");
+	  hasDraw = true;
+	} // end loop: steps
+      } // end loop: fit func
+    } // end loop: var
+  } // end loop: paths
+
 
   return 0;
 }
