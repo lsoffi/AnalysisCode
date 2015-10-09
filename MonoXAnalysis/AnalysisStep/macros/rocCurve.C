@@ -91,13 +91,14 @@ Int_t rocCurve(TString _tag="",
   TString scanCut[  nCut] = {"NoCut"};
 
   // VARIABLES //
-  const UInt_t nV=10;  // variables
-  TString var[nV]    = {"jetmetdphimin"   , "incjetmetdphimin",
-			"signaljetmetdphi", "secondjetmetdphi",
-			"thirdjetmetdphi" , "jetjetdphi",
-			"dphiJ1J3"        , "dphiJ2J3",
-			"apcjetmetmax"    , "apcjetmetmin"};
-                        //"alphat"}; // fixme: removed from trees because memory issues
+  const UInt_t nV=12;
+  TString var[nV]    = {"jetmetdphimin"     , "incjetmetdphimin",
+			"signaljetmetdphi"  , "secondjetmetdphi", 
+			"thirdjetmetdphi"   , "jetjetdphi"      , 
+			"cosjetjetdphiover2", "abscosjetjetdphiover2",
+			"dphiJ1J3"          , "dphiJ2J3",
+			"apcjetmetmax"      , "apcjetmetmin"};
+			//"alphat"}; // removed from the trees because memory issues
 
   Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kAzure+7, kPink+9, 
 			kOrange-3, kMagenta+3, kAzure-9, kSpring};
@@ -109,9 +110,12 @@ Int_t rocCurve(TString _tag="",
 			   {1,1,0,1,1,0,0,0,1,1} , //3jet OK
 			   {1,1,0,1,1,0,0,0,1,1} };//4jet OK
 
-  const UInt_t nVD=5;
+  bool reduceDraw=true;
+  bool skipVar=true;
+  const UInt_t nVD=7;
   TString varDraw[nVD] = {"jetmetdphimin"   , "incjetmetdphimin",
 			  "secondjetmetdphi", "jetjetdphi",
+			  "cosjetjetdphiover2", "abscosjetjetdphiover2",
 			  "apcjetmetmin"};
 
   TGraph* gRoc[nS][nV][nWd][nGZ];
@@ -150,7 +154,16 @@ Int_t rocCurve(TString _tag="",
 
       for(UInt_t iV=0 ; iV<nV ; iV++) {
 
-	cout << "---- variable: " << var[iV] << endl;
+	cout << "---- variable: " << var[iV] ;
+	skipVar = true;
+	for(UInt_t iVD=0 ; iVD<nVD ; iVD++) {
+	  if(var[iV]==var[iVD]) skipVar = false;
+	}
+	if(reduceDraw && skipVar) {
+	  cout << " ==> SKIP IT" << endl;
+	  continue;
+	}
+	else cout << endl;
 
 	// Get input QCD and Znn distributions from the file
 	TString nameQCD = "h_"+var[iV]+"_qcd_"+select[iS]+"_"+scanCut[iC];
@@ -347,8 +360,18 @@ Int_t rocCurve(TString _tag="",
 	// Produce 1 plot per selection & zoom choice
 	hasDrawn = false;
 	for(UInt_t iV=0 ; iV<nV ; iV++) {
-	  cout << "----- variable: " << var[iV] << " " ;
-	  cout << gRoc[iS][iV][idxWd[iS][iV]][iGZ]->GetN() << " points" << endl;
+
+	  cout << "----- variable: " << var[iV] ;
+	  skipVar = true;
+	  for(UInt_t iVD=0 ; iVD<nVD ; iVD++) {
+	    if(var[iV]==var[iVD]) skipVar = false;
+	  }
+	  if(reduceDraw && skipVar) {
+	    cout << " ==> SKIP IT" << endl;
+	    continue;
+	  }
+
+	  cout << " " << gRoc[iS][iV][idxWd[iS][iV]][iGZ]->GetN() << " points" << endl;
 	  if(gRoc[iS][iV][idxWd[iS][iV]][iGZ]->GetN()<=0) continue;
 	  if(!hasDrawn) {
 	    gRoc[iS][iV][idxWd[iS][iV]][iGZ]->SetTitle("Selection: "+select[iS]);
@@ -368,9 +391,18 @@ Int_t rocCurve(TString _tag="",
 	setStyle(leg);
     
 	for(UInt_t iV=0 ; iV<nV ; iV++) {
+
+	  skipVar = true;
+	  for(UInt_t iVD=0 ; iVD<nVD ; iVD++) {
+	    if(var[iV]==var[iVD]) skipVar = false;
+	  }
+	  if(reduceDraw && skipVar) {
+	    continue;
+	  }
+	  
 	  if(gRoc[iS][iV][1][iGZ]->GetN()>0) {
-	     leg->AddEntry(gRoc[iS][iV][1][iGZ], var[iV], "L");
-	    }
+	    leg->AddEntry(gRoc[iS][iV][1][iGZ], var[iV], "L");
+	  }
 	}
 
 	cout << "---- draw legend" << endl;
