@@ -33,10 +33,10 @@ class MyTrigger {
  public:
 
   // Constructor, destructor
-  MyTrigger(TString resultName, TString offlineSel, 
-	    TString era, TString reco, TString sample,
-	    TString period, TString seed, TString json, TString field,
-	    TString skim, TString HBHECleaning, TString binning);
+  MyTrigger(TString resultName, TString offlineSel, TString era, TString reco, 
+	    TString sample, TString period, TString seed, TString json, TString field,
+	    TString skim, TString HBHECleaning, TString useTrigObj, TString binning,
+	    bool useCutoff, UInt_t cutoff);
   ~MyTrigger();
 
   // Methods //
@@ -72,6 +72,8 @@ class MyTrigger {
  private:
 
   // arguments
+  bool _useTrigObj, _useCutoff;
+  UInt_t _cutoff;
   TString _resultName, _offlineSel, _era, 
     _reco, _sample, _period, _seed, _json, 
     _field, _skim, _HBHECleaning, _binning;
@@ -136,7 +138,7 @@ class MyTrigger {
   //
   // global event info
   int _event, _run, _lumi;
-  double   _xsec, _wgt, _kfact, _puwgt;
+  double   _xsec, _wgt, _wgtsum, _kfact, _puwgt;
   int32_t  _puobs, _putrue; 
   //
   // object counters

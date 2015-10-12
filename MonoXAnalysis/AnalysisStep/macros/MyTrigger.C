@@ -15,17 +15,15 @@
 
 using namespace std;
 Bool_t DEBUG = kFALSE;
-Bool_t useCutoff=kFALSE;
-UInt_t cutoff=100000; // cut-off
 
 MyTrigger::~MyTrigger()
 {
 }
 
-MyTrigger::MyTrigger(TString resultName, TString offlineSel, 
-		     TString era, TString reco, TString sample,
-		     TString period, TString seed, TString json, TString field,
-		     TString skim, TString HBHECleaning, TString binning)
+MyTrigger::MyTrigger(TString resultName, TString offlineSel, TString era, TString reco, 
+		     TString sample, TString period, TString seed, TString json, TString field,
+		     TString skim, TString HBHECleaning, TString useTrigObj, TString binning,
+		     bool useCutoff=false, UInt_t cutoff=100000)
 {
 
   // Issue a warning about the cutoff
@@ -43,7 +41,12 @@ MyTrigger::MyTrigger(TString resultName, TString offlineSel,
   _field      = field;
   _skim       = skim; 
   _binning    = binning;
+  _useTrigObj = (useTrigObj=="useTrigObj");
   _HBHECleaning = HBHECleaning; 
+  _useCutoff  = useCutoff;
+  _cutoff     = cutoff;
+
+  _lumi = 0.210;
 
   // Set TDR style for the plots
   gROOT->Reset();
@@ -175,6 +178,7 @@ Int_t MyTrigger::ProdHistos()
   cout << "- Start looping over the chain" << endl;
   UInt_t nProcessed=0;
   UInt_t nHLT90=0;
+  Double_t weight=1;
 
   for(UInt_t iE=0 ; iE<entries ; iE++) {
 
@@ -231,12 +235,17 @@ Int_t MyTrigger::ProdHistos()
       if(!jetID1) continue;
     }
 
+    if(_offlineSel.Contains("Jet100")) {
+      jetID1 = _signaljetpt>100 && abs(_signaljeteta)<2.5;
+      if(!jetID1) continue;
+    }
+
     // Count entries passing offline selection
     nProcessed++ ;
     if(_hltmet90) nHLT90++ ;
 
     // cut-off
-    if(nProcessed>=cutoff && useCutoff) break;
+    if(nProcessed>=_cutoff && _useCutoff) break;
 
     // print out every 1000 events
     if(printOut) {
@@ -255,6 +264,9 @@ Int_t MyTrigger::ProdHistos()
 	   << endl;
       //if(nProcessed>100) break; // ND debug mode: look only at 100 entries
     }
+
+    // compute event weight //
+    weight = _xsec * ( _wgt / _wgtsum ) * _puwgt ;
 
     // get x-axis variables //
     if(DEBUG) cout << "-- Get x-axis variables" << endl;
@@ -407,21 +419,21 @@ Int_t MyTrigger::ProdHistos()
 
 	  // conditional denominator (eff1)
 	  // if(iS==0 || iS==nS-1) { // L1 or entire path
-	  //   h[iV][0][iP][iS]->Fill(var[iV]);
+	  //   h[iV][0][iP][iS]->Fill(var[iV], weight);
 	  // }
 	  // else { // intermediate HLT filters
 	  //   if(_serial[iP][iS-1]) // events that fire up to step iS-1
-	  //     h[iV][0][iP][iS]->Fill(var[iV]);
+	  //     h[iV][0][iP][iS]->Fill(var[iV], weight);
 	  // }
 
 	  // denominator (eff2)
 	  if(DEBUG) cout << "----- fill denom" << endl;
-	  _Histos[_namePath][_nameStep][nameV[iV]]["denom"]->Fill(var[iV]);
+	  _Histos[_namePath][_nameStep][nameV[iV]]["denom"]->Fill(var[iV], weight);
 	  
 	  // numerator
 	  if(DEBUG) cout << "----- fill num: ";
 	  if(_thePath->steps[iS].serial) { // event fired step iS of path iP
-	    _Histos[_namePath][_nameStep][nameV[iV]]["num"]->Fill(var[iV]);
+	    _Histos[_namePath][_nameStep][nameV[iV]]["num"]->Fill(var[iV], weight);
 	    if(DEBUG) cout << "done" << endl;
 	  }
 	  else {
@@ -461,11 +473,16 @@ Int_t MyTrigger::ProdHistos()
   outfile->cd();
 
   // Write histograms //
-  for(_itPathStepVarNumH=_Histos.begin() ; _itPathStepVarNumH!=_Histos.end() ; _itPathStepVarNumH++)
-    for(_itStepVarNumH=_itPathStepVarNumH->second.begin() ; _itStepVarNumH!=_itPathStepVarNumH->second.end() ; _itStepVarNumH++)
-      for(_itVarNumH=_itStepVarNumH->second.begin() ; _itVarNumH!=_itStepVarNumH->second.end() ; _itVarNumH++)
-	for(_itNumH=_itVarNumH->second.begin() ; _itNumH!=_itVarNumH->second.end() ; _itNumH++)
+  for(_itPathStepVarNumH=_Histos.begin() ; _itPathStepVarNumH!=_Histos.end() ; _itPathStepVarNumH++) {
+    for(_itStepVarNumH=_itPathStepVarNumH->second.begin() ; _itStepVarNumH!=_itPathStepVarNumH->second.end() ; _itStepVarNumH++) {
+      for(_itVarNumH=_itStepVarNumH->second.begin() ; _itVarNumH!=_itStepVarNumH->second.end() ; _itVarNumH++) {
+	for(_itNumH=_itVarNumH->second.begin() ; _itNumH!=_itVarNumH->second.end() ; _itNumH++) {
+
+	  if(_json=="MC") _itNumH->second->Scale(_lumi);
 	  _itNumH->second->Write();
+	}
+      }
+    }
 
   _hIneff->Write();
 
@@ -590,7 +607,7 @@ Int_t MyTrigger::ProdEff(Bool_t print=kFALSE)
 
 	// Produce 1 TEff per fit func
 	for(UInt_t iF=0; iF<nF; iF++) {
-	  if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen) ) {
+	  if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen, "w") ) {
 	    pEff = new TEfficiency(*hNum,*hDen);
 	    nameTEff = "t_"+_nameVar+"_"+_namePath+"_"+_nameStep+"_"+nameFunc[iF];
 	    cout << "----- produced TEff: " << nameTEff << endl;
@@ -718,6 +735,8 @@ Int_t MyTrigger::FitEff()
 Int_t MyTrigger::CompareEff()
 {
 
+  UInt_t nS=0;
+
   const UInt_t nComp=3;
   TString stepsCompare[nComp] = {"", "", ""};
   TString fitFunc[nComp]      = {"", "", ""};
@@ -759,7 +778,7 @@ Int_t MyTrigger::CompareEff()
 	  pEff = theMap[_nameVar][nameFunc[iF]];
 	  if(hasDrawn) pEff->Draw("APSAME");
 	  else         pEff->Draw("AP");
-	  hasDraw = true;
+	  hasDrawn = true;
 	} // end loop: steps
       } // end loop: fit func
     } // end loop: var
@@ -918,7 +937,7 @@ Int_t MyTrigger::DefinePaths()
   cout << "Define paths" << endl;
   Bool_t useHBHECleaning = (_HBHECleaning!="NoHBHE");
   vector<STEP> vStepEmpty;
-  
+
   _Paths["PFMNoMu90"]={.nameP="PFMNoMu90",.namePath="HLT_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight",.nSteps=8,.steps=vStepEmpty};
   _Paths["PFMNoMu90"].steps.clear();
   //
@@ -1145,7 +1164,7 @@ Int_t MyTrigger::InitEvent()
   _trig_obj_col->clear();
 
   _event = _run = _lumi = 0;
-  _xsec = _wgt = _kfact = _puwgt = 0;
+  _xsec = _wgt = _wgtsum = _kfact = _puwgt = 0;
   _puobs = _putrue = 0; 
   _nvtx = _nmuons = _nelectrons = _ntaus = _ntightmuons = _ntightelectrons = _nphotons = _njets = _nbjets = _nfatjets = 0;
   _hltmet90 = _hltmet120 = _hltmetwithmu90 = _hltmetwithmu120 = _hltmetwithmu170 = _hltmetwithmu300 = _hltjetmet90 = _hltjetmet120 = _hltphoton165 = _hltphoton175 = _hltdoublemu = _hltsinglemu = _hltdoubleel = _hltsingleel = 0;
@@ -1190,6 +1209,17 @@ Int_t MyTrigger::GetInput()
   else if(_era=="MC") {
     fList = list_ZNN600ToInf_Spring15();
   }
+  else if(_era=="ZNN") {
+    fList.clear();
+    fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/znn100to200/skimMumet100WgtSum.root");
+    fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/znn200to400/skimMumet100WgtSum.root");
+    fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/znn400to600/skimMumet100WgtSum.root");
+    fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/znn600toinf/skimMumet100WgtSum.root");
+  }
+  else if(_era=="WLN") {
+    fList.clear();
+    fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/wln/skimMumet100WgtSum.root");
+  }
   else {
     cout << "ERROR: Please specify input source in the output dir name: " 
 	 << "2015B, 2015C, 2015C, 2015D. "
@@ -1200,6 +1230,11 @@ Int_t MyTrigger::GetInput()
   
   for(UInt_t iF=0 ; iF<fList.size() ; iF++) {
     _ch->Add(fList[iF]);
+  }
+
+  if(_ch->IsZombie()) {
+    cout << "ERROR: THIS CHAIN IS A SCARY ZOMBIE !!!" << endl;
+    return -2;
   }
 
   return 0;
@@ -1216,11 +1251,13 @@ Int_t MyTrigger::SetBranches()
   _ch->SetBranchAddress("lumi", &_lumi); 
 
   // trigger objects
-  _ch->SetBranchAddress("trig_obj_n", &_trig_obj_n); 
-  _ch->SetBranchAddress("trig_obj_pt", &_trig_obj_pt);
-  _ch->SetBranchAddress("trig_obj_eta", &_trig_obj_eta);
-  _ch->SetBranchAddress("trig_obj_phi", &_trig_obj_phi);
-  _ch->SetBranchAddress("trig_obj_col", &_trig_obj_col);
+  if(_useTrigObj) {
+    _ch->SetBranchAddress("trig_obj_n", &_trig_obj_n); 
+    _ch->SetBranchAddress("trig_obj_pt", &_trig_obj_pt);
+    _ch->SetBranchAddress("trig_obj_eta", &_trig_obj_eta);
+    _ch->SetBranchAddress("trig_obj_phi", &_trig_obj_phi);
+    _ch->SetBranchAddress("trig_obj_col", &_trig_obj_col);
+  }
 
   // trigger bits
   _ch->SetBranchAddress("hltmet90", &_hltmet90); 
@@ -1238,11 +1275,14 @@ Int_t MyTrigger::SetBranches()
   _ch->SetBranchAddress("hltdoubleel", &_hltdoubleel); 
   _ch->SetBranchAddress("hltsingleel", &_hltsingleel); 
 
-  // pile-up
-  _ch->SetBranchAddress("puwgt", &_puwgt); 
-  _ch->SetBranchAddress("puobs", &_puobs); 
+  // pile-up and weights
+  _ch->SetBranchAddress("wgt"   , &_wgt); 
+  _ch->SetBranchAddress("wgtsum", &_wgtsum); 
+  _ch->SetBranchAddress("xsec"  , &_xsec); 
+  _ch->SetBranchAddress("puwgt" , &_puwgt); 
+  _ch->SetBranchAddress("puobs" , &_puobs); 
   _ch->SetBranchAddress("putrue", &_putrue); 
-  _ch->SetBranchAddress("nvtx", &_nvtx); 
+  _ch->SetBranchAddress("nvtx"  , &_nvtx); 
 
   // mets
   _ch->SetBranchAddress("pfmet", &_pfmet); 
