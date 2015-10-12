@@ -1134,9 +1134,9 @@ Int_t MyTrigger::DefineJson()
     //
     if(_period=="25ns") {
       if(_field=="38T")
-	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-257599_13TeV_PromptReco_Collisions15_25ns_JSON.txt");
+	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-258159_13TeV_PromptReco_Collisions15_25ns_JSON_v2.txt");
       else if(_field=="0T") {
-	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-256869_13TeV_PromptReco_Collisions15_ZeroTesla_25ns_JSON.txt");
+	_jsonMap = readJSONFile(_dirJson+"/Cert_246908-257599_13TeV_PromptReco_Collisions15_ZeroTesla_25ns_JSON.txt");
       }
       else {
 	cout << "ERROR: Please choose field: 38T, 0T. Exit ==> []" << endl;
