@@ -21,12 +21,14 @@ typedef map< TString, TH1F*       > M_NUM_H;
 typedef map< TString, M_NUM_H     > M_VAR_NUM_H;
 typedef map< TString, M_VAR_NUM_H > M_STEP_VAR_NUM_H;
 typedef map< TString, M_STEP_VAR_NUM_H > M_PATH_STEP_VAR_NUM_H;
+typedef map< TString, M_PATH_STEP_VAR_NUM_H > M_PROC_PATH_STEP_VAR_NUM_H;
 
 // Efficiency storage
 typedef map< TString, TEfficiency*     > M_FIT_E;
 typedef map< TString, M_FIT_E          > M_VAR_FIT_E;
 typedef map< TString, M_VAR_FIT_E      > M_STEP_VAR_FIT_E;
 typedef map< TString, M_STEP_VAR_FIT_E > M_PATH_STEP_VAR_FIT_E;
+typedef map< TString, M_PATH_STEP_VAR_FIT_E > M_PROC_PATH_STEP_VAR_FIT_E;
 
 class MyTrigger {
 
@@ -52,12 +54,13 @@ class MyTrigger {
   Int_t DefinePaths();
   // histos
   Int_t ProdHistos();
-  Int_t GetHistos();
+  Int_t GetHistos(TString sample);
   // efficiencies
   Int_t DefineIneff();
   Int_t ProdEff(Bool_t print);
   Int_t FitEff();
   Int_t CompareEff();
+  Int_t CompareDataMC();
   Int_t FillIneff();
   Int_t DrawEff(TEfficiency* pEff, TString nameTeff, 
 		TString nameVar  , TString s_eff95,
@@ -107,12 +110,14 @@ class MyTrigger {
   M_PATH::iterator _itPaths;
 
   // histogram storing
-  M_PATH_STEP_VAR_NUM_H _Histos;
+  M_PROC_PATH_STEP_VAR_NUM_H _Histos;
   M_NUM_H::iterator               _itNumH;
   M_VAR_NUM_H::iterator           _itVarNumH;
   M_STEP_VAR_NUM_H::iterator      _itStepVarNumH;
   M_PATH_STEP_VAR_NUM_H::iterator _itPathStepVarNumH;
-  
+  M_PROC_PATH_STEP_VAR_NUM_H::iterator _itProcPathStepVarNumH;
+  // hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+_namePath+"_"+_nameStep+"_"+_sample;
+
   // histogram for inefficiency checks
   TH1D* _hIneff;
   vector<TString> _nameIneff;
@@ -122,11 +127,13 @@ class MyTrigger {
   M_VAR_AXIS _Axis;
 
   // TEfficiency storing
-  M_PATH_STEP_VAR_FIT_E _Eff;
+  M_PROC_PATH_STEP_VAR_FIT_E _Eff;
   M_FIT_E::iterator               _itFitE;
   M_VAR_FIT_E::iterator           _itVarFitE;
   M_STEP_VAR_FIT_E::iterator      _itStepVarFitE;
   M_PATH_STEP_VAR_FIT_E::iterator _itPathStepVarFitE;
+  M_PROC_PATH_STEP_VAR_FIT_E::iterator _itProcPathStepVarFitE;
+  // nameTEff = "t_"+_nameVar+"_"+_namePath+"_"+_nameStep+"_"+nameFunc[iF]+"_"+theSample;
 
   // chain //
   //
