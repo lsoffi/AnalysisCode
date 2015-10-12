@@ -25,6 +25,9 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(100)
 )
 
+# external cross section
+theXSec = 0.001 # to be set in the crab config files
+
 # Nadir's tests
 myTest = False
 
@@ -242,7 +245,7 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     hcalnoise = cms.InputTag("hcalnoise"),
     hbheloose = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Loose"),
     hbhetight = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Tight"),
-    xsec = cms.double(0.001),
+    xsec = cms.double(theXSec),
     cleanMuonJet = cms.bool(True),
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
