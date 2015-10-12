@@ -1,7 +1,7 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413_Run2015D_V2'
+name = 'EffAN_7413_Run2015D_V3'
 proc = 'SingleEle'
 dataset = '/SingleElectron/Run2015D-PromptReco-v3/MINIAOD'
 
@@ -31,7 +31,7 @@ config.Data.unitsPerJob = 50000
 config.Data.publication = False
 config.Data.publishDBS  = 'https://cmsweb.cern.ch/dbs/prod/phys03/DBSWriter/'
 config.Data.publishDataName = name+"_"+proc
-config.Data.ignoreLocality = True # allows to process inputs on CE != site hosting inputs
+config.Data.ignoreLocality = False # allows to process inputs on CE != site hosting inputs
 #config.Data.lumiMask = 
 #config.Data.runRange = 
 
@@ -48,4 +48,4 @@ config.User.voGroup = 'becms'
 config.section_("Site")
 config.Site.storageSite = 'T2_BE_IIHE'
 #config.Site.whitelist = 
-#config.Site.blacklist = ['T1_US_FNAL']
+config.Site.blacklist = ['T1_US_FNAL','T2_UA_KIPT','T3_US_UCR']
