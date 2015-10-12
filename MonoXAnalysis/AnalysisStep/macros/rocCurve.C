@@ -112,20 +112,19 @@ Int_t rocCurve(TString _tag="",
 			   {1,1,0,1,1,0,0,0,1,1,1,1} };//4jet OK
   */
 
-  const UInt_t nV=7;
+  const UInt_t nV=5;
   TString var[nV] = {"jetmetdphimin"   , "incjetmetdphimin",
 		     "secondjetmetdphi", "jetjetdphi",
-		     "cosjetjetdphiover2", "abscosjetjetdphiover2",
 		     "apcjetmetmin"};
 
-  Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kAzure+7, kPink+9, kOrange-3};
+  Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kAzure+7};
 
-  UInt_t idxWd[nS][nV] = { {1,1,1,0,1,1,1} , //alljets
-			   {1,1,1,0,1,1,1} , //monojet
-			   {1,1,1,0,1,1,1} , //1jet
-			   {1,1,1,0,1,1,1} , //2jet
-			   {1,1,1,0,1,1,1} , //3jet 
-			   {1,1,1,0,1,1,1} };//4jet
+  UInt_t idxWd[nS][nV] = { {1,1,1,0,1} , //alljets
+			   {1,1,1,0,1} , //monojet
+			   {1,1,1,1,1} , //1jet
+			   {1,1,1,0,1} , //2jet
+			   {1,1,1,0,1} , //3jet 
+			   {1,1,1,0,1} };//4jet
 
 
   TGraph* gRoc[nS][nV][nWd][nGZ];
