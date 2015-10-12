@@ -282,9 +282,10 @@ Int_t MyTrigger::ProdHistos()
     }
 
     // compute event weight //
-    if(_isData) weight = 1 ;
-    else        weight = _xsec ;
-    //else      weight = _xsec * ( _wgt / _wgtsum ) * _puwgt ;
+    weight = 1;
+    //if(_isData) weight = 1 ;
+    //else        weight = _xsec ;
+    ////else      weight = _xsec * ( _wgt / _wgtsum ) * _puwgt ;
 
     // get x-axis variables //
     if(DEBUG) cout << "-- Get x-axis variables" << endl;
@@ -498,10 +499,12 @@ Int_t MyTrigger::ProdHistos()
 	for(_itVarNumH=_itStepVarNumH->second.begin() ; _itVarNumH!=_itStepVarNumH->second.end() ; _itVarNumH++) {
 	  for(_itNumH=_itVarNumH->second.begin() ; _itNumH!=_itVarNumH->second.end() ; _itNumH++) {
 	  
+	    /*
 	    integral = _itNumH->second->Integral();
 	    if(!_isData && integral!=0) {
 	      _itNumH->second->Scale(_lumitot/integral);
 	    }
+	    */
 	    _itNumH->second->Write();
 
 	  }
@@ -569,7 +572,8 @@ Int_t MyTrigger::ProdHistos()
 	for(UInt_t iF=0; iF<nF; iF++) {
 
 	  if(DEBUG) cout << "----- " << nameF[iF] << endl;
-	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+_namePath+"_"+_nameStep;
+	  //hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+_namePath+"_"+_nameStep;
+	  hname  = "h_"+nameV[iV]+"_"+nameF[iF]+"_"+_namePath+"_"+_nameStep+"_"+sample;
 	  hTemp = (TH1F*)fHistos->Get(hname);
 	  if(hTemp) {
 	    cout << "------ got histo: " << hname << endl;
@@ -607,20 +611,21 @@ Int_t MyTrigger::ProdEff(Bool_t print=kFALSE)
   for(_itProcPathStepVarNumH=_Histos.begin() ; _itProcPathStepVarNumH!=_Histos.end() ; _itProcPathStepVarNumH++) {
 
     theSample = _itProcPathStepVarNumH->first;
+    cout << "-- Sample: " << theSample << endl;
 
     // Loop: paths
     for(_itPathStepVarNumH=_itProcPathStepVarNumH->second.begin() ; _itPathStepVarNumH!=_itProcPathStepVarNumH->second.end() ; _itPathStepVarNumH++) {
 
       _namePath = _itPathStepVarNumH->first;
       _namePathFull = _Paths[_namePath].namePath;
-      cout << "-- " << _namePath << " : " << _namePathFull << endl;
+      cout << "--- " << _namePath << " : " << _namePathFull << endl;
 
       // loop: steps
       for(_itStepVarNumH=_itPathStepVarNumH->second.begin() ; _itStepVarNumH!=_itPathStepVarNumH->second.end() ; _itStepVarNumH++) {
 
 	_nameStep = _itStepVarNumH->first;
 	_theStep  = &(_Steps[_nameStep]);
-	cout << "--- " << _nameStep << endl;
+	cout << "---- " << _nameStep << endl;
 
 	// loop: var
 	for(_itVarNumH=_itStepVarNumH->second.begin() ; _itVarNumH!=_itStepVarNumH->second.end() ; _itVarNumH++) {
@@ -630,12 +635,12 @@ Int_t MyTrigger::ProdEff(Bool_t print=kFALSE)
 	  hNum    = theMap["num"];
 	  hDen    = theMap["denom"];
 
-	  cout << "---- hNum: " << hNum->GetEntries()
-	       << "---- hDen: " << hDen->GetEntries()
+	  cout << "----- hNum: " << hNum->GetEntries()
+	       << "----- hDen: " << hDen->GetEntries()
 	       << endl;
 
 	  if(!hNum || !hDen) {
-	    cout << "---- ERROR: missing histo" << endl;
+	    cout << "----- ERROR: missing histo" << endl;
 	    continue;
 	  }
 
@@ -644,7 +649,7 @@ Int_t MyTrigger::ProdEff(Bool_t print=kFALSE)
 	    if(hNum && hDen && TEfficiency::CheckConsistency(*hNum, *hDen, "w") ) {
 	      pEff = new TEfficiency(*hNum,*hDen);
 	      nameTEff = "t_"+_nameVar+"_"+_namePath+"_"+_nameStep+"_"+nameFunc[iF]+"_"+theSample;
-	      cout << "----- produced TEff: " << nameTEff << endl;
+	      cout << "------ produced TEff: " << nameTEff << endl;
 
 	      pEff->SetNameTitle(nameTEff, _namePathFull+";"+_Axis[_nameVar]+";Efficiency"); //ND
 	      _Eff[theSample][_namePath][_nameStep][_nameVar][nameFunc[iF]] = pEff;
@@ -733,8 +738,8 @@ Int_t MyTrigger::FitEff()
 
 	      // prepare fit function
 	      nameFuncLoc = "func_"+nameTEff+"_"+nameFunc[iF];
-	      if(iF==0) func = new TF1(nameFuncLoc,Sigmoid,0,1000,nPar[iF]);
-	      else      func = new TF1(nameFuncLoc,ErfCB,  0,1000,nPar[iF]);
+	      if(iF==0) func = new TF1(nameFuncLoc,Sigmoid,100, 1000,nPar[iF]);
+	      else      func = new TF1(nameFuncLoc,ErfCB,  100, 1000,nPar[iF]);
 	      prepareFunc(func, nameFunc[iF], threshold);
 	    
 	      cout << "----- Fitting: " << nameTEff 
@@ -789,6 +794,9 @@ Int_t MyTrigger::CompareDataMC()
   UInt_t nS=0;
   bool hasDrawn=false;
   TEfficiency *pEff;
+  TString namePlot, name, title;
+
+  TGraphAsymmErrors *tg_DataZNN, *tg_DataWLN;
 
   // Loop: paths
   for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
@@ -837,7 +845,30 @@ Int_t MyTrigger::CompareDataMC()
 	    }
 	  } // end loop: samples
 
-	  c.Print(); // fixme
+	  namePlot = "dmc_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
+	  c.Print(_dirOut+"/"+_resultName+"/"+namePlot+".pdf","pdf");
+
+	  /*
+	  // compare Data vs ZNN
+	  name  = "tgDataZNN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF];
+	  title = "Trigger Scale Factor: Data/ZNN";
+	  tg_DataZNN = Divide(_Eff["data"][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
+			      _Eff["ZNN" ][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
+			      name, title);
+	  tg_DataZNN->Draw("AP");
+	  namePlot = "sfDataZNN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
+	  c.Print(_dirOut+"/"+_resultName+"/"+namePlot+".pdf","pdf");
+
+	  // compare Data vs WLN
+	  name  = "tgDataWLN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF];
+	  title = "Trigger Scale Factor: Data/WLN";
+	  tg_DataWLN = Divide(_Eff["data"][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
+			      _Eff["WLN" ][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
+			      name, title);
+	  tg_DataWLN->Draw("AP");
+	  namePlot = "sfDataWLN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
+	  c.Print(_dirOut+"/"+_resultName+"/"+namePlot+".pdf","pdf");
+	  */
 
 	} // end loop: fit functions
       } // end loop: var
