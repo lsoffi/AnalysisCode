@@ -31,6 +31,7 @@
 #include "TMath.h"
 #include <TSelector.h>
 #include "TEfficiency.h"
+#include "TGraphAsymmErrors.h"
 //
 #include "tdrstyle.h"
 
@@ -85,7 +86,73 @@ Double_t Sigmoid(double *x, double *par);
 Double_t ErfCB(double *x, double *par);
 Double_t dichotomy(double eff, double a0, double b0, double relErr,
 		   TF1 f, bool verbose);
+Double_t QuadSum(Double_t x, Double_t y);
 
+// root objects
+TGraphAsymmErrors* Divide(TEfficiency* t1, TEfficiency* t2, TString name, TString title);
+
+TGraphAsymmErrors* Divide(TEfficiency* t1, TEfficiency* t2, 
+			  TString name, TString title)
+{
+
+  TH1F* hTot1 = (TH1F*) t1->GetCopyTotalHisto();
+  TH1F* hTot2 = (TH1F*) t2->GetCopyTotalHisto();
+
+  const UInt_t nBins1 = hTot1->GetNbinsX() ; 
+  const UInt_t nBins2 = hTot2->GetNbinsX() ; 
+
+  if(nBins1!=nBins2) {
+    cout << "ERROR: t1 has " << nBins1 
+	 << " bins while t2 has " << nBins2 
+	 << " bins ! exit..." << endl;
+    return 0; // this is a pointer
+  }
+
+  if(!t1 || !t2) {
+    cout << "ERROR:" ;
+    if(!t1) cout << " t1 is missing!";
+    if(!t2) cout << " t2 is missing!";
+    cout << " exit..." << endl;
+    return 0;
+  }
+
+  Double_t eff1, errLow1, errUp1;
+  Double_t eff2, errLow2, errUp2;
+  Double_t ratio, errLow, errUp;
+
+  Double_t x[nBins1], y[nBins1];
+  Double_t exlow[nBins1], exhigh[nBins1];
+  Double_t eylow[nBins1], eyhigh[nBins1];
+
+  for(UInt_t iB=1 ; iB<=nBins1 ; iB++) {
+
+    eff1    = t1->GetEfficiency(iB);
+    errLow1 = t1->GetEfficiencyErrorLow(iB);
+    errUp1  = t1->GetEfficiencyErrorUp(iB);
+
+    eff2    = t2->GetEfficiency(iB);
+    errLow2 = t2->GetEfficiencyErrorLow(iB);
+    errUp2  = t2->GetEfficiencyErrorUp(iB);
+
+    ratio  = eff2!=0 ? eff1/eff2 : -0.001 ;
+    errLow = QuadSum(errLow1, errLow2);
+    errUp  = QuadSum(errUp1 , errUp2);
+
+    // fill arrays for TGraphAsymmErrors
+    y[iB]     = ratio;
+    eylow[iB] = errLow;
+    eyhigh[iB]= errUp;
+
+    x[iB]     = hTot1->GetBinCenter(iB);
+    exlow[iB] = hTot1->GetBinLowEdge(iB);
+    exhigh[iB]= hTot1->GetBinLowEdge(iB+1);
+  }
+  
+  TGraphAsymmErrors* tg = new TGraphAsymmErrors(nBins1, x, y, exlow, exhigh, eylow, eyhigh); 
+  tg->SetNameTitle(name,title);
+
+  return tg;
+}
 
 /////////////////////
 // IMPLEMENTATIONS //
@@ -357,6 +424,11 @@ Double_t dichotomy(double eff, double a0, double b0, double relErr,
 
   return dicho;
 
+}
+
+Double_t QuadSum(Double_t x, Double_t y) 
+{
+  return TMath::Sqrt( TMath::Power(x,2) + TMath::Power(y,2) );
 }
 
 #endif
