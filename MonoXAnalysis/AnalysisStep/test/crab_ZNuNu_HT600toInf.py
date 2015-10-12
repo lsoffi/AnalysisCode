@@ -2,7 +2,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413_Spring15'
-proc = 'ZNuNu_HT600toInf_V5'
+proc = 'ZNuNu_HT600toInf_V7'
 dataset = '/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/MINIAODSIM'
 
 # GENERAL
@@ -16,7 +16,7 @@ config.General.transferLogs    = True
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'nadirMC.py'
-#config.JobType.pyCfgParams = ['reEmulation=True','reEmulMuons=True','reEmulCalos=True','patchNtuple=True','force2012Config=True','customDTTF=True','dttfLutsFile=sqlite:src/L1TriggerDPG/L1Menu/data/dttf_config.db','useUct2015=True','globalTag=POSTLS162_V2::All','runOnMC=True','runOnPostLS1=True','whichPU=40']
+config.JobType.pyCfgParams = ['theXSec=4098']
 ##config.JobType.inputFiles = '../../data/dttf_config.db'
 #config.JobType.inputFiles = ['Summer15_50nsV4_MC.db']
 config.JobType.allowUndistributedCMSSW = True
@@ -47,5 +47,5 @@ config.User.voGroup = 'becms'
 # GRID
 config.section_("Site")
 config.Site.storageSite = 'T2_BE_IIHE'
-config.Site.whitelist = ['T2_BE_IIHE']
+#config.Site.whitelist = ['T2_BE_IIHE']
 #config.Site.blacklist = ['T1_US_FNAL']
