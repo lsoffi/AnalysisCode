@@ -47,5 +47,5 @@ config.User.voGroup = 'becms'
 # GRID
 config.section_("Site")
 config.Site.storageSite = 'T2_BE_IIHE'
-#config.Site.whitelist = 
+##config.Site.whitelist = 
 #config.Site.blacklist = ['T1_US_FNAL']
