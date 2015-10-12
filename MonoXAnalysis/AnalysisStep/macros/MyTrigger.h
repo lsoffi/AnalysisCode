@@ -72,7 +72,8 @@ class MyTrigger {
  private:
 
   // arguments
-  bool _useTrigObj, _useCutoff;
+  double _lumitot;
+  bool _useTrigObj, _useCutoff, _isData;
   UInt_t _cutoff;
   TString _resultName, _offlineSel, _era, 
     _reco, _sample, _period, _seed, _json, 

@@ -1,17 +1,31 @@
 #include "MyTrigger.h"
 
-// file lists
+// file lists //
+//
+// data
 #include "list_MET_2015D.h"
+//
 #include "list_SingleMu_2015B.h"
 #include "list_SingleMu_2015B_23Sep2015.h"
 #include "list_SingleMu_2015C.h"
 #include "list_SingleMu_2015C_23Sep2015.h"
+//
 //#include "list_SingleMu_2015D.h"
-#include "list_SingleMu_2015D_V8.h"
+#include "list_SingleMuon_2015D_V2.h" // old
+#include "list_SingleMu_2015D_V8.h"   // newest
+//
+// MC
+#include "list_WLN_HT100To200_V7.h"  
+#include "list_WLN_HT200To400_V7.h"  
+#include "list_WLN_HT400To600_V7.h"  
+#include "list_WLN_HT600ToInf_V7.h"  
+#include "list_ZNN_HT100To200_V7.h"  
+#include "list_ZNN_HT200To400_V7.h"  
+#include "list_ZNN_HT400To600_V7.h"
 #include "list_ZNN600ToInf_Spring15.h"
-
-// old one 
-#include "list_SingleMuon_2015D_V2.h"
+//
+#include "list_ZNN_NadirAll_V7.h"
+#include "list_WLN_NadirAll_V7.h"
 
 using namespace std;
 Bool_t DEBUG = kFALSE;
@@ -29,24 +43,26 @@ MyTrigger::MyTrigger(TString resultName, TString offlineSel, TString era, TStrin
   // Issue a warning about the cutoff
   if(useCutoff) cout << "WARNING: Using cutoff value: " << cutoff << endl;
 
-  // Record arguments in members
-  _resultName = resultName; 
-  _offlineSel = offlineSel; 
-  _era        = era;
-  _reco       = reco;
-  _sample     = sample;
-  _period     = period; 
-  _seed       = seed; 
-  _json       = json; 
-  _field      = field;
-  _skim       = skim; 
-  _binning    = binning;
-  _useTrigObj = (useTrigObj=="useTrigObj");
-  _HBHECleaning = HBHECleaning; 
-  _useCutoff  = useCutoff;
-  _cutoff     = cutoff;
+  // Record arguments in members //
+  _resultName = resultName; // output directory
+  _offlineSel = offlineSel; // HLTMu, TightMuon
+  _era        = era;        // 2015B,C,D or MC: ZNN_NadirAll, WLN_NadirAll
+  _reco       = reco;       // choose different versions of the sample e.g. Prompt
+  _sample     = sample;     // sample of interest (unused at the moment)
+  _period     = period;     // 50ns, 25ns (also for MC)
+  _seed       = seed;       // ETM50, ETM60, ETM70 (need to implement cross L1)
+  _json       = json;       // MC, DCS, Prompt (will add ReReco)
+  _field      = field;      // 0T, 38T
+  _skim       = skim;       // skim <=> "tree" ; noskim <=> "tree/tree"
+  _binning    = binning;    // regular, tune
+  _useTrigObj = (useTrigObj=="useTrigObj"); // make it boolean
+  _HBHECleaning = HBHECleaning; // NoHBHE, HBHE
+  _useCutoff  = useCutoff;      // decide to use cut-off in #events processed
+  _cutoff     = cutoff;     // cut-off value
 
-  _lumi = 0.210;
+  _isData = true; // real value to be set when looking at _era to define inputs
+  _lumitot = 0.210; // integrated luminosity to normalize MC histograms
+  // (in principle useless for efficiencies)
 
   // Set TDR style for the plots
   gROOT->Reset();
@@ -92,15 +108,15 @@ Int_t MyTrigger::ProdHistos()
 
   // initialize x-axis variables
   double var[nV] = {0, 0, 0, 0, 0, 0};
-
+  
   // Inefficiency checks
   UInt_t nIneff=0;
   UInt_t nEff=0;
-
+  
   // Histograms //
   cout << "- Define histograms." << endl;
   TH1F* hTemp;
-
+  
   // labels
   TString hname, title;
   TString nameV[nV]={"mumet","t1mumet","pfmet","t1pfmet","signaljetpt","signaljetNHfrac"};
@@ -137,7 +153,7 @@ Int_t MyTrigger::ProdHistos()
 		       0.90, 1.00};
   //  
   float* v_xlow[nV] = {bins_met , bins_met , bins_met , bins_met , bins_met , bins_nhef};
-
+  
   // Declaration
   cout << "- Declare histograms" << endl;
   for(_itPaths=_Paths.begin();_itPaths!=_Paths.end();_itPaths++) { // paths
@@ -212,7 +228,7 @@ Int_t MyTrigger::ProdHistos()
     if(_mapRunLumiEvents[_run][_lumi][_event]==1)
       continue;
     else _mapRunLumiEvents[_run][_lumi][_event]=1;
-
+    
     // event selection
     if(_era=="2015C" && _period=="25ns") {
       if(_run==254833) continue;
@@ -266,7 +282,9 @@ Int_t MyTrigger::ProdHistos()
     }
 
     // compute event weight //
-    weight = _xsec * ( _wgt / _wgtsum ) * _puwgt ;
+    if(_isData) weight = 1 ;
+    else        weight = _xsec ;
+    //else      weight = _xsec * ( _wgt / _wgtsum ) * _puwgt ;
 
     // get x-axis variables //
     if(DEBUG) cout << "-- Get x-axis variables" << endl;
@@ -473,16 +491,22 @@ Int_t MyTrigger::ProdHistos()
   outfile->cd();
 
   // Write histograms //
+  double integral=0;
   for(_itPathStepVarNumH=_Histos.begin() ; _itPathStepVarNumH!=_Histos.end() ; _itPathStepVarNumH++) {
     for(_itStepVarNumH=_itPathStepVarNumH->second.begin() ; _itStepVarNumH!=_itPathStepVarNumH->second.end() ; _itStepVarNumH++) {
       for(_itVarNumH=_itStepVarNumH->second.begin() ; _itVarNumH!=_itStepVarNumH->second.end() ; _itVarNumH++) {
 	for(_itNumH=_itVarNumH->second.begin() ; _itNumH!=_itVarNumH->second.end() ; _itNumH++) {
-
-	  if(_json=="MC") _itNumH->second->Scale(_lumi);
+	  
+	  integral = _itNumH->second->Integral();
+	  if(!_isData && integral!=0) {
+	    _itNumH->second->Scale(_lumitot/integral);
+	  }
 	  _itNumH->second->Write();
+	  
 	}
       }
     }
+  }    
 
   _hIneff->Write();
 
@@ -498,8 +522,8 @@ Int_t MyTrigger::ProdHistos()
 
   return 0;
 }
-
-Int_t MyTrigger::GetHistos()
+  
+  Int_t MyTrigger::GetHistos()
 {
   cout << "- GetHistos(): start" << endl;
 
@@ -1194,33 +1218,54 @@ Int_t MyTrigger::GetInput()
   vector<TString> fList; 
   
   if(_era=="2015B") {
+    _isData=true;
     if(     _reco=="Prompt")    fList = list_SingleMu_2015B();
     else if(_reco=="23Sep2015") fList = list_SingleMu_2015B_23Sep2015();
   }
   else if(_era=="2015C") {
+    _isData=true;
     if(     _reco=="Prompt")    fList = list_SingleMu_2015C();
     else if(_reco=="23Sep2015") fList = list_SingleMu_2015C_23Sep2015();
   }
   else if(_era=="2015D") {
+    _isData=true;
     if(     _reco=="Prompt")    fList = list_SingleMu_2015D();
     else if(_reco=="old")       fList = list_SingleMuon_2015D_V2();
     //else if(_reco=="23Sep2015") fList = list_SingleMu_2015D_23Sep2015();
   }
+
   else if(_era=="MC") {
+    _isData=false;
     fList = list_ZNN600ToInf_Spring15();
   }
-  else if(_era=="ZNN") {
+
+  else if(_era=="ZNN_NadirAll") {
+    _isData=false;
+    fList = list_ZNN_NadirAll();
+  }
+
+  else if(_era=="WLN_NadirAll") {
+    _isData=false;
+    fList = list_WLN_NadirAll();
+  }
+  
+  else if(_era=="ZNN_Adish") {
+    _isData=false;
     fList.clear();
     fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/znn100to200/skimMumet100WgtSum.root");
     fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/znn200to400/skimMumet100WgtSum.root");
     fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/znn400to600/skimMumet100WgtSum.root");
     fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/znn600toinf/skimMumet100WgtSum.root");
   }
-  else if(_era=="WLN") {
+  
+  else if(_era=="WLN_Adish") {
+    _isData=false;
     fList.clear();
     fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/wln/skimMumet100WgtSum.root");
   }
+  
   else {
+    _isData=false;
     cout << "ERROR: Please specify input source in the output dir name: " 
 	 << "2015B, 2015C, 2015C, 2015D. "
 	 << "Please specify field: 38T, 0T. Exit ==> []"
