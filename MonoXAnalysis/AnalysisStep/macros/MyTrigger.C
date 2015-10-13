@@ -784,6 +784,8 @@ Int_t MyTrigger::CompareDataMC()
 
   const UInt_t nP=3;
   TString nameProc[nP] = {"data", "ZNN", "WLN"};
+  Int_t   color[nP]    = {kBlack, kRed, kAzure+7};
+  Int_t   style[nP]    = {kFullTriangleUp, kOpenSquare, kOpenCircle};
 
   const UInt_t nV=6;
   TString nameV[nV]={"mumet","t1mumet","pfmet","t1pfmet","signaljetpt","signaljetNHfrac"};
@@ -803,7 +805,8 @@ Int_t MyTrigger::CompareDataMC()
     
     if(DEBUG) cout << "---- get _thePath: ";
     _thePath  = &(_itPaths->second);
-    _namePath = _thePath->namePath;
+    _namePath = _itPaths->first;
+    //_namePath = _thePath->namePath;
     nS = _thePath->nSteps;
     if(DEBUG) cout << _namePath << " (" << nS << " steps)" << endl
 		   << "---- loop: steps" << endl;
@@ -838,11 +841,20 @@ Int_t MyTrigger::CompareDataMC()
 
 	    // plot TEff for each sample on a single TCanvas
 	    pEff = _Eff[nameProc[iP]][_namePath][_nameStep][nameV[iV]][nameFunc[iF]];
+
+	    // draw TEff only if it could be retrieved
 	    if(pEff) {
+	      cout << "pEff->GetName()=" << pEff->GetName() << endl;
+	      //	      
+	      pEff->SetLineColor(  color[iP]);
+	      pEff->SetMarkerColor(color[iP]);
+	      pEff->SetMarkerStyle(style[iP]);
+	      //
 	      if(hasDrawn) pEff->Draw("APSAME");
 	      else         pEff->Draw("AP");
 	      hasDrawn=true;
 	    }
+
 	  } // end loop: samples
 
 	  namePlot = "dmc_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
@@ -1377,7 +1389,12 @@ Int_t MyTrigger::GetInput()
     _isData=false;
     fList = list_WLN_NadirAll();
   }
-  
+
+  else if(_era=="2015D_Adish") {
+    _isData=true;
+    fList.push_back("/user/ndaci/Data/XMET/Run2015D/singlemu/skimMumet30WgtSum.root");
+  }
+
   else if(_era=="ZNN_Adish") {
     _isData=false;
     fList.clear();
@@ -1390,7 +1407,7 @@ Int_t MyTrigger::GetInput()
   else if(_era=="WLN_Adish") {
     _isData=false;
     fList.clear();
-    fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/wln/skimMumet100WgtSum.root");
+    fList.push_back("/user/ndaci/Data/XMET/Spring15MC_25ns/wln/skimMumet30WgtSum.root");
   }
   
   else {
