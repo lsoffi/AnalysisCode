@@ -431,8 +431,10 @@ Int_t MyTrigger::ProdHistos()
 	if(DEBUG) cout << "---- loop: x-axis var" << endl;
 	for(UInt_t iV=0 ; iV<nV ; iV++) { // x-axis variables
 
-	  // forget about energy fractions if MET<=200
-	  if(nameV[iV].Contains("frac") && _mumet<=200) continue;
+	  // forget about energy fractions and jet pt if MET<=200
+	  if(nameV[iV].Contains("frac") || nameV[iV].Contains("jetpt")) {
+	     if(_t1mumet<=200) continue;
+	  }
 
 	  if(DEBUG) cout << "----- var: " << nameV[iV] << endl;
 
@@ -738,8 +740,8 @@ Int_t MyTrigger::FitEff()
 
 	      // prepare fit function
 	      nameFuncLoc = "func_"+nameTEff+"_"+nameFunc[iF];
-	      if(iF==0) func = new TF1(nameFuncLoc,Sigmoid,100, 1000,nPar[iF]);
-	      else      func = new TF1(nameFuncLoc,ErfCB,  100, 1000,nPar[iF]);
+	      if(iF==0) func = new TF1(nameFuncLoc,Sigmoid,130, 1000,nPar[iF]);
+	      else      func = new TF1(nameFuncLoc,ErfCB,  130, 1000,nPar[iF]);
 	      prepareFunc(func, nameFunc[iF], threshold);
 	    
 	      cout << "----- Fitting: " << nameTEff 
@@ -783,9 +785,10 @@ Int_t MyTrigger::CompareDataMC()
   // I could instead get the lists of samples, variables, fit functions by looping over the map
 
   const UInt_t nP=3;
-  TString nameProc[nP] = {"data", "ZNN", "WLN"};
-  Int_t   color[nP]    = {kBlack, kRed, kAzure+7};
-  Int_t   style[nP]    = {kFullTriangleUp, kOpenSquare, kOpenCircle};
+  TString nameProc[nP] = {"ZNN", "WLN", "data"};
+  TString nameLeg[ nP] = {"Z(#nu#nu)", "W(#mu#nu)", "Data"};
+  Int_t   color[nP]    = {kRed, kAzure+7, kBlack};
+  Int_t   style[nP]    = {kOpenSquare, kOpenCircle, kFullTriangleUp};
 
   const UInt_t nV=6;
   TString nameV[nV]={"mumet","t1mumet","pfmet","t1pfmet","signaljetpt","signaljetNHfrac"};
@@ -796,7 +799,8 @@ Int_t MyTrigger::CompareDataMC()
   UInt_t nS=0;
   bool hasDrawn=false;
   TEfficiency *pEff;
-  TString namePlot, name, title;
+  TString namePlot, name, title, nameTEff, nameFuncLoc;
+  TF1* fitEffTemp;
 
   TGraphAsymmErrors *tg_DataZNN, *tg_DataWLN;
 
@@ -834,6 +838,13 @@ Int_t MyTrigger::CompareDataMC()
 
 	  // Create TCanvas
 	  TCanvas c("c","c",0,0,600,600);
+	  gStyle->SetOptStat(0);
+	  gStyle->SetOptFit(0); 
+	  gPad->Update();
+	  TLegend* leg = new TLegend(0.69,0.44,0.84,0.54,"","brNDC");
+	  //TLegend* leg = new TLegend(0.13,0.69,0.33,0.89,"","brNDC");
+	  //TLegend* leg = new TLegend(0.38,0.6,0.58,0.8,"","brNDC");
+	  setStyle(leg);
 	  hasDrawn=false;
 
 	  // Loop: samples
@@ -844,19 +855,39 @@ Int_t MyTrigger::CompareDataMC()
 
 	    // draw TEff only if it could be retrieved
 	    if(pEff) {
+	      nameTEff = pEff->GetName();
 	      cout << "pEff->GetName()=" << pEff->GetName() << endl;
-	      //	      
-	      pEff->SetLineColor(  color[iP]);
-	      pEff->SetMarkerColor(color[iP]);
-	      pEff->SetMarkerStyle(style[iP]);
-	      //
-	      if(hasDrawn) pEff->Draw("APSAME");
+	      nameFuncLoc = "func_"+nameTEff+"_"+nameFunc[iF];
+	      fitEffTemp = 
+		(TF1*)(pEff->GetListOfFunctions()->FindObject(nameFuncLoc));
+
+	      if(fitEffTemp) setStyle(fitEffTemp, color[iP], style[iP]);
+	      setStyle(pEff,       color[iP], style[iP]);
+	      leg->AddEntry(pEff, nameLeg[iP], "L");
+
+	      gStyle->SetOptStat(0);
+	      gStyle->SetOptFit(0); 
+	      gPad->Update();
+	      if(hasDrawn) pEff->Draw("PSAME");
 	      else         pEff->Draw("AP");
 	      hasDrawn=true;
+
+	      gPad->Update();
+	      pEff->GetPaintedGraph()->GetYaxis()->SetTitle("Efficiency");
+	      gPad->Update();
+	      pEff->GetPaintedGraph()->GetYaxis()->SetRangeUser(0.6,1.1);
+	      gPad->Update();
+	      gStyle->SetOptStat(0);
+	      gPad->Update();
+	      gStyle->SetOptFit(0); 
+	      gPad->Update();
 	    }
 
 	  } // end loop: samples
 
+	  gStyle->SetOptStat(0);
+	  leg->Draw();
+	  gStyle->SetOptStat(0);
 	  namePlot = "dmc_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
 	  c.Print(_dirOut+"/"+_resultName+"/"+namePlot+".pdf","pdf");
 
@@ -866,21 +897,23 @@ Int_t MyTrigger::CompareDataMC()
 	  title = "Trigger Scale Factor: Data/ZNN";
 	  tg_DataZNN = Divide(_Eff["data"][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
 			      _Eff["ZNN" ][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
-			      name, title);
+			      name, title, _Axis[nameV[iV]]);
 	  tg_DataZNN->Draw("AP");
 	  namePlot = "sfDataZNN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
 	  c.Print(_dirOut+"/"+_resultName+"/"+namePlot+".pdf","pdf");
+	  */
 
-	  // compare Data vs WLN
+	  // compare Data vs WLN RATIO 
 	  name  = "tgDataWLN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF];
 	  title = "Trigger Scale Factor: Data/WLN";
 	  tg_DataWLN = Divide(_Eff["data"][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
 			      _Eff["WLN" ][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
-			      name, title);
-	  tg_DataWLN->Draw("AP");
-	  namePlot = "sfDataWLN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
-	  c.Print(_dirOut+"/"+_resultName+"/"+namePlot+".pdf","pdf");
-	  */
+			      name, title, _Axis[nameV[iV]]);
+	  if(tg_DataWLN) {
+	    tg_DataWLN->Draw("AP");
+	    namePlot = "sfDataWLN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
+	    c.Print(_dirOut+"/"+_resultName+"/"+namePlot+".pdf","pdf");
+	  }
 
 	} // end loop: fit functions
       } // end loop: var

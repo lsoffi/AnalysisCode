@@ -66,6 +66,7 @@ struct PATH{
 // Function Declarations //
 
 // style
+Int_t setStyle(TEfficiency* f, Int_t color, Int_t style);
 Int_t setStyle(TH1F* h, Int_t color);
 Int_t setStyle(TF1*  f, Int_t color, Int_t style);
 Int_t setStyle(TCanvas* c);
@@ -89,10 +90,10 @@ Double_t dichotomy(double eff, double a0, double b0, double relErr,
 Double_t QuadSum(Double_t x, Double_t y);
 
 // root objects
-TGraphAsymmErrors* Divide(TEfficiency* t1, TEfficiency* t2, TString name, TString title);
+TGraphAsymmErrors* Divide(TEfficiency* t1, TEfficiency* t2, TString name, TString title, TString xtitle);
 
 TGraphAsymmErrors* Divide(TEfficiency* t1, TEfficiency* t2, 
-			  TString name, TString title)
+			  TString name, TString title, TString xtitle)
 {
 
   TH1F* hTot1 = (TH1F*) t1->GetCopyTotalHisto();
@@ -113,7 +114,7 @@ TGraphAsymmErrors* Divide(TEfficiency* t1, TEfficiency* t2,
     if(!t1) cout << " t1 is missing!";
     if(!t2) cout << " t2 is missing!";
     cout << " exit..." << endl;
-    return 0;
+    return 0; // this is a pointer
   }
 
   Double_t eff1, errLow1, errUp1;
@@ -139,17 +140,18 @@ TGraphAsymmErrors* Divide(TEfficiency* t1, TEfficiency* t2,
     errUp  = QuadSum(errUp1 , errUp2);
 
     // fill arrays for TGraphAsymmErrors
-    y[iB]     = ratio;
-    eylow[iB] = errLow;
-    eyhigh[iB]= errUp;
+    y[iB-1]     = ratio;
+    eylow[iB-1] = errLow;
+    eyhigh[iB-1]= errUp;
 
-    x[iB]     = hTot1->GetBinCenter(iB);
-    exlow[iB] = hTot1->GetBinLowEdge(iB);
-    exhigh[iB]= hTot1->GetBinLowEdge(iB+1);
+    x[iB-1]     = hTot1->GetBinCenter(iB);
+    exlow[iB-1] = x[iB-1] - hTot1->GetBinLowEdge(iB);
+    exhigh[iB-1]= hTot1->GetBinLowEdge(iB+1) - x[iB-1];
   }
   
   TGraphAsymmErrors* tg = new TGraphAsymmErrors(nBins1, x, y, exlow, exhigh, eylow, eyhigh); 
   tg->SetNameTitle(name,title);
+  tg->GetXaxis()->SetTitle(xtitle);
 
   return tg;
 }
@@ -175,6 +177,14 @@ pair<Double_t, Double_t> Integrate(TH1F* h)
 }
 
 Int_t setStyle(TF1* f, Int_t color, Int_t style)
+{
+  f->SetLineColor(  color);
+  f->SetMarkerColor(color);
+  f->SetMarkerStyle(style);
+  return 0;
+}
+
+Int_t setStyle(TEfficiency* f, Int_t color, Int_t style)
 {
   f->SetLineColor(  color);
   f->SetMarkerColor(color);
