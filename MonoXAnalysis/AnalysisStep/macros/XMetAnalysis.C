@@ -226,18 +226,19 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   Float_t xLast[nV]  = {3.2, 3.2};
   */
 
-  const UInt_t nV=12;
+  const UInt_t nV=5;
   TString var[nV]    = {"jetmetdphimin"     , "incjetmetdphimin",
-			"signaljetmetdphi"  , "secondjetmetdphi", 
-			"thirdjetmetdphi"   , "jetjetdphi"      , 
-			"cosjetjetdphiover2", "abscosjetjetdphiover2",
-			"dphiJ1J3"          , "dphiJ2J3",
+			//"signaljetmetdphi"  , "secondjetmetdphi", 
+			//"thirdjetmetdphi"   , 
+			"jetjetdphi"      , 
+			//"cosjetjetdphiover2", "abscosjetjetdphiover2",
+			//"dphiJ1J3"          , "dphiJ2J3",
 			"apcjetmetmax"      , "apcjetmetmin"};
 			//"alphat"}; // removed from the trees because memory issues
 
-  UInt_t  nBins[nV]  = {10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000};//, 8000};
-  Float_t xFirst[nV] = {    0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0};//,    0};
-  Float_t xLast[nV]  = {  3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2};//,    2};
+  UInt_t  nBins[nV]  = {10000, 10000, 10000, 10000, 10000}; //, 10000, 10000, 10000, 10000, 10000, 10000, 10000};//, 8000};
+  Float_t xFirst[nV] = {    0,     0,     0,     0,     0}; //,     0,     0,     0,     0,     0,     0,     0};//,    0};
+  Float_t xLast[nV]  = {  3.2,   3.2,   3.2,   3.2,   3.2}; //,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2};//,    2};
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
