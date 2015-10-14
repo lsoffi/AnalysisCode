@@ -14,6 +14,8 @@ XMetAnalysis::XMetAnalysis(TString tag, TString subdir="AN")
   _outfile = new TFile(_dirOut+"/"+_tag+"/plots_"+_tag+".root","recreate");
   _outlog  = new ofstream(_dirOut+"/"+_tag+"/yields_"+_tag+".txt",ios::out);
 
+  (*_outlog) << "- ::XMetAnalysis(" << tag << "," << subdir << endl;
+
   // Define the chains
   if(_isRun1)      DefineChainsRun1();
   else if(_isAN15) DefineChainsAN15();
@@ -30,21 +32,33 @@ XMetAnalysis::XMetAnalysis(TString tag, TString subdir="AN")
 
 XMetAnalysis::~XMetAnalysis()
 {
+  (*_outlog) << "- ::~XMetAnalysis()" << endl;
   _outfile->Close();
   delete _outfile;
 }
 
 Int_t XMetAnalysis::Analysis()
 {
-  if(_isRun1)      AnalysisRun1();
-  else if(_isAN15) AnalysisAN15();
-  else AnalysisRun1();
+  (*_outlog) << "- ::Analysis()" << endl;
+  if(_isRun1)      {
+    AnalysisRun1();
+  (*_outlog) << "- ::AnalysisRun1()" << endl;
+  }
+  else if(_isAN15) {
+    AnalysisAN15();
+    (*_outlog) << "- ::AnalysisAN15()" << endl;
+  }
+  else {
+    AnalysisRun1();
+    (*_outlog) << "- ::AnalysisRun1()" << endl;
+  }
 
   return 0;
 }
 
 Int_t XMetAnalysis::AnalysisAN15()
 {
+  (*_outlog) << "- ::AnalysisAN15()" << endl;
 
   // Processes to use
   vector<TString> locProcesses;
@@ -101,6 +115,8 @@ Int_t XMetAnalysis::AnalysisAN15()
 
 Int_t XMetAnalysis::AnalysisRun1()
 {
+
+  (*_outlog) << "- ::AnalysisRun1()" << endl;
 
   // Processes to use
   vector<TString> locProcesses;
@@ -181,6 +197,8 @@ Int_t XMetAnalysis::AnalysisRun1()
 Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
 {
 
+  (*_outlog) << "- ::StudyQCDKiller(" << signal << ")" << endl;
+
   // Processes to use
   vector<TString> locProcesses;
   locProcesses.push_back(signal); 
@@ -217,9 +235,9 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
 			"apcjetmetmax"      , "apcjetmetmin"};
 			//"alphat"}; // removed from the trees because memory issues
 
-  UInt_t  nBins[nV]  = {10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000};//, 8000};
-  Float_t xFirst[nV] = {    0,     0,     0,     0,     0,     0,     0,     0,     0,     0};//,    0};
-  Float_t xLast[nV]  = {  3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2};//,    2};
+  UInt_t  nBins[nV]  = {10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000};//, 8000};
+  Float_t xFirst[nV] = {    0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0,     0};//,    0};
+  Float_t xLast[nV]  = {  3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2};//,    2};
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
@@ -238,6 +256,29 @@ Int_t XMetAnalysis::plot(TString select,
 			 vector<TString> locProcesses)
 {
 
+  // Write the arguments in the log file /////////////////////////
+  (*_outlog) << "- ::plot(" << select << " , " << nCut << " , {" ;
+  for(UInt_t iCut=0; iCut<nCut; iCut++) {
+    (*_outlog) << scanCut[iCut] << "(" << scanReset[iCut] << ")";
+    if(iCut<nCut-1) (*_outlog) << " , ";
+  }
+  //
+  (*_outlog) << "} , " << nV << " , {";
+  for(UInt_t iV=0; iV<nV; iV++) {
+    (*_outlog) << var[iV] << "(" << nBins[iV] << "," << xFirst[iV] << "," << xLast[iV] << ")";
+    if(iV<nV-1) (*_outlog) << " , ";
+  }
+  //
+  (*_outlog) << "} , {";
+  const UInt_t nP = locProcesses.size();
+  for(UInt_t iP=0 ; iP<nP ; iP++) {
+    (*_outlog) << locProcesses[iP];
+    if(iP<nP-1) (*_outlog) << ",";
+  }
+  //
+  (*_outlog) << "} )" << endl << endl;
+  //////////////////////////////////////////////////////
+
   (*_outlog) << "Selection: " << select << endl;
 
   // Define selections //
@@ -251,8 +292,6 @@ Int_t XMetAnalysis::plot(TString select,
   Float_t minPlot = 9999999.;
   Float_t maxPlot = -9999999.;
   Float_t locMin, locMax;
-
-  const UInt_t nP = locProcesses.size();
 
   // Loop over chains and generate histograms //
   //
