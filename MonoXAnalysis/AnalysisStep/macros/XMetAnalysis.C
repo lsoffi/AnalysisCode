@@ -669,13 +669,13 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
     jetIDMono = "(njets==1 || (njets==2 && secondjetpt>30 && abs(secondjeteta)<4.5) )" ;
   }
   else { // Updated cuts
-    jetID1 = "(signaljetpt>110 && abs(signaljeteta)<2.5 && signaljetNHfrac<0.7 && signaljetEMfrac<0.7 && signaljetCHfrac > 0.2)";
-    jetID2 = "(secondjetpt>30  && abs(secondjeteta)<2.5 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9)";
-    jetID3 = "( thirdjetpt>30  &&  abs(thirdjeteta)<2.5 &&  thirdjetNHfrac<0.7 &&  thirdjetEMfrac<0.9)";
+    jetID1 = "(signaljetpt>30 && abs(signaljeteta)<2.5 && signaljetCHfrac > 0.1)";
+    jetID2 = "(secondjetpt>30 && abs(secondjeteta)<2.5 && secondjetCHfrac > 0.1)";
+    jetID3 = "( thirdjetpt>30 &&  abs(thirdjeteta)<2.5 &&  thirdjetCHfrac > 0.1)";
     //
-    jetIDMult = "(njets==1 || ( (secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5)&&(njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5 && thirdjetNHfrac  < 0.7 && thirdjetEMfrac  < 0.9) ) ) )" ;
+    jetIDMult = "(njets==1 || ( (secondjetpt>30 && abs(secondjeteta)<2.5 && secondjetCHfrac > 0.1) && (njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5 && thirdjetCHfrac  > 0.1) ) ) )" ;
     //
-    jetIDMono = "(njets==1 || (njets==2 && secondjetNHfrac<0.7 && secondjetEMfrac<0.9 && secondjetpt>30 && abs(secondjeteta)<2.5) )" ;
+    jetIDMono = "(njets==1 || (njets==2 && secondjetCHfrac>0.1 && secondjetpt>30 && abs(secondjeteta)<2.5) )" ;
   }
 
   // Jet multiplicity, QCD killer
