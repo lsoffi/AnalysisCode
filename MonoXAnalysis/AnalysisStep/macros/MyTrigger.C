@@ -736,7 +736,7 @@ Int_t MyTrigger::FitEff()
 	    cout << "----- TEff: " << nameTEff << endl;
 
 	    // energy fractions: store but not fit
-	    if(!_nameVar.Contains("frac")) {
+	    if(!_nameVar.Contains("frac") && !_nameVar.Contains("jetpt")) {
 
 	      // prepare fit function
 	      nameFuncLoc = "func_"+nameTEff+"_"+nameFunc[iF];
@@ -792,6 +792,12 @@ Int_t MyTrigger::CompareDataMC()
 
   const UInt_t nV=6;
   TString nameV[nV]={"mumet","t1mumet","pfmet","t1pfmet","signaljetpt","signaljetNHfrac"};
+  TString nameAxis[nV]={"Reco PFMETNoMu [GeV]",
+			"Type1 PFMETNoMu [GeV]",
+			"Reco PFMET [GeV]",
+			"Type1 PFMET",
+			"Leading PFJet p_{T}",
+			"Leading PFJet NHEF"};
 
   const UInt_t nF=2;
   TString nameFunc[nF] = {"sigmoid","cb"};
@@ -897,7 +903,7 @@ Int_t MyTrigger::CompareDataMC()
 	  title = "Trigger Scale Factor: Data/ZNN";
 	  tg_DataZNN = Divide(_Eff["data"][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
 			      _Eff["ZNN" ][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
-			      name, title, _Axis[nameV[iV]]);
+			      name, title, nameAxis[iV]);
 	  tg_DataZNN->Draw("AP");
 	  namePlot = "sfDataZNN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
 	  c.Print(_dirOut+"/"+_resultName+"/"+namePlot+".pdf","pdf");
@@ -908,7 +914,7 @@ Int_t MyTrigger::CompareDataMC()
 	  title = "Trigger Scale Factor: Data/WLN";
 	  tg_DataWLN = Divide(_Eff["data"][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
 			      _Eff["WLN" ][_namePath][_nameStep][nameV[iV]][nameFunc[iF]],
-			      name, title, _Axis[nameV[iV]]);
+			      name, title, nameAxis[iV]);
 	  if(tg_DataWLN) {
 	    tg_DataWLN->Draw("AP");
 	    namePlot = "sfDataWLN_"+_namePath+"_"+_nameStep+"_"+nameV[iV]+"_"+nameFunc[iF] ;
@@ -1006,7 +1012,9 @@ Int_t MyTrigger::DrawEff(TEfficiency* pEff, TString nameTEff,
   pEff->Draw("AP");
   
   // stat box (95% eff point)
-  if(!nameVar.Contains("frac") && s_eff95!="") {
+  if(!nameVar.Contains("frac")   && 
+     !nameVar.Contains("jetpt") && 
+     s_eff95!="") {
     pt2.SetLineColor(1);
     pt2.SetTextColor(1);
     pt2.SetTextFont(42);
