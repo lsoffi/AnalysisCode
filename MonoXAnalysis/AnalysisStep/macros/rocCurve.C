@@ -24,13 +24,13 @@ Float_t calcBoS(Float_t totS, Float_t totB,
 		Float_t effS, Float_t effB, Float_t &error);
 
 Int_t setStyle(TH1* g, Int_t marker, Int_t color);
-Int_t setStyle(TGraph* g, Int_t marker, Int_t color, 
-	       UInt_t nB, TString title, Bool_t zoom);
+Int_t setStyle(TGraph* g, Int_t marker, Int_t color, UInt_t nB, TString title,
+	       Double_t xMin, Double_t xMax, Double_t yMin, Double_t yMax);
 Int_t setStyle(TLegend* leg);
 
 Int_t rocCurve(TString _tag="", 
 	       Float_t wpQCD=0.08, Float_t wpZNN=0.93, Float_t BoS=0.01, 
-	       Bool_t useBoS=false, Bool_t dolog=false, Bool_t unity=true)
+	       Bool_t useBoS=false, Bool_t unity=true)
 {
 
   // Input file
@@ -65,7 +65,7 @@ Int_t rocCurve(TString _tag="",
   cRoc.SetFrameBorderMode(0);
   cRoc.SetFrameBorderMode(0);
   //
-  if(dolog) gPad->SetLogy();
+  //if(dolog) gPad->SetLogy();
   bool hasDrawn=false;
 
   // Selections and variables //
@@ -112,20 +112,56 @@ Int_t rocCurve(TString _tag="",
 			   {1,1,0,1,1,0,0,0,1,1,1,1} };//4jet OK
   */
 
-  const UInt_t nV=5;
-  TString var[nV] = {"jetmetdphimin"   , "incjetmetdphimin",
-		     "secondjetmetdphi", "jetjetdphi",
-		     "apcjetmetmin"};
+  const UInt_t nV=3;
+  TString var[nV] = {"jetmetdphimin", "incjetmetdphimin", "jetjetdphi"};
 
-  Int_t colors[nV]   = {kBlack, kBlue, kRed, kGreen+2, kAzure+7};
+  map<TString, TString> mapVarLabels;
+  mapVarLabels["jetmetdphimin"]    = "Min #Delta#phi(M,J_{i}^{C})";
+  mapVarLabels["incjetmetdphimin"] = "Min #Delta#phi(M,J_{i})";
+  mapVarLabels["jetjetdphi"]       = "#Delta#phi(J_{1},J_{2})";
 
-  UInt_t idxWd[nS][nV] = { {1,1,1,0,1} , //alljets
-			   {1,1,1,0,1} , //monojet
-			   {1,1,1,1,1} , //1jet
-			   {1,1,1,0,1} , //2jet
-			   {1,1,1,0,1} , //3jet 
-			   {1,1,1,0,1} };//4jet
+  Int_t colors[nV]   = {kBlack, kBlue, kGreen+2};
 
+  UInt_t idxWd[nS][nV] = { {1,1,0} , //alljets
+			   {1,1,0} , //monojet
+			   {1,1,1} , //1jet
+			   {1,1,0} , //2jet
+			   {1,1,0} , //3jet 
+			   {1,1,0} };//4jet
+
+  // Axis Ranges
+  const UInt_t nLog=2;               
+  TString nameLog[nLog] = {"linear","log"};
+  //                                   unzoom       zoom
+  Double_t xMin[nS][nGZ][nLog] = { { {0,0.0001} , {0.6,0.6} } , // alljets
+				   { {0,0.0001} , {0.6,0.6} } , // monojet
+				   { {0,0.0001} , {0.6,0.6} } , // 1jet
+				   { {0,0.0001} , {0.6,0.6} } , // 2jet
+				   { {0,0.0001} , {0.6,0.6} } , // 3jet
+				   { {0,0.0001} , {0.6,0.6} } };// 4jet
+
+  Double_t xMax[nS][nGZ][nLog] = { { {1.01,1.01} , {1.01,1.01} } , // alljets
+				   { {1.01,1.01} , {1.01,1.01} } , // monojet
+				   { {1.01,1.01} , {1.01,1.01} } , // 1jet
+				   { {1.01,1.01} , {1.01,1.01} } , // 2jet
+				   { {1.01,1.01} , {1.01,1.01} } , // 3jet
+				   { {1.01,1.01} , {1.01,1.01} } };// 4jet
+
+  Double_t yMin[nS][nGZ][nLog] = { { {0,0.0001} , {0,0.0001} } , // alljets
+				   { {0,0.0001} , {0,0.0001} } , // monojet
+				   { {0,0.0001} , {0,0.001 } } , // 1jet
+				   { {0,0.0001} , {0,0.0001} } , // 2jet
+				   { {0,0.0001} , {0,0.001}  } , // 3jet
+				   { {0,0.0001} , {0,0.0001} } };// 4jet
+
+  Double_t yMax[nS][nGZ][nLog] = { { {1.01,1.01} , {0.2,0.5} } , // alljets
+				   { {1.01,1.01} , {0.1,0.1} } , // monojet
+				   { {1.01,1.01} , {0.1,0.5} } , // 1jet
+				   { {1.01,1.01} , {0.1,0.1} } , // 2jet
+				   { {1.01,1.01} , {0.15,0.5} } , // 3jet
+				   { {1.01,1.01} , {0.25,0.5} } };// 4jet
+
+  Double_t xMinLoc, xMaxLoc, yMinLoc, yMaxLoc;
 
   TGraph* gRoc[nS][nV][nWd][nGZ];
   //TH1F*   hBoS[nS][nV];
@@ -287,19 +323,37 @@ Int_t rocCurve(TString _tag="",
 	  // Prepare unzoomed version
 	  gRoc[iS][iV][iWd][0] = new TGraph(nB, yCum_znn, yCum_qcd);
 
-	  setStyle(gRoc[iS][iV][iWd][0], kOpenSquare, colors[iV], nB,
-		   "ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd], 
-		   kFALSE);
+	  // Loop over linear/log scales
+	  for(UInt_t iLog=0 ; iLog<nLog ; iLog++) {
 
-	  if(gRoc[iS][iV][iWd][0]->GetN()>0) {
-	    gRoc[iS][iV][iWd][0]->Draw("AL");	
+	    if(iLog==0) gPad->SetLogy(0);
+	    else        gPad->SetLogy();
+
+	    xMinLoc = xMin[iS][0][iLog];
+	    xMaxLoc = xMax[iS][0][iLog];
+	    yMinLoc = yMin[iS][0][iLog];
+	    yMaxLoc = yMax[iS][0][iLog];
+
+	    if(metCut=="Met350" && iLog==1) yMinLoc /= 10;
+
+	    setStyle(gRoc[iS][iV][iWd][0], kOpenSquare, colors[iV], nB,
+		     "ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd], 
+		     xMinLoc, xMaxLoc, yMinLoc, yMaxLoc);
+	    gPad->Update();
+
+	    // Draw it only if it has points
+	    if(gRoc[iS][iV][iWd][0]->GetN()>0) {
+	      gRoc[iS][iV][iWd][0]->Draw("AL");	
+	    }
+
+	    // Still print TCanvas not to screw up the pdf file
 	    pdftitle = "Title:"+select[iS]+" "+var[iV]+" "+wd[iWd];
 	    if(iS==0 && iV==0 && iWd==0) 
-	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+metCut+".pdf(",pdftitle);
+	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+nameLog[iLog]+"_"+metCut+".pdf(",pdftitle);
 	    else if(iS==nS-1 && iV==nV-1 && iWd==nWd-1)
-	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+metCut+".pdf)",pdftitle);
+	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+nameLog[iLog]+"_"+metCut+".pdf)",pdftitle);
 	    else
-	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+metCut+".pdf",pdftitle);
+	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/rocfull_"+nameLog[iLog]+"_"+metCut+".pdf",pdftitle);
 	  }
 
 	  // Prepare zoomed version
@@ -322,21 +376,38 @@ Int_t rocCurve(TString _tag="",
 
 	  /// use the arrays to fill the graph and draw it
 	  gRoc[iS][iV][iWd][1] = new TGraph(nZ, yZoo_znn, yZoo_qcd);
-	  setStyle(gRoc[iS][iV][iWd][1], kOpenSquare, colors[iV], nZ,
-		   "ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd],
-		   kTRUE);
 
-	  if(gRoc[iS][iV][iWd][1]->GetN()>0) {
+	  // Loop over linear/log scales
+	  for(UInt_t iLog=0 ; iLog<nLog ; iLog++) {
 
-	    gRoc[iS][iV][iWd][1]->Draw("AL");	
+	    if(iLog==0) gPad->SetLogy(0);
+	    else        gPad->SetLogy();
 
-	    /// print the graph in a single pdf file
+	    xMinLoc = xMin[iS][1][iLog];
+	    xMaxLoc = xMax[iS][1][iLog];
+	    yMinLoc = yMin[iS][1][iLog];
+	    yMaxLoc = yMax[iS][1][iLog];
+
+	    if(metCut=="Met350" && iLog==1) yMinLoc /= 10;
+
+	    setStyle(gRoc[iS][iV][iWd][1], kOpenSquare, colors[iV], nZ,
+		     "ROC Curve : "+select[iS]+" "+var[iV]+" "+wdT[iWd],
+		     xMinLoc, xMaxLoc, yMinLoc, yMaxLoc);
+	    gPad->Update();
+
+	    // Draw it only if it has points
+	    if(gRoc[iS][iV][iWd][1]->GetN()>0) {
+	      gRoc[iS][iV][iWd][1]->Draw("AL");	
+	    }
+
+	    // Still print TCanvas not to screw up the pdf file
+	    pdftitle = "Title:"+select[iS]+" "+var[iV]+" "+wd[iWd];
 	    if(iS==0 && iV==0 && iWd==0) 
-	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+metCut+".pdf(",pdftitle);
+	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+nameLog[iLog]+"_"+metCut+".pdf(",pdftitle);
 	    else if(iS==nS-1 && iV==nV-1 && iWd==nWd-1)
-	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+metCut+".pdf)",pdftitle);
+	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+nameLog[iLog]+"_"+metCut+".pdf)",pdftitle);
 	    else
-	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+metCut+".pdf",pdftitle);
+	      cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/roczoom_"+nameLog[iLog]+"_"+metCut+".pdf",pdftitle);
 	  }
 	  // end zoomed version
 
@@ -346,65 +417,84 @@ Int_t rocCurve(TString _tag="",
       }   // end loop over nV
     }     // end loop over nS
 
-    // Put several killers per plot
-    cout << "-- Start loop: iGZ unzoom/zoom" << endl;
-    for(UInt_t iGZ=0 ; iGZ<nGZ ; iGZ++) {
+    // Put several killers per plot allroc
+    cout << "-- Start loop: iLog linear/log scale" << endl;
+    for(UInt_t iLog=0 ; iLog<nLog ; iLog++) {
 
-      cout << "--- " << scanCut[iC]+tzoom[iGZ] << endl
-	   << "--- Start loop: iS selections" << endl;
-
-      for(UInt_t iS=0 ; iS<nS ; iS++) {
-	
-	cout << "---- Selection: " << select[iS] << endl;
-	
-	// Produce 1 plot per selection & zoom choice
-	hasDrawn = false;
-	for(UInt_t iV=0 ; iV<nV ; iV++) {
-
-	  cout << "----- variable: " << var[iV] 
-	       << " " << gRoc[iS][iV][idxWd[iS][iV]][iGZ]->GetN() << " points" << endl;
-
-	  if(gRoc[iS][iV][idxWd[iS][iV]][iGZ]->GetN()<=0) continue;
-	  if(!hasDrawn) {
-	    gRoc[iS][iV][idxWd[iS][iV]][iGZ]->SetTitle("Selection: "+select[iS]);
-	    gRoc[iS][iV][idxWd[iS][iV]][iGZ]->Draw("AL");
-	    hasDrawn = true;
-	  }
-	  else {
-	    gRoc[iS][iV][idxWd[iS][iV]][iGZ]->Draw("L");
-	  }
-	}
-
-	cout << "---- build legend" << endl;
-	TLegend* leg;
-	if(iGZ==0)      leg = new TLegend(0.13,0.69,0.33,0.89,"","brNDC");
-	else if(iGZ==1) leg = new TLegend(0.69,0.14,0.89,0.34,"","brNDC");
-	else            leg = new TLegend(0.38,0.6,0.58,0.8,"","brNDC");
-	setStyle(leg);
+      if(iLog==0) gPad->SetLogy(0);
+      else        gPad->SetLogy();
     
-	for(UInt_t iV=0 ; iV<nV ; iV++) {
+      cout << "-- Start loop: iGZ unzoom/zoom" << endl;
+      for(UInt_t iGZ=0 ; iGZ<nGZ ; iGZ++) {
 
-	  if(gRoc[iS][iV][1][iGZ]->GetN()>0) {
-	    leg->AddEntry(gRoc[iS][iV][1][iGZ], var[iV], "L");
+	cout << "--- " << scanCut[iC]+tzoom[iGZ] << endl
+	     << "--- Start loop: iS selections" << endl;
+
+	for(UInt_t iS=0 ; iS<nS ; iS++) {
+	
+	  cout << "---- Selection: " << select[iS] << endl;
+	
+	  // Produce 1 plot per selection & zoom choice
+	  hasDrawn = false;
+	  for(UInt_t iV=0 ; iV<nV ; iV++) {
+
+	    cout << "----- variable: " << var[iV] 
+		 << " " << gRoc[iS][iV][idxWd[iS][iV]][iGZ]->GetN() << " points" << endl;
+
+	    if(gRoc[iS][iV][idxWd[iS][iV]][iGZ]->GetN()<=0) continue;
+	    if(!hasDrawn) {
+	      gRoc[iS][iV][idxWd[iS][iV]][iGZ]->SetTitle("Selection: "+select[iS]);
+	      gRoc[iS][iV][idxWd[iS][iV]][iGZ]->Draw("AL");
+	      hasDrawn = true;
+	    }
+	    else {
+	      gRoc[iS][iV][idxWd[iS][iV]][iGZ]->Draw("L");
+	    }
 	  }
-	}
 
-	cout << "---- draw legend" << endl;
-	leg->Draw();
+	  cout << "---- build legend" << endl;
+	  TLegend* leg;
+	  if(iLog==0) leg = new TLegend(0.13,0.69,0.33,0.89,"","brNDC");
+	  else        leg = new TLegend(0.69,0.14,0.89,0.34,"","brNDC");
+	  /*
+	  if(iGZ==1 && iLog==1 && iS!=1 && iS!=3) 
+	    leg = new TLegend(0.69,0.14,0.89,0.34,"","brNDC");
+	  else 
+	    leg = new TLegend(0.13,0.69,0.33,0.89,"","brNDC");
+	  */
+	  /*
+	    if(iGZ==0)      leg = new TLegend(0.13,0.69,0.33,0.89,"","brNDC");
+	    else if(iGZ==1) leg = new TLegend(0.69,0.14,0.89,0.34,"","brNDC");
+	    else            leg = new TLegend(0.38,0.6,0.58,0.8,"","brNDC");
+	  */
+	  setStyle(leg);
+    
+	  for(UInt_t iV=0 ; iV<nV ; iV++) {
 
-	TString mysel = select[iS]+"_"+metCut;
+	    if(gRoc[iS][iV][idxWd[iS][iV]][iGZ]->GetN()>0) {
+	      leg->AddEntry(gRoc[iS][iV][idxWd[iS][iV]][iGZ], mapVarLabels[var[iV]], "L");
+	    }
+	  }
 
-	cout << "---- Print" << endl;
-	if(iS==0) 
-	  cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+metCut+tzoom[iGZ]+".pdf(","Title:"+mysel);
-	else if(iS==nS-1)
-	  cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+metCut+tzoom[iGZ]+".pdf)","Title:"+mysel);
-	else
-	  cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+metCut+tzoom[iGZ]+".pdf","Title:"+mysel);
+	  cout << "---- draw legend" << endl;
+	  leg->Draw();
 
-      }
-    }
-  }
+	  TString mysel = select[iS]+"_"+metCut;
+
+	  cout << "---- Print" << endl;
+	  if(iS==0) 
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+nameLog[iLog]+"_"+metCut+tzoom[iGZ]+".pdf(","Title:"+mysel);
+	  else if(iS==nS-1)
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+nameLog[iLog]+"_"+metCut+tzoom[iGZ]+".pdf)","Title:"+mysel);
+	  else
+	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+nameLog[iLog]+"_"+metCut+tzoom[iGZ]+".pdf","Title:"+mysel);
+	} // end loop: iS selections
+      } // end loop: iGZ unzoom/zoom
+    } // end loop: iLog linear/log scales
+
+    // end allroc plots //
+
+  } // end loop: iCut
   
   return 0;
 }
@@ -430,8 +520,8 @@ Int_t setStyle(TH1* g, Int_t marker, Int_t color)
   return 0;
 }
 
-Int_t setStyle(TGraph* g, Int_t marker, Int_t color, 
-	       UInt_t nB, TString title, Bool_t zoom)
+Int_t setStyle(TGraph* g, Int_t marker, Int_t color, UInt_t nB, TString title,
+	       Double_t xMin, Double_t xMax, Double_t yMin, Double_t yMax)
 {
 
   g->SetMarkerStyle(marker);
@@ -440,15 +530,11 @@ Int_t setStyle(TGraph* g, Int_t marker, Int_t color,
   //g->SetMarkerSize();
   g->SetFillColor(kWhite);
 
-  g->SetMinimum(0);
-  g->SetMaximum(1.05);
+  g->SetMinimum(yMin);   
+  g->SetMaximum(yMax);
 
-  g->GetXaxis()->Set(nB, 0, 1);
-  g->GetYaxis()->Set(nB, 0, 1);
-  if(zoom) {
-    g->GetXaxis()->Set(nB, 0.6, 1);
-    g->GetYaxis()->Set(nB, 0  , 0.5);
-  }
+  g->GetXaxis()->Set(nB, xMin, xMax);
+  g->GetYaxis()->Set(nB, yMin, yMax);
 
   g->GetXaxis()->SetTitle("Z(#nu#nu) efficiency");
   g->GetYaxis()->SetTitle("QCD efficiency");
