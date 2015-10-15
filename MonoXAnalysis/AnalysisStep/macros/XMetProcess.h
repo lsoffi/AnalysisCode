@@ -207,7 +207,7 @@ Int_t XMetProcess::Skim(TString select, TCut cut, Bool_t reset)
 
   TString tskim="skim_"+_nameProcess+"_"+select;
   _chain->Draw(">>+"+tskim, cut, "entrylist");
-  //_chain->Draw(">>+"+tskim, cut, "entrylist",100); // FIXME
+  //_chain->Draw(">>+"+tskim, cut, "entrylist",1000); // FIXME
   TEntryList* skim = (TEntryList*)gDirectory->Get(tskim);
 
   _mapSkim[select] = skim;
