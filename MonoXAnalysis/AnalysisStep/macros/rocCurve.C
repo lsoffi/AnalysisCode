@@ -488,6 +488,8 @@ Int_t rocCurve(TString _tag="",
 	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+nameLog[iLog]+"_"+metCut+tzoom[iGZ]+".pdf)","Title:"+mysel);
 	  else
 	    cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/allroc_"+nameLog[iLog]+"_"+metCut+tzoom[iGZ]+".pdf","Title:"+mysel);
+
+	  cRoc.Print("/user/ndaci/Results/Monojet/QCD/"+_tag+"/selroc_"+nameLog[iLog]+"_"+metCut+tzoom[iGZ]+"_"+select[iS]+".pdf","Title:"+mysel);
 	} // end loop: iS selections
       } // end loop: iGZ unzoom/zoom
     } // end loop: iLog linear/log scales
