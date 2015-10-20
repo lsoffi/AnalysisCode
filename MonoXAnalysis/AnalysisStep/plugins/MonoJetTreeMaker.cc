@@ -698,10 +698,10 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         thirdjetNHfrac   = jets[2]->neutralHadronEnergyFraction();
         thirdjetEMfrac   = jets[2]->neutralEmEnergyFraction();
         thirdjetCEMfrac  = jets[2]->chargedEmEnergyFraction();
-        thirdjetqgl      = (*qglH)   [jets[1]];
-        thirdjetqgs2     = (*qgs2H)  [jets[1]];
-        thirdjetqgmult   = (*qgmultH)[jets[1]];
-        thirdjetqgptd    = (*qgptdH) [jets[1]];
+        thirdjetqgl      = (*qglH)   [jets[2]];
+        thirdjetqgs2     = (*qgs2H)  [jets[2]];
+        thirdjetqgmult   = (*qgmultH)[jets[2]];
+        thirdjetqgptd    = (*qgptdH) [jets[2]];
     }
 
     if (signaljetpt > 0.0 && secondjetpt > 0.0) jetjetdphi = deltaPhi(signaljetphi, secondjetphi);
