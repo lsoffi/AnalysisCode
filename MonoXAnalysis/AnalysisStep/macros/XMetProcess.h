@@ -27,10 +27,15 @@ class XMetProcess {
   Int_t SetPath(TString path);
   Int_t SetXSec(Double_t xsec);
   Int_t SetWeight(Double_t w);
-  Int_t SetNGen(Int_t ngen);
+  Int_t SetNGen( Int_t ngen);
+  Int_t SetColor(Int_t color);
+  Int_t SetStyle(Int_t style);
+  Int_t SetSize( Int_t size);
 
   // Getters
   Int_t    GetColor();
+  Int_t    GetStyle();
+  Int_t    GetSize();
   TString  GetNameFile();
   Double_t GetXSec();
   Double_t GetWeight();
@@ -46,7 +51,7 @@ class XMetProcess {
 
   TString  _path, _nameFile, _nameProcess;
   Double_t _xsec, _weight;
-  Int_t    _ngen, _col;
+  Int_t    _ngen, _col, _style, _size;
 
   map<TString, TEntryList*> _mapSkim;
   map<TString, TEntryList*>::iterator _itmapSkim;
@@ -70,7 +75,9 @@ XMetProcess::XMetProcess()
   _nameProcess = "";
   _path = "";
   _nameFile = "";
-  _col = kBlack;
+  _col   = kBlack;
+  _style = kFullCircle;
+  _size  = 1.0;
   _chain = new TChain();
   _xsec=1;
   _weight=1;
@@ -158,6 +165,16 @@ Int_t XMetProcess::GetColor()
   return _col;
 }
 
+Int_t XMetProcess::GetStyle()
+{
+  return _style;
+}
+
+Int_t XMetProcess::GetSize()
+{
+  return _size;
+}
+
 TString XMetProcess::GetNameFile()
 {
   return _nameFile;
@@ -197,6 +214,24 @@ Int_t XMetProcess::SetWeight(Double_t w)
 Int_t XMetProcess::SetNGen(Int_t ngen)
 {
   _ngen=ngen;
+  return 0;
+}
+
+Int_t XMetProcess::SetColor(Int_t color)
+{
+  _col = color;
+  return 0;
+}
+
+Int_t XMetProcess::SetStyle(Int_t style)
+{
+  _style = style;
+  return 0;
+}
+
+Int_t XMetProcess::SetSize(Int_t size)
+{
+  _size = size;
   return 0;
 }
 
