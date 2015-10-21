@@ -12,7 +12,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condD
 # Message Logger settings
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.destinations = ['cout', 'cerr']
-process.MessageLogger.cerr.FwkReport.reportEvery = 10
+process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 # Set the process options -- Display summary at the end, enable unscheduled execution
 process.options = cms.untracked.PSet( 
@@ -35,21 +35,21 @@ filterHighMETEvents = False
 filterOnHLT = True
 
 # Redo jets and MET with updated JEC
-redoJetsMET = True
+redoJetsMET = False
 
 # Use private JECs since the GTs are not updated
-usePrivateSQlite = True
+usePrivateSQlite = False
 
 # Apply L2L3 residual corrections
-applyL2L3Residuals = True
+applyL2L3Residuals = False
 
 # Process name used in MiniAOD -- needed to get the correct trigger results, and also for redoing the MET
-miniAODProcess = "RECO"
+miniAODProcess = "PAT"
 
 # Define the input source
 process.source = cms.Source("PoolSource", 
     fileNames = cms.untracked.vstring([
-        '/store/data/Run2015D/DoubleMuon/MINIAOD/PromptReco-v3/000/256/629/00000/E2B8C5F0-F45E-E511-ADC8-02163E01410C.root'
+        '/store/data/Run2015D/DoubleMuon/MINIAOD/05Oct2015-v1/30000/B0E177F6-8A6F-E511-A81F-0025905B85D6.root'
     ])
 )
 
@@ -61,7 +61,7 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 if isMC:
     process.GlobalTag.globaltag = '74X_mcRun2_asymptotic_v2'   # for Simulation
 else:
-    process.GlobalTag.globaltag = '74X_dataRun2_v2'            # for Data
+    process.GlobalTag.globaltag = '74X_dataRun2_v4'            # for Data
 
 # Setup the private SQLite -- Ripped from PhysicsTools/PatAlgos/test/corMETFromMiniAOD.py
 if usePrivateSQlite:
@@ -199,6 +199,25 @@ process.t1mumet = cms.EDProducer("MuonCorrectedMETProducer",
     muons = cms.InputTag("selectedObjects", "muons")
 )
 
+process.elmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("slimmedMETs"),
+    cands = cms.VInputTag(cms.InputTag("selectedObjects", "electrons")),
+    useuncorrmet = cms.bool(True)
+)
+process.t1elmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("slimmedMETs"),
+    cands = cms.VInputTag(cms.InputTag("selectedObjects", "electrons")),
+)
+process.phmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("slimmedMETs"),
+    cands = cms.VInputTag(cms.InputTag("selectedObjects", "photons")),
+    useuncorrmet = cms.bool(True)
+)
+process.t1phmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("slimmedMETs"),
+    cands = cms.VInputTag(cms.InputTag("selectedObjects", "photons")),
+)
+
 # Quark-Gluon Discriminant
 process.load("RecoJets.JetProducers.QGTagger_cfi")
 process.QGTagger.srcJets = jetCollName
@@ -230,6 +249,10 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     pfmupt = cms.InputTag("pfmupt"),
     mumet = cms.InputTag("mumet"),
     t1mumet = cms.InputTag("t1mumet"),
+    elmet = cms.InputTag("elmet"),
+    t1elmet = cms.InputTag("t1elmet"),
+    phmet = cms.InputTag("phmet"),
+    t1phmet = cms.InputTag("t1phmet"),
     triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
     filterResults = cms.InputTag("TriggerResults", "", miniAODProcess),
     hcalnoise = cms.InputTag("hcalnoise"),
