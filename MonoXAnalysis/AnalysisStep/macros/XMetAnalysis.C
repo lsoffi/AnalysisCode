@@ -1,7 +1,7 @@
 #include "XMetAnalysis.h"
 
 using namespace std;
-Int_t verbose = 2;
+Int_t verbose = 1000;
 
 XMetAnalysis::XMetAnalysis(TString tag, TString subdir="AN")
 {
@@ -11,7 +11,6 @@ XMetAnalysis::XMetAnalysis(TString tag, TString subdir="AN")
   _isRun1 = _tag.Contains("Run1");
 
   _dirOut  = "/user/ndaci/Results/Monojet/"+subdir+"/";
-  _outfile = new TFile(_dirOut+"/"+_tag+"/plots_"+_tag+".root","recreate");
   _outlog  = new ofstream(_dirOut+"/"+_tag+"/yields_"+_tag+".txt",ios::out);
 
   (*_outlog) << "- ::XMetAnalysis(" << tag << "," << subdir << endl;
@@ -37,33 +36,45 @@ XMetAnalysis::~XMetAnalysis()
   delete _outfile;
 }
 
-Int_t XMetAnalysis::Analysis()
+Int_t XMetAnalysis::Analysis(Bool_t bProdHistos)
 {
+
   (*_outlog) << "- ::Analysis()" << endl;
   if(_isRun1)      {
-    AnalysisRun1();
+    AnalysisRun1(bProdHistos);
   (*_outlog) << "- ::AnalysisRun1()" << endl;
   }
   else if(_isAN15) {
-    AnalysisAN15();
+    AnalysisAN15(bProdHistos);
     (*_outlog) << "- ::AnalysisAN15()" << endl;
   }
   else {
-    AnalysisRun1();
+    AnalysisRun1(bProdHistos);
     (*_outlog) << "- ::AnalysisRun1()" << endl;
   }
 
   return 0;
 }
 
-Int_t XMetAnalysis::AnalysisAN15()
+Int_t XMetAnalysis::AnalysisAN15(Bool_t bProdHistos)
 {
   (*_outlog) << "- ::AnalysisAN15()" << endl;
 
+  TString mode;
+  if(bProdHistos) mode="recreate";
+  else            mode="read";
+  _outfile = new TFile(_dirOut+"/"+_tag+"/plots_"+_tag+".root",mode);
+  _outfile->cd();
+
   // Processes to use
   vector<TString> locProcesses;
-
-  // MC backgrounds
+  //
+  locProcesses.push_back("data_met");
+  locProcesses.push_back("data_2m");
+  locProcesses.push_back("data_1m");
+  locProcesses.push_back("data_1ph");
+  locProcesses.push_back("data_2e");
+  //
   locProcesses.push_back("znn"); 
   locProcesses.push_back("zll"); 
   locProcesses.push_back("wln"); 
@@ -72,51 +83,86 @@ Int_t XMetAnalysis::AnalysisAN15()
   locProcesses.push_back("vv"); 
   locProcesses.push_back("qcd"); 
 
+  // Process to put in the stack plot
+  vector<TString> stackProcesses;
+  //
+  stackProcesses.push_back("data_met");
+  //
+  stackProcesses.push_back("qcd"); 
+  stackProcesses.push_back("znn"); 
+  stackProcesses.push_back("zll"); 
+  stackProcesses.push_back("wln"); 
+  stackProcesses.push_back("ttbar"); 
+  stackProcesses.push_back("top"); 
+  stackProcesses.push_back("vv"); 
+
   // Selections and variables
-  /*
   const UInt_t nS=4;
   TString select[nS] = {"1jet","2jet","3jet","4jet"};
-  */
-
-  const UInt_t nS=1;
-  TString select[nS] = {"monojet"};
+  TString selectTitle[nS] = {"1 Jet", "2 Jets", "3 Jets", "4 Jets And More"};
+  for(UInt_t iS=0 ; iS<nS ; iS++) _Title[ select[iS] ] = selectTitle[iS];
 
   /*
   const UInt_t nCut=5;
-  TString scanCut[  nCut] = {"NoJmCut","JetMet0p2","JetMet0p4","JetMet0p6","JetMet0p8"};
-  Bool_t  scanReset[nCut] = {true,false,false,false,false};
-  */
-
-  /*
-  const UInt_t nCut=5;
-  TString scanCut[nCut] = {"JetMet0p4","JetMet0p45",
-			   "JetMet0p5","JetMet0p55","JetMet0p6"};
+  TString scanCut[nCut] = {"JetMet0p4","JetMet0p45","JetMet0p5","JetMet0p55","JetMet0p6"};
   Bool_t  scanReset[nCut] = {true,false,false,false,false};
   */
 
   const UInt_t nCut=1;
-  //TString scanCut[  nCut] = {"NoJmCut"};
-  TString scanCut[  nCut] = {"JetMet0p4"}; // fixme
+  TString scanCut[  nCut] = {"NoJmCut"};
+  //TString scanCut[  nCut] = {"JetMet0p4"}; // fixme
   Bool_t  scanReset[nCut] = {true};
 
-  const UInt_t nV=1;
-  TString var[nV]    = {"t1mumet"};
-  UInt_t  nBins[nV]  = {100};
-  Float_t xFirst[nV] = {0};
-  Float_t xLast[nV]  = {1000};
-
-  for(UInt_t iS=0 ; iS<nS ; iS++) {
-    if(verbose>1) cout << "- selection : " << select[iS] << endl;
-    plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
+  // Variables
+  const UInt_t nV=3;
+  TString var[nV]     ={"t1mumet", "jetmetdphimin", "incjetmetdphimin"};
+  TString nameAxis[nV]={"Type1 PFMETNoMu [GeV]", "Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})"};
+  for(UInt_t iV=0; iV<nV; iV++) {
+    _Axis[var[iV]] = nameAxis[iV];
   }
+
+  // Binning
+  UInt_t  nBins[nV]  = { 100,   64,   64};
+  Float_t xFirst[nV] = { 200,    0,    0};
+  Float_t xLast[nV]  = {1000,  3.2,  3.2};
+
+  const UInt_t xbins[nV] = {8, 64, 64};
+
+  Float_t bins_met[] = {200, 250, 300, 350, 400, 500, 600, 1000};
+
+  Float_t bins_dphi[xbins[1]];
+  for(UInt_t iB=0 ; iB<xbins[1] ; iB++) {
+    bins_dphi[iB] = iB*0.05;
+  }
+
+  Float_t* v_bins[nV] = {bins_met, bins_dphi, bins_dphi};
+
+  // Produce individual histograms
+  if(bProdHistos) {
+    for(UInt_t iS=0 ; iS<nS ; iS++) {
+      if(verbose>1) cout << "- selection : " << select[iS] << endl;
+      plot(select[iS], nCut, scanCut, scanReset, nV, var, xbins, v_bins, locProcesses);
+    }
+  }
+  else {
+    GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
+  }
+
+  DrawStackPlots(nS, select, nCut, scanCut, nV, var, stackProcesses);
 
   return 0;
 }
 
-Int_t XMetAnalysis::AnalysisRun1()
+Int_t XMetAnalysis::AnalysisRun1(Bool_t bProdHistos)
 {
 
   (*_outlog) << "- ::AnalysisRun1()" << endl;
+
+  TString mode;
+  if(bProdHistos) mode="recreate";
+  else            mode="read";
+  _outfile = new TFile(_dirOut+"/"+_tag+"/plots_"+_tag+".root",mode);
+  _outfile->cd();
 
   // Processes to use
   vector<TString> locProcesses;
@@ -180,15 +226,35 @@ Int_t XMetAnalysis::AnalysisRun1()
   Bool_t  scanReset[nCut] = {true};
   */
 
+  // variables
   const UInt_t nV=1;
   TString var[nV]    = {"t1mumet"};
+  TString nameAxis[nV]={"Type1 PFMETNoMu [GeV]"};
+  for(UInt_t iV=0; iV<nV; iV++) {
+    _Axis[var[iV]] = nameAxis[iV];
+  }
+
+  // binning
   UInt_t  nBins[nV]  = {50};
   Float_t xFirst[nV] = {0};
   Float_t xLast[nV]  = {1000};
 
-  for(UInt_t iS=0 ; iS<nS ; iS++) {
-    if(verbose>1) cout << "- selection : " << select[iS] << endl;
-    plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
+  Float_t bins_met[nBins[0]];
+
+  for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
+    bins_met[iB] = iB * ((xLast[0] - xFirst[0])/nBins[iV]);
+  }
+
+  Float_t* v_bins[nV] = {bins_met};
+
+  if(bProdHistos) {
+    for(UInt_t iS=0 ; iS<nS ; iS++) {
+      if(verbose>1) cout << "- selection : " << select[iS] << endl;
+      plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, v_bins, locProcesses);
+    }
+  }
+  else {
+    GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
   }
 
   return 0;
@@ -240,20 +306,35 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   Float_t xFirst[nV] = {    0,     0,     0,     0,     0}; //,     0,     0,     0,     0,     0,     0,     0};//,    0};
   Float_t xLast[nV]  = {  3.2,   3.2,   3.2,   3.2,   3.2}; //,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2,   3.2};//,    2};
 
+  Float_t bins[nBins[0]];
+
+  for(UInt_t iV=0 ; iV<nV ; iV++) {
+    for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
+      bins_met[iB] = iB * ((xLast[iV] - xFirst[iV])/nBins[iV]);
+    }
+  }
+
+  Float_t* v_bins[nV] = {bins_met};
+
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
-    plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses);
+    //plot(select[iS], nCut, scanCut, scanReset, nV, var, nBins, xFirst, xLast, locProcesses); // FIXME ND
   }
 
-  _outfile->Close();
+  if(_outfile) _outfile->Close();
+  else {
+    cout << "ERROR: outfile undefined! Exit ==> []" << endl;
+    return -2;
+  }
+
   return 0;
 }
 
 Int_t XMetAnalysis::plot(TString select, 
-			 const UInt_t nCut, TString* scanCut, Bool_t* scanReset,
-			 const UInt_t nV,    TString* var, 
-			 UInt_t* nBins, Float_t* xFirst, Float_t* xLast, 
+			 const UInt_t nCut, TString *scanCut, Bool_t *scanReset,
+			 const UInt_t nV,    TString *var, 
+			 const UInt_t *xbins, Float_t **v_bins,
 			 vector<TString> locProcesses)
 {
 
@@ -265,10 +346,12 @@ Int_t XMetAnalysis::plot(TString select,
   }
   //
   (*_outlog) << "} , " << nV << " , {";
+  /*
   for(UInt_t iV=0; iV<nV; iV++) {
     (*_outlog) << var[iV] << "(" << nBins[iV] << "," << xFirst[iV] << "," << xLast[iV] << ")";
     if(iV<nV-1) (*_outlog) << " , ";
   }
+  */
   //
   (*_outlog) << "} , {";
   const UInt_t nP = locProcesses.size();
@@ -289,7 +372,7 @@ Int_t XMetAnalysis::plot(TString select,
   TCut cut = defineCut(select, region);
 
   // Declare histograms //
-  M_PROCESS_CUT_VAR_H mapHistos;
+  //M_PROCESS_CUT_VAR_H mapHistos; // made it a member
   Float_t minPlot = 9999999.;
   Float_t maxPlot = -9999999.;
   Float_t locMin, locMax;
@@ -297,7 +380,7 @@ Int_t XMetAnalysis::plot(TString select,
   // Loop over chains and generate histograms //
   //
   TString nameDir, locVar, variable;
-  Int_t color;
+  Int_t color, style, size;
   TH1F *hTemp, *hSRDD, *hTemp_cr_d, *hTemp_cr_mc,
     *hTemp_num, *hTemp_den;
   pair<Double_t, Double_t> intErr;
@@ -354,7 +437,16 @@ Int_t XMetAnalysis::plot(TString select,
     }
     //
     else {region = "signal";}
-    
+
+    // Apply k-factors
+    if(_useLO) {
+      if(nameDir.Contains("znn") || nameDir.Contains("zll") ) {
+	weight *= "";
+      }
+      if(nameDir.Contains("wln") ) {
+	weight *= "";
+      }
+    }
     ////////////////////////////////////
 
     // Loop over cuts to be scanned
@@ -376,14 +468,17 @@ Int_t XMetAnalysis::plot(TString select,
 	if(verbose>1) cout << "--- variable: " << var[iV] << endl;
 
 	// Define histogram and set style
-	mapHistos[nameDir][scanCut[iCut]][var[iV]] = 
+	_mapHistos[select][nameDir][scanCut[iCut]][var[iV]] = 
 	  new TH1F("h_"+var[iV]+"_"+nameDir+"_"+selectScan, 
 		   var[iV]+" "+nameDir+" "+selectScan,
-		   nBins[iV], xFirst[iV], xLast[iV]);
+		   xbins[iV]-1, v_bins[iV]);
 
-	hTemp = mapHistos[nameDir][scanCut[iCut]][var[iV]];
+	hTemp = _mapHistos[select][nameDir][scanCut[iCut]][var[iV]];
 	color = _mapProcess[nameDir].GetColor();
-	setStyle( hTemp , color );
+	style = _mapProcess[nameDir].GetStyle();
+	size  = _mapProcess[nameDir].GetSize();
+	setStyle( hTemp , color , style , size , kTRUE , kTRUE );
+	hTemp->SetXTitle(_Axis[var[iV]]);
 
 	// Draw the variable
 	locVar = var[iV];
@@ -473,20 +568,20 @@ Int_t XMetAnalysis::plot(TString select,
 	  //
 	  // Method1: corrected-like
 	  if(myCorr[iCorr].Contains("corr")) {
-	    hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
-	    hTemp_cr_mc = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
+	    hTemp_cr_d  = _mapHistos[select][myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
+	    hTemp_cr_mc = _mapHistos[select][myDD[iDD]+"_cr"+myCorr[iCorr]+"MC"][scanCut[iCut]][var[iV]];
 	    if(!hTemp_cr_d || !hTemp_cr_mc) continue;
 	    //
 	    hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
 	    if(hTemp_cr_mc) hSRDD->Add( hTemp_cr_mc , -1.0 );
-	    mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+	    _mapHistos[select][myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
 	  }
 	  //
 	  // Method2: SF-like
 	  else {
-	    hTemp_cr_d  = mapHistos[myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
-	    hTemp_num = mapHistos[myNum[iDD]][scanCut[iCut]][var[iV]];
-	    hTemp_den = mapHistos[myDen[iDD]][scanCut[iCut]][var[iV]];
+	    hTemp_cr_d  = _mapHistos[select][myDD[iDD]+"_cr"+myCorr[iCorr]+"DA"][scanCut[iCut]][var[iV]];
+	    hTemp_num = _mapHistos[select][myNum[iDD]][scanCut[iCut]][var[iV]];
+	    hTemp_den = _mapHistos[select][myDen[iDD]][scanCut[iCut]][var[iV]];
 	    if(!hTemp_cr_d || !hTemp_num || !hTemp_den) continue;
 	    //
 	    hSRDD = (TH1F*)hTemp_cr_d->Clone(nameDir);
@@ -501,7 +596,7 @@ Int_t XMetAnalysis::plot(TString select,
 	      theSF.first = 1.0;
 	    }
 	    hSRDD->Scale( theSF.first );
-	    mapHistos[myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
+	    _mapHistos[select][myDD[iDD]+"_sr"+myCorr[iCorr]+"DD"][scanCut[iCut]][var[iV]] = hSRDD;
 	    cout << "----- SF(" << nameDir 
 		 << ")=" << theNum.first 
 		 << "/"  << theDen.first
@@ -550,7 +645,7 @@ Int_t XMetAnalysis::plot(TString select,
 
       // Get histogram
       for(UInt_t iCut=0; iCut<nCut; iCut++) {
-	hTemp = mapHistos[locProcesses[iP]][scanCut[iCut]][var[iV]];
+	hTemp = _mapHistos[select][locProcesses[iP]][scanCut[iCut]][var[iV]];
 	if(!hTemp) {
 	  if(verbose>1) {
 	    cout << "ERROR : yield loop did not find histo:"
@@ -562,48 +657,75 @@ Int_t XMetAnalysis::plot(TString select,
 	}
 	else {
 	  intErr = Integrate(hTemp);
+	  if(verbose>2) cout << " ==> " << intErr.first 
+			     << " +/- " << intErr.second 
+			     << endl;
 	  (*_outlog) << setw(10) << intErr.first 
 		     << setw(5)  << "+/-"
 		     << setw(8) << intErr.second;
 	}
       } // end loop:cuts
+
+      if(verbose>2) cout << "end loop:cuts" << endl;
       (*_outlog) << endl;
+
     }   // end loop:processes
-    //
+
+    if(verbose>2) cout << "end loop:processes" << endl;
     (*_outlog) << endl;
+
   } // end loop over var
-    //
+
+  if(verbose>2) cout << "end loop:var" << endl;  
   (*_outlog) << endl;
 
   //////////////////////////
 
   // Save histograms //
-  _outfile->cd();
+  if(_outfile) _outfile->cd();
+  else {
+    cout << "ERROR: outfile undefined! Exit ==> []" << endl;
+    return -2;
+  }
+
   if(verbose>2) cout << "-- _outfile->cd()... done" << endl;
   TString nameHisto;
-  M_PROCESS_CUT_VAR_H::iterator itCutVarHistos;
-  M_CUT_VAR_H::iterator itVarHistos;
-  M_VAR_H::iterator itHistos;
-  //
-  for( itCutVarHistos=mapHistos.begin() ; itCutVarHistos!=mapHistos.end() ; itCutVarHistos++) {
-    for( itVarHistos=itCutVarHistos->second.begin() ; itVarHistos!=itCutVarHistos->second.end() ; itVarHistos++) {
-      for( itHistos=itVarHistos->second.begin() ; itHistos!=itVarHistos->second.end() ; itHistos++) {
+  // FIXME NADIR FIXME
+  for( _itSelProcCutVarH=_mapHistos.begin() ; 
+       _itSelProcCutVarH!=_mapHistos.end() ; 
+       _itSelProcCutVarH++) {
 
-	hTemp = itHistos->second;
+    for( _itProcCutVarH=_itSelProcCutVarH->second.begin() ; 
+	 _itProcCutVarH!=_itSelProcCutVarH->second.end() ; 
+	 _itProcCutVarH++) {
+
+      for( _itCutVarH=_itProcCutVarH->second.begin() ; 
+	   _itCutVarH!=_itProcCutVarH->second.end() ; 
+	   _itCutVarH++) {
+
+	for( _itVarH=_itCutVarH->second.begin() ; 
+	     _itVarH!=_itCutVarH->second.end() ; 
+	     _itVarH++) {
+
+	hTemp = _itVarH->second;
 
 	if(hTemp) {
 	  nameHisto = hTemp->GetName();
 	  hTemp->Write();
 	  if(verbose>2) cout << "---- histo written: " << nameHisto << endl;
-	  delete hTemp;
-	  if(verbose>2) cout << "---- histo deleted: " << nameHisto << endl;	
+	  //delete hTemp; // ND
+	  //if(verbose>2) cout << "---- histo deleted: " << nameHisto << endl; // ND
 	}
-      }// end loop:histos
-    }  // end loop:variables
-  }    // end loop:cuts
+
+	}// end loop:histos
+      }  // end loop:variables
+    }    // end loop:cuts
+  }      // end loop: selections
   //////////////////////////
 
   // END //
+  if(_outfile) _outfile->Write();
+  if(verbose>2) cout << "- End plot()" << endl;
   return 1;
 }
 
@@ -751,8 +873,8 @@ Int_t XMetAnalysis::DefineChainsAN15()
 
   if(verbose>1) cout << "- begin DefineChainsAN15()" << endl;
 
-  _pathMC   = "/user/ndaci/Data/XMET/Spring15MC_25ns/";
-  _pathData = "/user/ndaci/Data/XMET/Run2015D/";
+  _pathMC   = "/user/ndaci/Data/XMET/AdishTrees_15Oct2015/Spring15MC_25ns/";
+  _pathData = "/user/ndaci/Data/XMET/AdishTrees_15Oct2015/Run2015D/";
   _lumi    = 0.210; // fixme: we have 210 /fb
   _rescale = 1.0; 
   _qcdScale= 1.0; // fixme: will need update
@@ -826,9 +948,16 @@ Int_t XMetAnalysis::DefineChainsAN15()
 
   // Add the files to the chains
   for( _itProcess=_mapProcess.begin() ; _itProcess!=_mapProcess.end() ; _itProcess++ ) {
+
     _itProcess->second.SetNameTree("tree/tree");
-    if(_itProcess->first=="data") _itProcess->second.SetPath(_pathData);
-    else                          _itProcess->second.SetPath(_pathMC);
+    _itProcess->second.SetStyle(kFullCircle);
+    _itProcess->second.SetSize(1.0);
+
+    if(_itProcess->first.Contains("data")) 
+      _itProcess->second.SetPath(_pathData);
+    else                          
+      _itProcess->second.SetPath(_pathMC);
+
     _itProcess->second.AddTrees();
   }
 
@@ -950,3 +1079,139 @@ Int_t XMetAnalysis::DefineChainsRun1()
   return 0;
 }
 
+Int_t XMetAnalysis::GetHistos(const UInt_t nS  , TString *select, 
+			      const UInt_t nCut, TString *scanCut,
+			      const UInt_t nV  , TString *var, 
+			      vector<TString> locProcesses)
+{
+
+  // Open histos root file
+  if(_outfile) _outfile->cd();
+  else {
+    cout << "ERROR: outfile undefined! Exit ==> []" << endl;
+    return -2;
+  }
+
+  const UInt_t nP = locProcesses.size();
+  TString name;
+  TH1F* hTemp;
+
+  for(UInt_t iS=0 ; iS<nS ; iS++) {       // loop: selections
+    for(UInt_t iC=0 ; iC<nCut ; iC++) {   // loop: cuts
+      for(UInt_t iV=0 ; iV<nV ; iV++) {   // loop: variables
+	for(UInt_t iP=0 ; iP<nP ; iP++) { // loop: processes
+
+	  name = "h_"+var[iV]+"_"+locProcesses[iP]+"_"+select[iS]+"_"+scanCut[iC];
+	  hTemp = (TH1F*) _outfile->Get(name);
+
+	  if(verbose>1) {
+	    cout << "----- try to retrieve [" << name << "]: ";
+	    if(!hTemp) {
+	      cout << "FAIL" << endl;
+	    }
+	    else {
+	      cout << "SUCCESS => Integral=" 
+		   << hTemp->Integral() << endl;
+	    }
+	  }
+
+	  _mapHistos[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]] = hTemp;
+	}
+      }
+    }
+  }
+
+  return 0;
+}
+
+Int_t XMetAnalysis::DrawStackPlots(const UInt_t nS  , TString* select, 
+				   const UInt_t nCut, TString* scanCut,
+				   const UInt_t nV  , TString* var,
+				   vector<TString> locProcesses)
+{
+
+  const UInt_t nP  = locProcesses.size();
+
+  TH1F *hTemp, *hTotB, *hRatio;
+  THStack* stack;
+  TLegend* leg;
+
+  TString name, title, modeLeg;
+  Int_t color, style, size;
+  Bool_t fill;
+  
+  // Produce stack plots
+  for(UInt_t iS=0 ; iS<nS ; iS++) {
+    for(UInt_t iC=0 ; iC<nCut ; iC++) {
+      for(UInt_t iV=0 ; iV<nV ; iV++) {
+
+	TCanvas c("c","c",20,20,600,600);
+	gPad->SetLogy();
+	gStyle->SetOptStat(0);
+	name  = "ths_"   +select[iS]+"_"+scanCut[iC]+"_"+var[iV];
+	title = "Stack: "+select[iS]+" "+scanCut[iC]+" "+var[iV];
+	stack = new THStack(name,title);
+
+	leg = new TLegend(0.7,0.7,0.89,0.89,"","brNDC");
+	setStyle(leg);
+
+	// Loop over processes
+	for(UInt_t iP=0; iP<nP ; iP++) {
+
+	  hTemp = _mapHistos[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]];
+	  if(!hTemp) continue;
+
+	  hTemp->SetTitle(_Title[select[iS]]);
+
+	  // Decide fill (stack) or point (non stack)
+	  if(!locProcesses[iP].Contains("data")) {
+	    modeLeg = "F";
+	    fill    = kTRUE;
+	  }
+	  else {
+	    modeLeg = "P";
+	    fill    = kFALSE;
+	  }
+
+	  // Get XMetProcess attributes
+	  color = _mapProcess[locProcesses[iP]].GetColor();
+	  style = _mapProcess[locProcesses[iP]].GetStyle();
+	  size  = _mapProcess[locProcesses[iP]].GetSize();
+
+	  // Apply attributes
+	  setStyle(hTemp,color,style,size,kFALSE,fill);
+	  leg->AddEntry(hTemp, locProcesses[iP],modeLeg);
+
+	  // Debug printouts
+	  if(verbose>2) {
+	    cout << "----- stack-get: " << hTemp->GetName() 
+		 << "->Integral()="     << hTemp->Integral() 
+		 << endl;
+	  }
+
+	  // Add to stack
+	  if(!locProcesses[iP].Contains("data")) 
+	    stack->Add(hTemp);
+	  else hTemp->Draw("P");  // set max with data
+	}
+
+	// Finalize plot
+	stack->Draw("HISTSAME"); // plot stack
+
+	//
+	for(UInt_t iP=0; iP<nP ; iP++) {
+	  hTemp = _mapHistos[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]];
+	  if(!hTemp) continue;
+	  if(locProcesses[iP].Contains("data")) hTemp->Draw("PSAME"); // superimpose back data on stack
+	}
+
+	// Finalize plot
+	leg->Draw();
+	c.Print(_dirOut+"/"+_tag+"/"+name+".pdf","pdf");
+
+      }
+    }
+  }  
+
+  return 0;
+}
