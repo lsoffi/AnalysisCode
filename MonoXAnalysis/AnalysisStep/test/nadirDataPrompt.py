@@ -32,7 +32,7 @@ myTest = False
 isMC = False
 
 # Filter on high MET events
-filterHighMETEvents = False
+filterHighMETEvents = True
 
 # Filter on triggered events
 filterOnHLT = False
@@ -271,7 +271,8 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     applyHLTFilter = cms.bool(filterOnHLT),
     uselheweights = cms.bool(False),
     isWorZMCSample = cms.bool(False),
-    verbose        = cms.int32(1)
+    verbose        = cms.int32(1),
+    useTrigObj     = cms.bool(False)
 )
 
 # Tree for the generator weights
@@ -285,7 +286,7 @@ process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
 # MET filter
 process.metfilter = cms.EDFilter("CandViewSelector",
     src = cms.InputTag("t1mumet"),
-    cut = cms.string("et > 200"),
+    cut = cms.string("et > 40"),
     filter = cms.bool(True)
 )
 

@@ -27,6 +27,7 @@ process.maxEvents = cms.untracked.PSet(
 
 # Nadir's tests
 myTest = False
+theXSec = 0.001 # to be set in the crab config files 
 
 # Is this a simulation or real data
 isMC = True
@@ -264,14 +265,15 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     hcalnoise = cms.InputTag("hcalnoise"),
     hbheloose = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Loose"),
     hbhetight = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Tight"),
-    xsec = cms.double(0.001),
+    xsec = cms.double(theXSec),
     cleanMuonJet = cms.bool(True),
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
     applyHLTFilter = cms.bool(filterOnHLT),
     uselheweights = cms.bool(False),
     isWorZMCSample = cms.bool(False),
-    verbose        = cms.int32(1)
+    verbose        = cms.int32(1),
+    useTrigObj     = cms.bool(False)
 )
 
 # Tree for the generator weights
@@ -285,7 +287,7 @@ process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
 # MET filter
 process.metfilter = cms.EDFilter("CandViewSelector",
     src = cms.InputTag("t1mumet"),
-    cut = cms.string("et > 50"),
+    cut = cms.string("et > 40"),
     filter = cms.bool(True)
 )
 
