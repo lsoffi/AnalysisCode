@@ -22,17 +22,17 @@ process.options = cms.untracked.PSet(
 
 # How many events to process
 process.maxEvents = cms.untracked.PSet( 
-    input = cms.untracked.int32(100)
+    input = cms.untracked.int32(1000)
 )
 
 # Nadir's tests
-myTest = True
+myTest = False
 
 # Is this a simulation or real data
-isMC = False
+isMC = True
 
 # Filter on high MET events
-filterHighMETEvents = False
+filterHighMETEvents = True
 
 # Filter on triggered events
 filterOnHLT = False
@@ -53,7 +53,8 @@ miniAODProcess = "PAT"
 process.source = cms.Source(
     "PoolSource", 
     fileNames = cms.untracked.vstring([
-            '/store/data/Run2015D/DoubleMuon/MINIAOD/05Oct2015-v1/30000/B0E177F6-8A6F-E511-A81F-0025905B85D6.root'
+            #'/store/data/Run2015D/DoubleMuon/MINIAOD/05Oct2015-v1/30000/B0E177F6-8A6F-E511-A81F-0025905B85D6.root'
+            '/store/mc/RunIISpring15MiniAODv2/QCD_HT1500to2000_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/MINIAODSIM/74X_mcRun2_asymptotic_v2-v1/10000/006A698D-EF6D-E511-8500-001E67E69879.root'
             ])
     )
 
@@ -284,7 +285,7 @@ process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
 # MET filter
 process.metfilter = cms.EDFilter("CandViewSelector",
     src = cms.InputTag("t1mumet"),
-    cut = cms.string("et > 200"),
+    cut = cms.string("et > 50"),
     filter = cms.bool(True)
 )
 
