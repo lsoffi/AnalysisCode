@@ -1,9 +1,9 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413_Run2015D_V8'
-proc = 'SingleMu'
-dataset = '/SingleMuon/Run2015D-PromptReco-v3/MINIAOD'
+name = 'EffAN_7413_Run2015D_PRV4'
+proc = 'HLTPhysicsETM_V1'
+dataset = '/HLTPhysics/Run2015D-PromptReco-v4/MINIAOD'
 
 # GENERAL
 config.section_("General")
@@ -15,7 +15,7 @@ config.General.transferLogs    = True
 # JOB TYPE
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
-config.JobType.psetName = 'nadirDataPrompt.py'
+config.JobType.psetName = 'hltPhysicsMET_DataPrompt.py'
 #config.JobType.pyCfgParams = ['reEmulation=True','reEmulMuons=True','reEmulCalos=True','patchNtuple=True','force2012Config=True','customDTTF=True','dttfLutsFile=sqlite:src/L1TriggerDPG/L1Menu/data/dttf_config.db','useUct2015=True','globalTag=POSTLS162_V2::All','runOnMC=True','runOnPostLS1=True','whichPU=40']
 ##config.JobType.inputFiles = '../../data/dttf_config.db'
 config.JobType.inputFiles = ['Summer15_25nsV5_DATA.db']
@@ -26,7 +26,7 @@ config.section_("Data")
 config.Data.inputDataset = dataset
 config.Data.inputDBS = 'https://cmsweb.cern.ch/dbs/prod/global/DBSReader/'
 config.Data.splitting = 'EventAwareLumiBased'
-config.Data.unitsPerJob = 50000
+config.Data.unitsPerJob = 100000
 #config.Data.totalUnits  = 1976
 config.Data.publication = False
 config.Data.publishDBS  = 'https://cmsweb.cern.ch/dbs/prod/phys03/DBSWriter/'

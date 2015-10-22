@@ -1,8 +1,8 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413_Spring15'
-proc = 'ZNuNu_HT100to200_V7'
+name = 'EffAN_7413Update_Spring15'
+proc = 'ZNuNu_HT100to200_V1'
 dataset = '/ZJetsToNuNu_HT-100To200_13TeV-madgraph/RunIISpring15DR74-Asympt25ns_MCRUN2_74_V9-v1/MINIAODSIM'
 
 # GENERAL
