@@ -864,7 +864,12 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
     if(inputs[in].Contains("JetMet"))        noqcd *= jmdphi;
   }
 
-  return (trig*metCut*metID*leptons*photons*jetID*jetBin*noqcd);
+  // Noise cleaning
+  TCut noise="(flaghbheloose>0 && flagcsctight>0 && flageebadsc>0)";
+
+  return (trig*noise*metCut*metID*leptons*photons*jetID*jetBin*noqcd);
+
+  // "(hltmet90>0 || hltmet120>0) && t1mumet>200 && nelectrons == 0 && ntaus == 0 && nmuons == 0 && nphotons==0 signaljetpt>30 && abs(signaljeteta)<2.5 && signaljetCHfrac > 0.1 && njets==1"
 
 }
 
