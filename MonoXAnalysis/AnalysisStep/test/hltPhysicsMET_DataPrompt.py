@@ -3,10 +3,6 @@ import FWCore.ParameterSet.Config as cms
 # Define the CMSSW process
 process = cms.Process("TREE")
 
-process.options = cms.untracked.PSet( 
-    wantSummary = cms.untracked.bool( True ) 
-    )
-
 # Load the standard set of configuration modules
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.StandardSequences.GeometryDB_cff')
@@ -16,16 +12,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condD
 # Message Logger settings
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.destinations = ['cout', 'cerr']
-process.MessageLogger.cerr.FwkReport.reportEvery = 10
-
-if 'MessageLogger' in process.__dict__: 
-    process.MessageLogger.categories.append('TriggerSummaryProducerAOD') 
-    process.MessageLogger.categories.append('L1GtTrigReport')
-    process.MessageLogger.categories.append('HLTrigReport') 
-    process.MessageLogger.categories.append('FastReport')
-
-if 'hltTrigReport' in process.__dict__: 
-    process.hltTrigReport.HLTriggerResults                    = cms.InputTag( 'TriggerResults', '', 'TEST' ) 
+process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 # Set the process options -- Display summary at the end, enable unscheduled execution
 process.options = cms.untracked.PSet( 
@@ -35,18 +22,17 @@ process.options = cms.untracked.PSet(
 
 # How many events to process
 process.maxEvents = cms.untracked.PSet( 
-    input = cms.untracked.int32(100)
+    input = cms.untracked.int32(1000)
 )
 
-# Test code
-myTest = True
+# Nadir's tests
+myTest = False
 
 # Is this a simulation or real data
 isMC = False
-isPrompt = True
 
 # Filter on high MET events
-filterHighMETEvents = False
+filterHighMETEvents = True
 
 # Filter on triggered events
 filterOnHLT = False
@@ -61,20 +47,14 @@ usePrivateSQlite = False
 applyL2L3Residuals = False
 
 # Process name used in MiniAOD -- needed to get the correct trigger results, and also for redoing the MET
-if isPrompt:
-    miniAODProcess = "RECO"
-else:
-    miniAODProcess = "PAT"
+miniAODProcess = "RECO"
 
 # Define the input source
 process.source = cms.Source(
     "PoolSource", 
     fileNames = cms.untracked.vstring([
-            #'/store/mc/RunIISpring15MiniAODv2/TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/74X_mcRun2_asymptotic_v2-v1/00000/0014DC94-DC5C-E511-82FB-7845C4FC39F5.root'
-            #'file:/user/ndaci/Data/Spring15/0EA9D83D-DAF3-E411-9DFE-002590DBDFE0.root'
-            #'file:/user/ndaci/Data/XMET/Run2015C/SingleElectron/MINIAOD_0T/A2A0552B-CE45-E511-BE5D-02163E013865.root'
-            #'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/60FF8405-EA26-E511-A892-02163E01387D.root'
-            '/store/data/Run2015D/HLTPhysics/MINIAOD/PromptReco-v3/000/256/630/00000/16591016-245F-E511-930F-02163E01464C.root'
+            #'/store/data/Run2015D/DoubleMuon/MINIAOD/05Oct2015-v1/30000/B0E177F6-8A6F-E511-A81F-0025905B85D6.root'
+            '/store/data/Run2015D/SingleMuon/MINIAOD/PromptReco-v4/000/258/159/00000/B0C4D59D-236C-E511-9B47-02163E014310.root'
             ])
     )
 
@@ -86,13 +66,13 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 if isMC:
     process.GlobalTag.globaltag = '74X_mcRun2_asymptotic_v2'   # for Simulation
 else:
-    process.GlobalTag.globaltag = '74X_dataRun2_v2'            # for Data
+    process.GlobalTag.globaltag = '74X_dataRun2_v4'            # for Data
 
 # Setup the private SQLite -- Ripped from PhysicsTools/PatAlgos/test/corMETFromMiniAOD.py
 if usePrivateSQlite:
     from CondCore.DBCommon.CondDBSetup_cfi import *
     import os
-    era = "Summer15_50nsV4"
+    era = "Summer15_25nsV5"
     if isMC : 
         era += "_MC"
     else :
@@ -160,7 +140,8 @@ if redoJetsMET :
         isData = (not isMC),
     )
     if miniAODProcess != "PAT" :
-        process.genMetExtractor.metSource= cms.InputTag("slimmedMETs", "", miniAODProcess)   
+        if isMC : 
+            process.genMetExtractor.metSource= cms.InputTag("slimmedMETs", "", miniAODProcess)   
         process.slimmedMETs.t01Variation = cms.InputTag("slimmedMETs", "", miniAODProcess) 
 
     if not applyL2L3Residuals : 
@@ -223,15 +204,32 @@ process.t1mumet = cms.EDProducer("MuonCorrectedMETProducer",
     muons = cms.InputTag("selectedObjects", "muons")
 )
 
+process.elmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("slimmedMETs"),
+    cands = cms.VInputTag(cms.InputTag("selectedObjects", "electrons")),
+    useuncorrmet = cms.bool(True)
+)
+process.t1elmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("slimmedMETs"),
+    cands = cms.VInputTag(cms.InputTag("selectedObjects", "electrons")),
+)
+process.phmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("slimmedMETs"),
+    cands = cms.VInputTag(cms.InputTag("selectedObjects", "photons")),
+    useuncorrmet = cms.bool(True)
+)
+process.t1phmet = cms.EDProducer("CandCorrectedMETProducer",
+    met = cms.InputTag("slimmedMETs"),
+    cands = cms.VInputTag(cms.InputTag("selectedObjects", "photons")),
+)
+
 # Quark-Gluon Discriminant
 process.load("RecoJets.JetProducers.QGTagger_cfi")
 process.QGTagger.srcJets = jetCollName
 process.QGTagger.srcVertexCollection = "goodVertices"
 
 # Make the tree 
-print "Make the tree"
-process.tree = cms.EDAnalyzer(
-    "MonoJetTreeMaker",
+process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     pileup = cms.InputTag("addPileupInfo"),
     genevt = cms.InputTag("generator"),
     vertices = cms.InputTag("goodVertices"),
@@ -256,34 +254,39 @@ process.tree = cms.EDAnalyzer(
     pfmupt = cms.InputTag("pfmupt"),
     mumet = cms.InputTag("mumet"),
     t1mumet = cms.InputTag("t1mumet"),
+    elmet = cms.InputTag("elmet"),
+    t1elmet = cms.InputTag("t1elmet"),
+    phmet = cms.InputTag("phmet"),
+    t1phmet = cms.InputTag("t1phmet"),
     triggerResults = cms.InputTag("TriggerResults", "", "HLT"),
     objects        = cms.InputTag("selectedPatTrigger"),
     filterResults = cms.InputTag("TriggerResults", "", miniAODProcess),
     hcalnoise = cms.InputTag("hcalnoise"),
     hbheloose = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Loose"),
     hbhetight = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Tight"),
-    xsec = cms.double(831.76),
+    xsec = cms.double(0.001),
     cleanMuonJet = cms.bool(True),
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
     applyHLTFilter = cms.bool(filterOnHLT),
-    uselheweights = cms.bool(True),
-    isWorZMCSample = cms.bool(True),
-    verbose        = cms.int32(1)
+    uselheweights = cms.bool(False),
+    isWorZMCSample = cms.bool(False),
+    verbose        = cms.int32(1),
+    useTrigObj     = cms.bool(False)
 )
 
 # Tree for the generator weights
 process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
     lheinfo = cms.InputTag("externalLHEProducer"),
     geninfo = cms.InputTag("generator"),
-    uselheweights = cms.bool(True),
+    uselheweights = cms.bool(False),
     addqcdpdfweights = cms.bool(False)
 )
 
 # MET filter
 process.metfilter = cms.EDFilter("CandViewSelector",
     src = cms.InputTag("t1mumet"),
-    cut = cms.string("et > 50"),
+    cut = cms.string("et > 40"),
     filter = cms.bool(True)
 )
 
@@ -298,7 +301,7 @@ process.hltLevel1GTSeed.L1SeedsLogicalExpression = cms.string(
 if myTest:
     process.treePath = cms.Path(process.tree)
 
-elif filterHighMETEvents: 
+if filterHighMETEvents: 
     if (isMC):
         process.treePath = cms.Path(process.hltLevel1GTSeed + process.gentree + process.goodVertices + process.metfilter + process.tree)
     else :
