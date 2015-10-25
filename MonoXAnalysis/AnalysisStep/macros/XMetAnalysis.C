@@ -878,8 +878,11 @@ Int_t XMetAnalysis::DefineChainsAN15()
 
   if(verbose>1) cout << "- begin DefineChainsAN15()" << endl;
 
-  _pathMC   = "/user/ndaci/Data/XMET/AdishTrees_15Oct2015/Spring15MC_25ns/";
-  _pathData = "/user/ndaci/Data/XMET/AdishTrees_15Oct2015/Run2015D/";
+  //_pathMC   = "/user/ndaci/Data/XMET/AdishTrees_15Oct2015/Spring15MC_25ns/";
+  //_pathData = "/user/ndaci/Data/XMET/AdishTrees_15Oct2015/Run2015D/";
+  _pathMC   = "/user/ndaci/Data/XMET/NadirTrees_22Oct2015/Spring15MC_25ns/";
+  _pathData = "/user/ndaci/Data/XMET/NadirTrees_22Oct2015/Run2015D/";
+
   _lumi    = 0.210; // fixme: we have 210 /fb
   _rescale = 1.0; 
   _qcdScale= 1.0; // fixme: will need update
@@ -903,11 +906,26 @@ Int_t XMetAnalysis::DefineChainsAN15()
   // Sub-directories in _path
   //
   // data
+  /*
   _mapProcess["data_met"].AddDir("met");
   _mapProcess["data_1ph"].AddDir("singleph");
   _mapProcess["data_2e" ].AddDir("doubleel");
   _mapProcess["data_1m" ].AddDir("singlemu");
   _mapProcess["data_2m" ].AddDir("doublemu");
+  */
+
+  _mapProcess["data_met"].AddDir("met_05Oct2015");
+  _mapProcess["data_1ph"].AddDir("singleph_05Oct2015");
+  _mapProcess["data_2e" ].AddDir("doubleel_05Oct2015");
+  _mapProcess["data_1m" ].AddDir("singlemu_05Oct2015");
+  _mapProcess["data_2m" ].AddDir("doublemu_05Oct2015");
+
+  _mapProcess["data_met"].AddDir("met_PRV4");
+  _mapProcess["data_1ph"].AddDir("singleph_PRV4");
+  _mapProcess["data_2e" ].AddDir("doubleel_PRV4");
+  _mapProcess["data_1m" ].AddDir("singlemu_PRV4");
+  _mapProcess["data_2m" ].AddDir("doublemu_PRV4");
+
   //
   // mc backgrounds
   //
