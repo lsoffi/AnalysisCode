@@ -2,8 +2,8 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413Update_Spring15'
-proc = 'ZNuNu_HT600toInf_V10'
-dataset = '/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v2/MINIAODSIM'
+proc = 'ST_t_top_V9'
+dataset = '/ST_t-channel_top_4f_leptonDecays_13TeV-powheg-pythia8_TuneCUETP8M1/RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/MINIAODSIM'
 
 # GENERAL
 config.section_("General")
@@ -16,7 +16,7 @@ config.General.transferLogs    = True
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
 config.JobType.psetName = 'nadirMC.py'
-config.JobType.pyCfgParams = ['theXSec=4098']
+config.JobType.pyCfgParams = ['theXSec=44070.48']
 ##config.JobType.inputFiles = '../../data/dttf_config.db'
 #config.JobType.inputFiles = ['Summer15_50nsV4_MC.db']
 config.JobType.allowUndistributedCMSSW = True

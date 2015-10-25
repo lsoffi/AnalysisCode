@@ -1,9 +1,9 @@
 from WMCore.Configuration import Configuration
 config = Configuration()
 
-name = 'EffAN_7413Update_Spring15'
-proc = 'ZNuNu_HT600toInf_V10'
-dataset = '/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v2/MINIAODSIM'
+name = 'EffAN_7413Update_Run2015D_05Oct2015'
+proc = 'DoubleEle_V1'
+dataset = '/DoubleElectron/Run2015D-05Oct2015-v1/MINIAOD'
 
 # GENERAL
 config.section_("General")
@@ -15,18 +15,18 @@ config.General.transferLogs    = True
 # JOB TYPE
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
-config.JobType.psetName = 'nadirMC.py'
-config.JobType.pyCfgParams = ['theXSec=4098']
+config.JobType.psetName = 'nadirDataReReco.py'
+#config.JobType.pyCfgParams = ['reEmulation=True','reEmulMuons=True','reEmulCalos=True','patchNtuple=True','force2012Config=True','customDTTF=True','dttfLutsFile=sqlite:src/L1TriggerDPG/L1Menu/data/dttf_config.db','useUct2015=True','globalTag=POSTLS162_V2::All','runOnMC=True','runOnPostLS1=True','whichPU=40']
 ##config.JobType.inputFiles = '../../data/dttf_config.db'
-#config.JobType.inputFiles = ['Summer15_50nsV4_MC.db']
+config.JobType.inputFiles = ['Summer15_25nsV5_DATA.db']
 config.JobType.allowUndistributedCMSSW = True
 
 # INPUT DATA
 config.section_("Data")
 config.Data.inputDataset = dataset
 config.Data.inputDBS = 'https://cmsweb.cern.ch/dbs/prod/global/DBSReader/'
-config.Data.splitting = 'FileBased'
-config.Data.unitsPerJob = 1
+config.Data.splitting = 'EventAwareLumiBased'
+config.Data.unitsPerJob = 50000
 #config.Data.totalUnits  = 1976
 config.Data.publication = False
 config.Data.publishDBS  = 'https://cmsweb.cern.ch/dbs/prod/phys03/DBSWriter/'
@@ -47,5 +47,5 @@ config.User.voGroup = 'becms'
 # GRID
 config.section_("Site")
 config.Site.storageSite = 'T2_BE_IIHE'
-#config.Site.whitelist = ['T2_BE_IIHE']
-#config.Site.blacklist = ['T1_US_FNAL']
+#config.Site.whitelist = 
+config.Site.blacklist = ['T1_US_FNAL','T2_UA_KIPT','T3_US_UCR']

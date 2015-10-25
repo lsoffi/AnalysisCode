@@ -2,7 +2,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413Update_Run2015D_PRV4'
-proc = 'JetHT_V1'
+proc = 'JetHT_V2'
 dataset = '/JetHT/Run2015D-PromptReco-v4/MINIAOD'
 
 # GENERAL
@@ -15,7 +15,7 @@ config.General.transferLogs    = True
 # JOB TYPE
 config.section_("JobType")
 config.JobType.pluginName = 'Analysis'
-config.JobType.psetName = 'qcdDataPrompt.py'
+config.JobType.psetName = 'nadirDataPrompt.py'
 #config.JobType.pyCfgParams = ['filterHighMETEvents=False']
 ##config.JobType.inputFiles = '../../data/dttf_config.db'
 config.JobType.inputFiles = ['Summer15_25nsV5_DATA.db']
