@@ -53,7 +53,8 @@ miniAODProcess = "PAT"
 process.source = cms.Source(
     "PoolSource", 
     fileNames = cms.untracked.vstring([
-            '/store/data/Run2015D/DoubleMuon/MINIAOD/05Oct2015-v1/30000/B0E177F6-8A6F-E511-A81F-0025905B85D6.root'
+            #'/store/data/Run2015D/DoubleMuon/MINIAOD/05Oct2015-v1/30000/B0E177F6-8A6F-E511-A81F-0025905B85D6.root'
+            '/store/data/Run2015D/JetHT/MINIAOD/05Oct2015-v1/50000/040E688D-A66F-E511-AF47-00259073E3FA.root'
             ])
     )
 
