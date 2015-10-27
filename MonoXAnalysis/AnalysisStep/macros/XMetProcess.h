@@ -42,7 +42,7 @@ class XMetProcess {
   Int_t    GetNGen();
 
   // Analysis tools
-  Int_t Skim(TString select, TCut cut, Bool_t reset);
+  Int_t Skim(TString select, TCut cut, TString reset);
   Int_t Draw(TH1F* h, TString var, TCut cut, TCut weight);
     
  private:
@@ -236,14 +236,25 @@ Int_t XMetProcess::SetSize(Int_t size)
 }
 
 // Analysis tools //
-Int_t XMetProcess::Skim(TString select, TCut cut, Bool_t reset)
+Int_t XMetProcess::Skim(TString select, TCut cut, TString reset)
 {
-  if(reset) _chain->SetEntryList(0);
 
   TString tskim="skim_"+_nameProcess+"_"+select;
-  _chain->Draw(">>+"+tskim, cut, "entrylist");
-  //_chain->Draw(">>+"+tskim, cut, "entrylist",1000); // FIXME
-  TEntryList* skim = (TEntryList*)gDirectory->Get(tskim);
+  TEntryList* skim; 
+
+  if(reset=="reset")    {
+    _chain->SetEntryList(0);
+    _chain->Draw(">>+"+tskim, cut, "entrylist");
+    skim = (TEntryList*)gDirectory->Get(tskim);
+  }
+  else if(reset=="reuse") {
+    skim = (TEntryList*)gDirectory->Get(tskim);
+  }
+  else {
+    _chain->Draw(">>+"+tskim, cut, "entrylist");
+    //_chain->Draw(">>+"+tskim, cut, "entrylist",1000); // FIXME
+    skim = (TEntryList*)gDirectory->Get(tskim);
+  }
 
   _mapSkim[select] = skim;
   _chain->SetEntryList(skim);
