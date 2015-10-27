@@ -32,6 +32,7 @@ class XMetAnalysis {
   Int_t Analysis(Bool_t bProdHistos);
   Int_t AnalysisRun1(Bool_t bProdHistos);
   Int_t AnalysisAN15(Bool_t bProdHistos);
+  Int_t CheckForwardJets(Bool_t bProdHistos);
   Int_t StudyQCDKiller(TString signal);
   
   Int_t GetHistos(const UInt_t nS  , TString* select, 
@@ -47,7 +48,7 @@ class XMetAnalysis {
   Int_t plot(TString select, 
 	     const UInt_t nCut, TString *scanCut, Bool_t *scanReset,
 	     const UInt_t nV,    TString *var, 
-	     const UInt_t *xbins, Float_t **v_bins,
+	     vector<vector<Float_t>> v_bins,
 	     vector<TString> locProcesses);
 
   TCut  defineCut(TString select, TString region);
@@ -71,7 +72,7 @@ class XMetAnalysis {
   M_VAR_AXIS _Title;
   //
   TString  _tag,  _pathMC, _pathData, _dirOut;
-  Bool_t   _isAN15, _isRun1;
+  Bool_t   _isAN15, _isRun1, _useLO;
   Double_t _lumi, _rescale, _qcdScale;
   
 };
