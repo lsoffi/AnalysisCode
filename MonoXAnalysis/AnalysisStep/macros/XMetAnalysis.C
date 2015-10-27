@@ -1077,8 +1077,8 @@ Int_t XMetAnalysis::DefineChainsAN15()
   _pathMC   = "/user/ndaci/Data/XMET/NadirTrees_26Oct2015/Spring15MC_25ns/";
   _pathData = "/user/ndaci/Data/XMET/NadirTrees_26Oct2015/Run2015D/";
 
-  _lumi  = 0.210; // fixme: we have 210 /pb up to run 257599
-  //_lumi    = 0.552672886226; // 2015D 05Oct2015 JSON 246908-258750
+  //_lumi  = 0.210; // fixme: we have 210 /pb up to run 257599
+  _lumi    = 0.552672886226; // 2015D 05Oct2015 JSON 246908-258750
   _rescale = 1.0; 
   _qcdScale= 1.0; // fixme: will need update
   _useLO   = false; // apply k-factors to LO Z/W samples // fixme
