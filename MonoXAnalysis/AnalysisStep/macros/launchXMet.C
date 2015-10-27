@@ -1,19 +1,13 @@
+#include "XMetAnalysis.h"
+
+Int_t launchXMet(TString tag, TString dir)
 {
 
-  // Load the XMetAnalysis class (TSelector)
-  gROOT->ProcessLine(".L XMetAnalysis_C.so");
+  XMetAnalysis x(tag,dir);
 
-  // Instantiate an XMetAnalysis with name of sub-directory in directory "plots/"
-  XMetAnalysis x("test"); // will put results in "./plots/test/"
-
-  // Launch the QCDKiller study
-  // produce distribution of 5 qcd killers in all jet multiplicity bins
-  x.StudyQCDKiller();
-
-  // Launch the analysis
-  // produce PFMETNoMu distribution from all processes
+  x.CheckForwardJets(true);
+  //x.StudyQCDKiller();
   //x.Analysis();     
 
-  gSystem->Exit(0);
-
+  return 0;
 }
