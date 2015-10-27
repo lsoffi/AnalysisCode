@@ -2,8 +2,8 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413Update_Run2015D_05Oct2015'
-proc = 'DoubleEle_V1'
-dataset = '/DoubleElectron/Run2015D-05Oct2015-v1/MINIAOD'
+proc = 'DoubleEG_V2'
+dataset = '/DoubleEG/Run2015D-05Oct2015-v1/MINIAOD'
 
 # GENERAL
 config.section_("General")
