@@ -68,8 +68,8 @@ struct PATH{
 
 // style
 Int_t setStyle(TEfficiency* f, Int_t color, Int_t style);
-Int_t setStyle(TH1F* h, Int_t color);
-Int_t setStyle(TH1F* h, Int_t color, Int_t style, Int_t size,
+Int_t setStyle(TH1* h, Int_t color);
+Int_t setStyle(TH1* h, Int_t color, Int_t style, Int_t size,
 	       Bool_t sumw, Bool_t fill);
 Int_t setStyle(TF1*  f, Int_t color, Int_t style);
 Int_t setStyle(TCanvas* c);
@@ -85,6 +85,7 @@ bool AcceptEventByRunAndLumiSection(const int& runId, const int& lumiId,
 
 // maths
 pair<Double_t, Double_t> Integrate(TH1F* h);
+pair<Double_t, Double_t> Integrate(TH2F* h);
 Double_t ApproxErf(Double_t arg);
 Double_t Sigmoid(double *x, double *par);
 Double_t ErfCB(double *x, double *par);
@@ -179,6 +180,22 @@ pair<Double_t, Double_t> Integrate(TH1F* h)
   return make_pair(norm,error);
 }
 
+pair<Double_t, Double_t> Integrate(TH2F* h) 
+{
+
+  if(!h) {
+    cout << "ERROR: called Integrate on a NULL histogram pointer... Abort."
+	 << endl;
+    return make_pair(-888,-777);
+  }
+
+  Double_t norm  = h->Integral(0, h->GetNbinsX() + 1, 0, h->GetNbinsY() + 1);
+  Double_t ent   = h->GetEntries();
+  Double_t error = ent>0 ? TMath::Sqrt(ent) * (norm/ent) : -999;
+
+  return make_pair(norm,error);
+}
+
 Int_t setStyle(TF1* f, Int_t color, Int_t style)
 {
   f->SetLineColor(  color);
@@ -195,7 +212,7 @@ Int_t setStyle(TEfficiency* f, Int_t color, Int_t style)
   return 0;
 }
 
-Int_t setStyle(TH1F* h, Int_t color, Int_t style, Int_t size,
+Int_t setStyle(TH1* h, Int_t color, Int_t style, Int_t size,
 	       Bool_t sumw, Bool_t fill)
 {
   if(sumw) h->Sumw2();
@@ -207,7 +224,7 @@ Int_t setStyle(TH1F* h, Int_t color, Int_t style, Int_t size,
   return 0;
 }
 
-Int_t setStyle(TH1F* h, Int_t color)
+Int_t setStyle(TH1* h, Int_t color)
 {
   h->Sumw2();
   h->SetMarkerSize(0.5);
