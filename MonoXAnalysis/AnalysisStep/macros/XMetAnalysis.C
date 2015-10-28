@@ -350,20 +350,20 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
   Bool_t  scanReset[nCut] = {true,false,true};
 
   // Variables
-  const UInt_t nV=9;
+  const UInt_t nV=14;
   TString var[nV]={"njets", 
-		   //"nsoftjets", "njets80", 
-		   //"nsoftfwdjets", "nfwdjets", "nfwdjets80",
+		   "nsoftjets", "njets80", 
+		   "nsoftfwdjets", "nfwdjets", "nfwdjets80",
 		   "leadfwdjet_pt", "leadfwdjet_eta", "leadfwdjet_phi", 
 		   "leadfwdjet_CHfrac" , "leadfwdjet_NHfrac", "leadfwdjet_EMfrac",
 		   "leadfwdjet_CEMfrac", "leadfwdjet_Mufrac"};
 
   TString nameAxis[nV]={"# Central Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
-			//"# Soft Central Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
-			//"# Hard Central Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
-			//"# Soft Forward Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
-			//"# Forward Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
-			//"# Hard Forward Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
+			"# Soft Central Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
+			"# Hard Central Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
+			"# Soft Forward Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
+			"# Forward Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
+			"# Hard Forward Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
 			"Leading Forward Jet p_{T} [GeV]",
 			"Leading Forward Jet #eta [rad]",
 			"Leading Forward Jet #phi [rad]",
@@ -380,10 +380,10 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
   // Binning
   //
   /// regular binning
-  UInt_t  nBins[ nV]={20, /*20, 20, 20, 20, 20,*/  100, 100,  64, 100,100,100,100,100};
-  Float_t xFirst[nV]={ 0, /* 0,  0,  0,  0,  0,*/    0,  -5,   0,   0,  0,  0,  0,  0};
-  Float_t xLast[ nV]={20, /*20, 20, 20, 20, 20,*/ 1000,   5, 3.2,   1,  1,  1,  1,  1};
-  Bool_t regular[nV]={ 1, /*1,1,1,1,1,*/             1,   1,   1,   1,  1,  1,  1,  1};
+  UInt_t  nBins[ nV]={20, 20, 20, 20, 20, 20,  100, 100,  64, 100,100,100,100,100};
+  Float_t xFirst[nV]={ 0,  0,  0,  0,  0,  0,    0,  -5,   0,   0,  0,  0,  0,  0};
+  Float_t xLast[ nV]={20, 20, 20, 20, 20, 20, 1000,   5, 3.2,   1,  1,  1,  1,  1};
+  Bool_t regular[nV]={ 1, 1,1,1,1,1,             1,   1,   1,   1,  1,  1,  1,  1};
   //
   /// tuned binning
   Float_t* binsTuned[nV];  
@@ -612,9 +612,9 @@ Int_t XMetAnalysis::plot(TString select,
     }
     ////////////////////////////////////
 
-    // First skim based on select only:
-    /////cut = defineCut(select, region);
-    /////_mapProcess[nameDir].Skim(select, cut, "reset");
+    // First skim based on global selection (select)
+    cut = defineCut(select, region);
+    _mapProcess[nameDir].Skim(select, cut, "ResetProduce");
 
     // Loop over cuts to be scanned
     for(UInt_t iCut=0; iCut<nCut; iCut++) {
@@ -627,15 +627,14 @@ Int_t XMetAnalysis::plot(TString select,
 			 << endl;
       
       // Skim the chain
-      /////_mapProcess[nameDir].Skim(select,     cut, "reuse");
-      _mapProcess[nameDir].Skim(selectScan, cut, "reset");
-
-      /*
+      /// if this is not iteration #0 and a scanReset was asked to plot()
+      /// then reuse global selection skim (reset entry list and use existing skim)
       if(iCut>0 && scanReset[iCut]) {
-	_mapProcess[nameDir].Skim(select,     cut, "reuse");
+	_mapProcess[nameDir].Skim(select, cut, "Reset");
       }
-      _mapProcess[nameDir].Skim(selectScan, cut, "");
-      */
+      /// in all cases: apply skim for specific selection
+      /// selectScan contains scanCut[iCut]
+      _mapProcess[nameDir].Skim(selectScan, cut, "Produce");
 
       // Loop over requested variables
       for(UInt_t iV=0 ; iV<nV ; iV++) {
