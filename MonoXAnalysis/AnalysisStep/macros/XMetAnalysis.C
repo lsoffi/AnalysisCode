@@ -131,14 +131,14 @@ Int_t XMetAnalysis::AnalysisAN15(Bool_t bProdHistos)
   Float_t bins_met[8] = {200, 250, 300, 350, 400, 500, 600, 1000};
   binsTuned[0]=bins_met;
 
-  vector<vector<Float_t>> v_bins;
-  vector<vector<Float_t>> v_bins2;
+  vector<vector<Float_t>> x_bins;
+  vector<vector<Float_t>> y_bins;
   vector<Float_t> theBins;
   Float_t  binval=0;
   //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
     theBins.clear();
-    v_bins2.push_back(theBins); // push back empty y-bins vector
+    y_bins.push_back(theBins); // push back empty y-bins vector
     for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
       if(regular[iV]) {
 	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
@@ -149,18 +149,18 @@ Int_t XMetAnalysis::AnalysisAN15(Bool_t bProdHistos)
 	theBins.push_back(binsTuned[iV][iB]);
       }
     }
-    v_bins.push_back(theBins);
+    x_bins.push_back(theBins);
   }
 
   // Produce individual histograms
   if(bProdHistos) {
     for(UInt_t iS=0 ; iS<nS ; iS++) {
       if(verbose>1) cout << "- selection : " << select[iS] << endl;
-      plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, v_bins2, locProcesses);
+      plot(select[iS], nCut, scanCut, scanReset, nV, var, x_bins, y_bins, locProcesses);
     }
   }
   else {
-    GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
+    GetHistos(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses);
   }
 
   DrawStackPlots(nS, select, nCut, scanCut, nV, nV2D, var, stackProcesses);
@@ -243,6 +243,7 @@ Int_t XMetAnalysis::AnalysisRun1(Bool_t bProdHistos)
 
   // variables
   const UInt_t nV=1;
+  const UInt_t nV2D=0;
   TString var[nV]    = {"t1mumet"};
   TString nameAxisX[nV]={"Type1 PFMETNoMu [GeV]"};
   for(UInt_t iV=0; iV<nV; iV++) {
@@ -260,14 +261,14 @@ Int_t XMetAnalysis::AnalysisRun1(Bool_t bProdHistos)
   /// tuned binning
   Float_t* binsTuned[nV];  
   //
-  vector<vector<Float_t>> v_bins;
-  vector<vector<Float_t>> v_bins2;
+  vector<vector<Float_t>> x_bins;
+  vector<vector<Float_t>> y_bins;
   vector<Float_t> theBins;
   Float_t  binval=0;
   //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
     theBins.clear();
-    v_bins2.push_back(theBins); // push back empty y-bins vector
+    y_bins.push_back(theBins); // push back empty y-bins vector
     for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
       if(regular[iV]) {
 	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
@@ -278,134 +279,252 @@ Int_t XMetAnalysis::AnalysisRun1(Bool_t bProdHistos)
 	theBins.push_back(binsTuned[iV][iB]);
       }
     }
-    v_bins.push_back(theBins);
+    x_bins.push_back(theBins);
   }
 
   if(bProdHistos) {
     for(UInt_t iS=0 ; iS<nS ; iS++) {
       if(verbose>1) cout << "- selection : " << select[iS] << endl;
-      plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, v_bins2, locProcesses);
+      plot(select[iS], nCut, scanCut, scanReset, nV, var, x_bins, y_bins, locProcesses);
     }
   }
   else {
-    GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
+    GetHistos(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses);
   }
 
   return 0;
 }
 
-// Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
-// {
-//   (*_outlog) << "- ::QCDScaleFactor()" << endl;
+Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
+{
+  (*_outlog) << "- ::QCDScaleFactor()" << endl;
 
-//   TString mode;
-//   if(bProdHistos) mode="recreate";
-//   else            mode="read";
-//   _outfile = new TFile(_dirOut+"/"+_tag+"/plots_"+_tag+".root",mode);
-//   _outfile->cd();
+  TString mode;
+  if(bProdHistos) mode="recreate";
+  else            mode="read";
+  _outfile = new TFile(_dirOut+"/"+_tag+"/plots_"+_tag+".root",mode);
+  _outfile->cd();
 
-//   // Processes to use
-//   vector<TString> locProcesses;
-//   //
-//   locProcesses.push_back("data_met");
-//   /*
-//   locProcesses.push_back("data_2m");
-//   locProcesses.push_back("data_1m");
-//   locProcesses.push_back("data_1ph");
-//   locProcesses.push_back("data_2e");
-//   */
-//   //
-//   locProcesses.push_back("znn"); 
-//   locProcesses.push_back("zll"); 
-//   locProcesses.push_back("wln"); 
-//   locProcesses.push_back("ttbar"); 
-//   locProcesses.push_back("top"); 
-//   locProcesses.push_back("vv"); 
-//   locProcesses.push_back("qcd"); 
+  // Processes to use
+  vector<TString> locProcesses;
+  //
+  locProcesses.push_back("data_met");
+  //locProcesses.push_back("data_jetht");
+  locProcesses.push_back("qcd"); 
 
-//   // Process to put in the stack plot
-//   vector<TString> stackProcesses;
-//   //
-//   stackProcesses.push_back("data_met");
-//   //
-//   stackProcesses.push_back("qcd"); 
-//   stackProcesses.push_back("znn"); 
-//   stackProcesses.push_back("zll"); 
-//   stackProcesses.push_back("wln"); 
-//   stackProcesses.push_back("ttbar"); 
-//   stackProcesses.push_back("top"); 
-//   stackProcesses.push_back("vv"); 
+  // Selections and variables
+  const UInt_t nS=5;
+  TString select[nS] = {"alljets", "1jet","2jet","3jet","4jet"};
+  TString selectTitle[nS] = {"Inclusive in Jets", "1 Jet", "2 Jets", "3 Jets", "4 Jets And More"};
+  for(UInt_t iS=0 ; iS<nS ; iS++) _Title[ select[iS] ] = selectTitle[iS];
 
-//   // Selections and variables
-//   const UInt_t nS=4;
-//   TString select[nS] = {"1jet","2jet","3jet","4jet"};
-//   TString selectTitle[nS] = {"1 Jet", "2 Jets", "3 Jets", "4 Jets And More"};
-//   for(UInt_t iS=0 ; iS<nS ; iS++) _Title[ select[iS] ] = selectTitle[iS];
+  const UInt_t nCut=1;
+  TString scanCut[  nCut] = {"NoJmCut"};
+  Bool_t  scanReset[nCut] = {true};
 
-//   const UInt_t nCut=2;
-//   TString scanCut[  nCut] = {"NoJmCut","NoJmCut_FwdVeto"};
-//   Bool_t  scanReset[nCut] = {true, false};
+  // Variables
+  const UInt_t nV=2;
+  const UInt_t nV2D=2;
+  UInt_t idx2D = nV-nV2D; // start index for 2D plots: nV-#(2D plots)
+  TString var[nV]     ={"jetmetdphimin_vs_t1mumet", "incjetmetdphimin_vs_t1mumet"};
+  TString nameAxisX[nV]={"T1 PFMETNoMu", "T1 PFMETNoMu"};
+  TString nameAxisY[nV]={"Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})"};
+  for(UInt_t iV=0; iV<nV; iV++) {
+    _AxisX[var[iV]] = nameAxisX[iV];
+    _AxisY[var[iV]] = nameAxisY[iV];
+  }
 
-//   // Variables
-//   const UInt_t nV=2;
-//   TString var[nV]     ={"jetmetdphimin:t1mumet", "incjetmetdphimin:t1mumet"};
-//   TString nameAxisX[nV]={"T1 PFMETNoMu"};
-//   TString nameAxisY[nV]={"Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})"};
-//   for(UInt_t iV=0; iV<nV; iV++) {
-//     _AxisX[var[iV]] = nameAxisX[iV];
-//     _AxisY[var[iV]] = nameAxisY[iV];
-//   }
+  // Regular Binning
+  UInt_t   nBinsX[nV]={ 100,  100};  
+  Float_t  xFirst[nV]={ 200,  200};
+  Float_t  xLast[ nV]={1000, 1000};
+  Bool_t regularX[nV]={true,true};
+  //
+  UInt_t   nBinsY[nV]={64,   64};
+  Float_t  yFirst[nV]={ 0,    0};
+  Float_t  yLast[ nV]={ 3.2,  3.2};
+  Bool_t regularY[nV]={true,true};
 
-//   // Regular Binning
-//   UInt_t   nBins[nV]={ 100,   64,   64};
-//   Float_t xFirst[nV]={ 200,    0,    0};
-//   Float_t xLast[ nV]={1000,  3.2,  3.2};
-//   Bool_t regular[nV]={true,true,true};
+  // Tuned binning
+  Float_t* binsTunedX[nV];
+  Float_t* binsTunedY[nV];    
 
-//   // Tuned binning
-//   Float_t* binsTuned[nV];  
-//   /// MET
-//   regular[0] = false;
-//   nBins[0] = 8;
-//   Float_t bins_met[8] = {200, 250, 300, 350, 400, 500, 600, 1000};
-//   binsTuned[0]=bins_met;
+  /// MET
+  Float_t bins_met[8] = {200, 250, 300, 350, 400, 500, 600, 1000};
+  regularX[0] = false;
+  nBinsX[0] = 8;
+  binsTunedX[0]=bins_met;
+  regularX[1] = false;
+  nBinsX[1] = 8;
+  binsTunedX[1]=bins_met;
 
-//   vector<vector<Float_t>> v_bins;
-//   vector<vector<Float_t>> v_bins2;
-//   vector<Float_t> theBins;
-//   Float_t  binval=0;
-//   //
-//   for(UInt_t iV=0 ; iV<nV ; iV++) {
-//     theBins.clear();
-//     v_bins2.push_back(theBins); // push back empty y-bins vector
-//     for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
-//       if(regular[iV]) {
-// 	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
-// 	else             binval = 0;
-// 	theBins.push_back(binval);
-//       }
-//       else {
-// 	theBins.push_back(binsTuned[iV][iB]);
-//       }
-//     }
-//     v_bins.push_back(theBins);
-//   }
+  vector<vector<Float_t>> x_bins, y_bins;
+  vector<Float_t> theBinsX, theBinsY;
+  Float_t  binval=0;
+  //
+  for(UInt_t iV=0 ; iV<nV ; iV++) {
 
-//   // Produce individual histograms
-//   if(bProdHistos) {
-//     for(UInt_t iS=0 ; iS<nS ; iS++) {
-//       if(verbose>1) cout << "- selection : " << select[iS] << endl;
-//       plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, v_bins2, locProcesses);
-//     }
-//   }
-//   else {
-//     GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
-//   }
+    // x bins
+    theBinsX.clear();
+    for(UInt_t iB=0 ; iB<nBinsX[iV] ; iB++) {
+      if(regularX[iV]) {
+	if(nBinsX[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBinsX[iV]);
+	else             binval = 0;
+	theBinsX.push_back(binval);
+      }
+      else {
+	theBinsX.push_back(binsTunedX[iV][iB]);
+      }
+    }
+    x_bins.push_back(theBinsX);
 
-//   DrawStackPlots(nS, select, nCut, scanCut, nV, nV2D, var, stackProcesses);
+    // y bins
+    theBinsY.clear();
+    if(iV<idx2D) {
+      y_bins.push_back(theBinsY); // push back empty y-bins vector
+    }
+    else {
+      for(UInt_t iB=0 ; iB<nBinsY[iV] ; iB++) {
+	if(regularY[iV]) {
+	  if(nBinsY[iV]!=0) binval = yFirst[iV] + (iB*(yLast[iV]-yFirst[iV])/nBinsY[iV]);
+	  else              binval = 0;
+	  theBinsY.push_back(binval);
+	}
+	else {
+	  theBinsY.push_back(binsTunedY[iV][iB]);
+	}
+      }
+      y_bins.push_back(theBinsY);
+    }
+  }
 
-//   return 0;
-// }
+  // Produce individual histograms
+  if(bProdHistos) {
+    for(UInt_t iS=0 ; iS<nS ; iS++) {
+      if(verbose>1) cout << "- selection : " << select[iS] << endl;
+      plot(select[iS], nCut, scanCut, scanReset, nV, var, x_bins, y_bins, locProcesses);
+    }
+  }
+  else {
+    GetHistos(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses);
+  }
+
+  Draw2DPlots(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses);
+
+  Float_t theCut=0.5;
+  ComputeQCDSF(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses, theCut);
+
+  return 0;
+}
+
+Int_t XMetAnalysis::ComputeQCDSF(const UInt_t nS  , TString* select, 
+				 const UInt_t nCut, TString* scanCut,
+				 const UInt_t nV  , const UInt_t nV2D,
+				 TString* var, vector<TString> locProcesses, Float_t cut)
+{
+
+  cout << "- ::ComputeQCDSF()" << endl;
+  
+  const UInt_t nP  = locProcesses.size();
+  //TGraphErrors* gSF;
+  TH2F* hTemp2;
+  TString name;
+  TString selectScan; 
+
+  // Produce stack plots
+  for(UInt_t iS=0 ; iS<nS ; iS++) {
+    for(UInt_t iC=0 ; iC<nCut ; iC++) {
+      for(UInt_t iV=nV-nV2D ; iV<nV ; iV++) {
+
+	TCanvas c("c","c",20,20,600,600);
+	gPad->SetLogy();
+	gStyle->SetOptStat(0);
+
+	// Loop over processes
+	for(UInt_t iP=0; iP<nP ; iP++) {
+
+	  hTemp2 = _mapHistos2D[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]];
+	  if(!hTemp2) continue;
+
+	  // Debug printouts
+	  if(verbose>2) {
+	    cout << "----- SF-get: " << hTemp2->GetName() 
+		 << "->Integral()="     << hTemp2->Integral() 
+		 << endl;
+	  }
+
+	  selectScan = select[iS]+"_"+scanCut[iC];
+
+	  cout << "----- " << select[iS] << " " << scanCut[iC] << " " << var[iV] << " " << locProcesses[iP] << endl;
+
+	  //gSF=0;
+	  //TransferFactor(gSF, hTemp2, cut);
+	  TGraphErrors gSF = TransferFactor(hTemp2, cut);
+	  gSF.SetTitle("QCD Transfer Factor ("+locProcesses[iP]+")");
+	  gSF.SetMinimum(0.0001);
+	  gSF.SetMaximum(1000);
+
+	  gSF.Draw("AP");  // set max with data
+	  name = "sf_"+select[iS]+"_"+scanCut[iC]+"_"+var[iV]+"_"+locProcesses[iP];
+	  c.Print(_dirOut+"/"+_tag+"/"+name+".pdf","pdf");
+
+	} // end loop: processes
+      } // end loop: variables
+    } // end loop: cuts
+  } // end loop: selections
+
+  return 0;
+}
+
+//Int_t XMetAnalysis::TransferFactor(TGraphErrors *gSF, TH2F *hTemp2, Float_t cut)
+TGraphErrors XMetAnalysis::TransferFactor(TH2F *hTemp2, Float_t cut)
+{
+  
+  UInt_t nBinsX = hTemp2->GetNbinsX();
+  UInt_t nBinsY = hTemp2->GetNbinsY();
+
+  Float_t low1=0;
+  Float_t low2=0;
+  UInt_t  idxB=0;
+  
+  for(UInt_t iB=1 ; iB<nBinsY ; iB++) {
+    low1 = hTemp2->GetYaxis()->GetBinLowEdge(iB);
+    low2 = hTemp2->GetYaxis()->GetBinLowEdge(iB+1);
+    if(low1<cut && low2>=cut) idxB=iB;
+  }
+
+  Double_t integral1, integral2, error1, error2, ratio, error;
+  integral1 = integral2 = error1 = error2 = ratio = error = 0;
+
+  Double_t posX[nBinsX];
+  Double_t posY[nBinsX];
+  Double_t errX[nBinsX];
+  Double_t errY[nBinsX];
+
+  for(UInt_t iB=1 ; iB<nBinsX+1 ; iB++) {
+
+    integral1 = hTemp2->IntegralAndError(iB, iB, 0, idxB, error1);
+    integral2 = hTemp2->IntegralAndError(iB, iB, idxB+1, nBinsY+1, error2);
+    ratio = integral1!=0 ? integral2/integral1 : -0.1;
+    error = ErrorRatio(integral2, integral1, error2, error1);
+    //error = QuadSum(error1, error2);
+    //hSF->SetBinContent(iB, ratio);
+    //hSF->SetBinError(  iB, error);
+
+    posX[iB-1] = hTemp2->GetXaxis()->GetBinCenter(iB);
+    errX[iB-1] = abs(posX[iB-1] - hTemp2->GetXaxis()->GetBinLowEdge(iB));
+    posY[iB-1] = ratio;
+    errY[iB-1] = error;
+
+    if(verbose>2) cout << "MET=" << posX[iB-1] << "("   << integral2 << "+/-" << error2 << "/" << integral1 << "+/-" << error1 
+		       << "="    << ratio      << "+/-" << error     << endl;
+  }
+
+  //gSF = new TGraphErrors( nBinsX, posX, posY, errX, errY );
+  TGraphErrors gSF( nBinsX, posX, posY, errX, errY );
+
+  return gSF;
+}
 
 Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
 {
@@ -461,16 +580,17 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
   Bool_t  scanReset[nCut] = {true,false,true};
 
   // Variables
-  const UInt_t nV=16;
+  //const UInt_t nV=16;
+  const UInt_t nV=2;
   const UInt_t nV2D=1;
   UInt_t idx2D = nV-nV2D; // start index for 2D plots: nV-#(2D plots)
 
-  TString var[nV]={"njets", "nsoftjets", "njets80", "nsoftfwdjets", "nfwdjets", "nfwdjets80",
+  TString var[nV]={/*"njets", "nsoftjets", "njets80", "nsoftfwdjets", "nfwdjets", "nfwdjets80",
 		   "leadfwdjet_pt",      "leadfwdjet_eta",    "leadfwdjet_phi", 
 		   "leadfwdjet_CHfrac" , "leadfwdjet_NHfrac", "leadfwdjet_EMfrac",
-		   "leadfwdjet_CEMfrac", "leadfwdjet_Mufrac", "deltapt", "ScatterFwdVsCen"};
+		   "leadfwdjet_CEMfrac", "leadfwdjet_Mufrac", */ "deltapt", "ScatterFwdVsCen"};
 
-  TString nameAxisX[nV]={"# Central Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
+  TString nameAxisX[nV]={/*"# Central Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
 			 "# Soft Central Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
 			 "# Hard Central Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
 			 "# Soft Forward Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
@@ -483,12 +603,12 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
 			 "Leading Forward Jet Neutral Hadronic Energy fraction",
 			 "Leading Forward Jet Neutral EM Energy fraction",
 			 "Leading Forward Jet Charged EM Energy fraction",
-			 "Leading Forward Jet Muon Energy fraction",
+			 "Leading Forward Jet Muon Energy fraction",*/
 			 "#Delta p_{T} (Lead Central Jet - Lead Forward Jet) [GeV]",
 			 "Leading Central Jet p_{T} [GeV]"};
 
-  TString nameAxisY[nV]={"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
-			 "Leading Central Jet p_{T} [GeV]"};
+  TString nameAxisY[nV]={/*"", "", "", "", "", "", "", "", "", "", "", "", "", "", */"", 
+			 "Leading Forward Jet p_{T} [GeV]"};
 
   for(UInt_t iV=0; iV<nV; iV++) {
     _AxisX[var[iV]] = nameAxisX[iV];
@@ -498,19 +618,19 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
   // Binning
   //
   /// regular binning
-  UInt_t   nBinsX[nV]={20, 20, 20, 20, 20, 20,  100, 100,  64, 100,100,100,100,100,  200, 100};
-  Float_t  xFirst[nV]={ 0,  0,  0,  0,  0,  0,    0,  -5,   0,   0,  0,  0,  0,  0,-1000,   0};
-  Float_t  xLast[ nV]={20, 20, 20, 20, 20, 20, 1000,   5, 3.2,   1,  1,  1,  1,  1, 1000,1000};
-  Bool_t regularX[nV]={ 1, 1,1,1,1,1,             1,   1,   1,   1,  1,  1,  1,  1,    1,   1};
+  UInt_t   nBinsX[nV]={/*20, 20, 20, 20, 20, 20,  100, 100,  64, 100,100,100,100,100,*/   200,  50};
+  Float_t  xFirst[nV]={/* 0,  0,  0,  0,  0,  0,    0,  -5,   0,   0,  0,  0,  0,  0,*/ -1000,   0};
+  Float_t  xLast[ nV]={/*20, 20, 20, 20, 20, 20, 1000,   5, 3.2,   1,  1,  1,  1,  1,*/  1000,1000};
+  Bool_t regularX[nV]={/* 1, 1,1,1,1,1,             1,   1,   1,   1,  1,  1,  1,  1,*/     1,   1};
   //
-  UInt_t   nBinsY[nV]={20, 20, 20, 20, 20, 20,  100, 100,  64, 100,100,100,100,100,  200, 100};
-  Float_t  yFirst[nV]={ 0,  0,  0,  0,  0,  0,    0,  -5,   0,   0,  0,  0,  0,  0,-1000,   0};
-  Float_t  yLast[ nV]={20, 20, 20, 20, 20, 20, 1000,   5, 3.2,   1,  1,  1,  1,  1, 1000,1000};
-  Bool_t regularY[nV]={ 1,  1,  1,  1,  1,  1,    1,   1,   1,   1,  1,  1,  1,  1,    1,   1};
+  UInt_t   nBinsY[nV]={/*20, 20, 20, 20, 20, 20,  100, 100,  64, 100,100,100,100,100,*/  200,  50};
+  Float_t  yFirst[nV]={/* 0,  0,  0,  0,  0,  0,    0,  -5,   0,   0,  0,  0,  0,  0,*/-1000,   0};
+  Float_t  yLast[ nV]={/*20, 20, 20, 20, 20, 20, 1000,   5, 3.2,   1,  1,  1,  1,  1,*/ 1000,1000};
+  Bool_t regularY[nV]={/* 1,  1,  1,  1,  1,  1,    1,   1,   1,   1,  1,  1,  1,  1,*/    1,   1};
   //
 
   /// tuned binning
-  Float_t* binsTuned[nV];  
+  Float_t* binsTunedX[nV];  
   Float_t* binsTunedY[nV];  
   //
   vector<vector<Float_t>> x_bins, y_bins;
@@ -528,7 +648,7 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
 	theBinsX.push_back(binval);
       }
       else {
-	theBinsX.push_back(binsTuned[iV][iB]);
+	theBinsX.push_back(binsTunedX[iV][iB]);
       }
     }
     x_bins.push_back(theBinsX);
@@ -562,7 +682,7 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
     }
   }
   else {
-    GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
+    GetHistos(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses);
   }
 
   DrawStackPlots(nS, select, nCut, scanCut, nV, nV2D, var, stackProcesses);
@@ -608,16 +728,16 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   Bool_t regular[nV]={1,1,1,1,1};
   //
   /// tuned binning
-  Float_t* binsTuned[nV];  
+  Float_t* binsTunedX[nV];  
   //
-  vector<vector<Float_t>> v_bins;
-  vector<vector<Float_t>> v_bins2;
+  vector<vector<Float_t>> x_bins;
+  vector<vector<Float_t>> y_bins;
   vector<Float_t> theBins;
   Float_t  binval=0;
   //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
     theBins.clear();
-    v_bins2.push_back(theBins); // push back empty y-bins vector
+    y_bins.push_back(theBins); // push back empty y-bins vector
     for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
       if(regular[iV]) {
 	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
@@ -625,16 +745,16 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
 	theBins.push_back(binval);
       }
       else {
-	theBins.push_back(binsTuned[iV][iB]);
+	theBins.push_back(binsTunedX[iV][iB]);
       }
     }
-    v_bins.push_back(theBins);
+    x_bins.push_back(theBins);
   }
 
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
-    plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, v_bins2, locProcesses);
+    plot(select[iS], nCut, scanCut, scanReset, nV, var, x_bins, y_bins, locProcesses);
   }
 
   if(_outfile) _outfile->Close();
@@ -649,7 +769,7 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
 Int_t XMetAnalysis::plot(TString select, 
 			 const UInt_t nCut, TString *scanCut, Bool_t *scanReset,
 			 const UInt_t nV,    TString *var, 
-			 vector<vector<Float_t>> v_bins, vector<vector<Float_t>> v_bins2,
+			 vector<vector<Float_t>> x_bins, vector<vector<Float_t>> y_bins,
 			 vector<TString> locProcesses)
 {
 
@@ -800,32 +920,37 @@ Int_t XMetAnalysis::plot(TString select,
 	else if(var[iV]=="leadjetmetdphi")        locVar = "abs(signaljetphi-t1mumetphi)";
 	else if(var[iV]=="cosjetjetdphiover2")    locVar = "cos(jetjetdphi/2.)";
 	else if(var[iV]=="abscosjetjetdphiover2") locVar = "abs(cos(jetjetdphi/2.))";
-	//
-	if(var[iV].Contains("leadfwd")) {
+	else if(var[iV].Contains("leadfwd")) {
 	  cut *= "(jet_pt==Max$(jet_pt * (abs(jet_eta)>2.5)) && abs(jet_eta)>2.5)";
 	  locVar = var[iV](7,var[iV].Sizeof());
 	  if(locVar.Contains("phi")) locVar = "abs("+locVar+")";
 	}
-	if(var[iV].Contains("deltapt")) {
+	else if(var[iV].Contains("deltapt")) {
 	  locVar = "(signaljetpt-Max$(jet_pt * (abs(jet_eta)>2.5)))";
 	}
-	if(var[iV]=="ScatterFwdVsCen") {
+	else if(var[iV]=="ScatterFwdVsCen") {
 	  locVar = "Max$(jet_pt * (abs(jet_eta)>2.5)):signaljetpt";
+	}
+	else if(var[iV]=="jetmetdphimin_vs_t1mumet") {
+	  locVar = "abs(jetmetdphimin):t1mumet";
+	}
+	else if(var[iV]=="incjetmetdphimin_vs_t1mumet") {
+	  locVar = "abs(incjetmetdphimin):t1mumet";
 	}
 
 	// fixme: define case for 2D plots
 
 	// Re-format binning
-	const UInt_t nBins = v_bins[iV].size();
+	const UInt_t nBins = x_bins[iV].size();
 	Float_t theBins[nBins];
 	for(UInt_t iB=0 ; iB<nBins ; iB++) {
-	  theBins[iB] = v_bins[iV][iB];
+	  theBins[iB] = x_bins[iV][iB];
 	}
 
-	const UInt_t nBinsY = v_bins2[iV].size(); 
+	const UInt_t nBinsY = y_bins[iV].size(); 
 	Float_t theBinsY[nBinsY];
 	for(UInt_t iB=0 ; iB<nBinsY ; iB++) {
-	  theBinsY[iB] = v_bins2[iV][iB];
+	  theBinsY[iB] = y_bins[iV][iB];
 	}
 
 	// Define histogram and set style
@@ -837,7 +962,7 @@ Int_t XMetAnalysis::plot(TString select,
 		     nBins-1, theBins, nBinsY-1, theBinsY);
 	  hTemp2 = _mapHistos2D[select][nameDir][scanCut[iCut]][var[iV]];
 	  hTemp2->SetXTitle(_AxisX[var[iV]]);
-	  hTemp2->SetYTitle(_AxisY[var[iV]]); // fixme: need to define it
+	  hTemp2->SetYTitle(_AxisY[var[iV]]);
 	  setStyle( hTemp2 , color , style , size , kTRUE , kTRUE );
 	  _mapProcess[nameDir].Draw(hTemp2, locVar, cut, weight); // Draw()
 	  if(verbose>1) cout << "--- drew variable: " << locVar << endl;
@@ -999,7 +1124,7 @@ Int_t XMetAnalysis::plot(TString select,
       // Get histogram
       for(UInt_t iCut=0; iCut<nCut; iCut++) {
 	
-	if(v_bins2[iV].size()==0) {
+	if(y_bins[iV].size()==0) {
 	  hTemp = _mapHistos[select][locProcesses[iP]][scanCut[iCut]][var[iV]];
 
 	  if(!hTemp) {
@@ -1549,8 +1674,8 @@ Int_t XMetAnalysis::DefineChainsRun1()
 
 Int_t XMetAnalysis::GetHistos(const UInt_t nS  , TString *select, 
 			      const UInt_t nCut, TString *scanCut,
-			      const UInt_t nV  , TString *var, 
-			      vector<TString> locProcesses)
+			      const UInt_t nV  , const UInt_t nV2D,
+			      TString *var     , vector<TString> locProcesses)
 {
 
   // Open histos root file
@@ -1563,31 +1688,52 @@ Int_t XMetAnalysis::GetHistos(const UInt_t nS  , TString *select,
   const UInt_t nP = locProcesses.size();
   TString name;
   TH1F* hTemp;
-
+  TH2F* hTemp2;
+  
   for(UInt_t iS=0 ; iS<nS ; iS++) {       // loop: selections
     for(UInt_t iC=0 ; iC<nCut ; iC++) {   // loop: cuts
       for(UInt_t iV=0 ; iV<nV ; iV++) {   // loop: variables
 	for(UInt_t iP=0 ; iP<nP ; iP++) { // loop: processes
 
-	  name = "h_"+var[iV]+"_"+locProcesses[iP]+"_"+select[iS]+"_"+scanCut[iC];
-	  hTemp = (TH1F*) _outfile->Get(name);
+	  name   = "h_"+var[iV]+"_"+locProcesses[iP]+"_"+select[iS]+"_"+scanCut[iC];
 
-	  if(verbose>1) {
-	    cout << "----- try to retrieve [" << name << "]: ";
-	    if(!hTemp) {
-	      cout << "FAIL" << endl;
+	  hTemp=0;
+	  hTemp2=0;
+
+	  if(iV<nV-nV2D) { // 1D case
+	    hTemp  = (TH1F*) _outfile->Get(name);
+	    if(verbose>1) {
+	      cout << "----- try to retrieve [" << name << "]: ";
+	      if(!hTemp) {
+		cout << "FAIL" << endl;
+	      }
+	      else {
+		cout << "SUCCESS => Integral=" 
+		     << hTemp->Integral() << endl;
+	      }
 	    }
-	    else {
-	      cout << "SUCCESS => Integral=" 
-		   << hTemp->Integral() << endl;
-	    }
+	    _mapHistos[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]] = hTemp;
 	  }
 
-	  _mapHistos[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]] = hTemp;
-	}
-      }
-    }
-  }
+	  else { // 2D case
+	    hTemp2  = (TH2F*) _outfile->Get(name);
+	    if(verbose>1) {
+	      cout << "----- try to retrieve [" << name << "]: ";
+	      if(!hTemp) {
+		cout << "FAIL" << endl;
+	      }
+	      else {
+		cout << "SUCCESS => Integral=" 
+		     << hTemp->Integral() << endl;
+	      }
+	    }
+	    _mapHistos2D[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]] = hTemp2;
+	  }
+	  
+	} // end loop: processes
+      } // end loop: variables
+    } // end loop: cuts
+  } // end loop: selections
 
   return 0;
 }
@@ -1608,7 +1754,7 @@ Int_t XMetAnalysis::Draw2DPlots(const UInt_t nS  , TString* select,
       for(UInt_t iV=nV-nV2D ; iV<nV ; iV++) {
 
 	TCanvas c("c","c",20,20,600,600);
-	gPad->SetLogy();
+	gPad->SetLogz();
 	gStyle->SetOptStat(0);
 
 	// Loop over processes
@@ -1626,7 +1772,7 @@ Int_t XMetAnalysis::Draw2DPlots(const UInt_t nS  , TString* select,
 		 << endl;
 	  }
 
-	  hTemp2->Draw("P");  // set max with data
+	  hTemp2->Draw("COLZ");  // set max with data
 	  name = "scat_"+select[iS]+"_"+scanCut[iC]+"_"+var[iV]+"_"+locProcesses[iP];
 	  c.Print(_dirOut+"/"+_tag+"/"+name+".pdf","pdf");
 	} // end loop: processes

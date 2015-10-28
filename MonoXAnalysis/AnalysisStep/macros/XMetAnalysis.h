@@ -40,11 +40,19 @@ class XMetAnalysis {
   Int_t CheckForwardJets(Bool_t bProdHistos);
   Int_t StudyQCDKiller(TString signal);
   Int_t QCDScaleFactor(Bool_t bProdHistos);
-  
+
+  Int_t ComputeQCDSF(const UInt_t nS  , TString* select, 
+		     const UInt_t nCut, TString* scanCut,
+		     const UInt_t nV  , const UInt_t nV2D,
+		     TString* var, vector<TString> locProcesses, Float_t cut);
+
+  //Int_t TransferFactor(TGraphErrors *gSF, TH2F *hTemp2, Float_t cut);
+  TGraphErrors TransferFactor(TH2F *hTemp2, Float_t cut);
+
   Int_t GetHistos(const UInt_t nS  , TString* select, 
 		  const UInt_t nCut, TString* scanCut,
-		  const UInt_t nV  , TString* var, 
-		  vector<TString> locProcesses);
+		  const UInt_t nV  , const UInt_t nV2D,
+		  TString* var, vector<TString> locProcesses);
 
   Int_t DrawStackPlots(const UInt_t nS  , TString* select, 
 		       const UInt_t nCut, TString* scanCut,
