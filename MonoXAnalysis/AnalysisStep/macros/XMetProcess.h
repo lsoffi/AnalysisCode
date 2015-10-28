@@ -236,26 +236,22 @@ Int_t XMetProcess::SetSize(Int_t size)
 }
 
 // Analysis tools //
-Int_t XMetProcess::Skim(TString select, TCut cut, TString reset)
+Int_t XMetProcess::Skim(TString select, TCut cut, TString option)
 {
 
   TString tskim="skim_"+_nameProcess+"_"+select;
   TEntryList* skim; 
 
-  if(reset=="reset")    {
+  if(option.Contains("Reset")) {
     _chain->SetEntryList(0);
-    _chain->Draw(">>+"+tskim, cut, "entrylist");
-    skim = (TEntryList*)gDirectory->Get(tskim);
-  }
-  else if(reset=="reuse") {
-    skim = (TEntryList*)gDirectory->Get(tskim);
-  }
-  else {
-    _chain->Draw(">>+"+tskim, cut, "entrylist");
-    //_chain->Draw(">>+"+tskim, cut, "entrylist",1000); // FIXME
-    skim = (TEntryList*)gDirectory->Get(tskim);
   }
 
+  if(option.Contains("Produce")) {
+    _chain->Draw(">>+"+tskim, cut, "entrylist");
+    //_chain->Draw(">>+"+tskim, cut, "entrylist",1000); // FIXME
+  }
+
+  skim = (TEntryList*)gDirectory->Get(tskim);
   _mapSkim[select] = skim;
   _chain->SetEntryList(skim);
 
