@@ -31,6 +31,7 @@
 #include "TMath.h"
 #include <TSelector.h>
 #include "TEfficiency.h"
+#include "TGraphErrors.h"
 #include "TGraphAsymmErrors.h"
 #include "TSystem.h"
 //
@@ -92,6 +93,7 @@ Double_t ErfCB(double *x, double *par);
 Double_t dichotomy(double eff, double a0, double b0, double relErr,
 		   TF1 f, bool verbose);
 Double_t QuadSum(Double_t x, Double_t y);
+Double_t ErrorRatio(Double_t a, Double_t b, Double_t aErr, Double_t bErr);
 
 // root objects
 TGraphAsymmErrors* Divide(TEfficiency* t1, TEfficiency* t2, TString name, TString title, TString xtitle);
@@ -471,6 +473,17 @@ Double_t dichotomy(double eff, double a0, double b0, double relErr,
 Double_t QuadSum(Double_t x, Double_t y) 
 {
   return TMath::Sqrt( TMath::Power(x,2) + TMath::Power(y,2) );
+}
+
+Double_t ErrorRatio(Double_t a, Double_t b, Double_t aErr, Double_t bErr)
+{
+  if(a==0 || b==0) return -999;
+  Double_t ratio = a/b;
+  Double_t aRel  = aErr/a;
+  Double_t bRel  = bErr/b;
+  Double_t abVar = TMath::Power(aRel, 2) + TMath::Power(bRel, 2);
+  Double_t var   = (TMath::Power(ratio, 2)) * abVar;
+  return TMath::Sqrt( var );
 }
 
 #endif
