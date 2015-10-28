@@ -104,23 +104,17 @@ Int_t XMetAnalysis::AnalysisAN15(Bool_t bProdHistos)
   TString selectTitle[nS] = {"1 Jet", "2 Jets", "3 Jets", "4 Jets And More"};
   for(UInt_t iS=0 ; iS<nS ; iS++) _Title[ select[iS] ] = selectTitle[iS];
 
-  /*
-  const UInt_t nCut=5;
-  TString scanCut[nCut] = {"JetMet0p4","JetMet0p45","JetMet0p5","JetMet0p55","JetMet0p6"};
-  Bool_t  scanReset[nCut] = {true,false,false,false,false};
-  */
-
-  const UInt_t nCut=1;
-  TString scanCut[  nCut] = {"NoJmCut"};
-  //TString scanCut[  nCut] = {"JetMet0p4"}; // fixme
-  Bool_t  scanReset[nCut] = {true};
+  const UInt_t nCut=2;
+  TString scanCut[  nCut] = {"NoJmCut","NoJmCut_FwdVeto"};
+  Bool_t  scanReset[nCut] = {true, true};
 
   // Variables
   const UInt_t nV=3;
+  const UInt_t nV2D=0;
   TString var[nV]     ={"t1mumet", "jetmetdphimin", "incjetmetdphimin"};
-  TString nameAxis[nV]={"Type1 PFMETNoMu [GeV]", "Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})"};
+  TString nameAxisX[nV]={"Type1 PFMETNoMu [GeV]", "Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})"};
   for(UInt_t iV=0; iV<nV; iV++) {
-    _Axis[var[iV]] = nameAxis[iV];
+    _AxisX[var[iV]] = nameAxisX[iV];
   }
 
   // Regular Binning
@@ -138,11 +132,13 @@ Int_t XMetAnalysis::AnalysisAN15(Bool_t bProdHistos)
   binsTuned[0]=bins_met;
 
   vector<vector<Float_t>> v_bins;
+  vector<vector<Float_t>> v_bins2;
   vector<Float_t> theBins;
   Float_t  binval=0;
   //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
     theBins.clear();
+    v_bins2.push_back(theBins); // push back empty y-bins vector
     for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
       if(regular[iV]) {
 	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
@@ -160,14 +156,14 @@ Int_t XMetAnalysis::AnalysisAN15(Bool_t bProdHistos)
   if(bProdHistos) {
     for(UInt_t iS=0 ; iS<nS ; iS++) {
       if(verbose>1) cout << "- selection : " << select[iS] << endl;
-      plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, locProcesses);
+      plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, v_bins2, locProcesses);
     }
   }
   else {
     GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
   }
 
-  DrawStackPlots(nS, select, nCut, scanCut, nV, var, stackProcesses);
+  DrawStackPlots(nS, select, nCut, scanCut, nV, nV2D, var, stackProcesses);
 
   return 0;
 }
@@ -248,9 +244,9 @@ Int_t XMetAnalysis::AnalysisRun1(Bool_t bProdHistos)
   // variables
   const UInt_t nV=1;
   TString var[nV]    = {"t1mumet"};
-  TString nameAxis[nV]={"Type1 PFMETNoMu [GeV]"};
+  TString nameAxisX[nV]={"Type1 PFMETNoMu [GeV]"};
   for(UInt_t iV=0; iV<nV; iV++) {
-    _Axis[var[iV]] = nameAxis[iV];
+    _AxisX[var[iV]] = nameAxisX[iV];
   }
 
   // Binning
@@ -265,11 +261,13 @@ Int_t XMetAnalysis::AnalysisRun1(Bool_t bProdHistos)
   Float_t* binsTuned[nV];  
   //
   vector<vector<Float_t>> v_bins;
+  vector<vector<Float_t>> v_bins2;
   vector<Float_t> theBins;
   Float_t  binval=0;
   //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
     theBins.clear();
+    v_bins2.push_back(theBins); // push back empty y-bins vector
     for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
       if(regular[iV]) {
 	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
@@ -286,7 +284,7 @@ Int_t XMetAnalysis::AnalysisRun1(Bool_t bProdHistos)
   if(bProdHistos) {
     for(UInt_t iS=0 ; iS<nS ; iS++) {
       if(verbose>1) cout << "- selection : " << select[iS] << endl;
-      plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, locProcesses);
+      plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, v_bins2, locProcesses);
     }
   }
   else {
@@ -295,6 +293,119 @@ Int_t XMetAnalysis::AnalysisRun1(Bool_t bProdHistos)
 
   return 0;
 }
+
+// Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
+// {
+//   (*_outlog) << "- ::QCDScaleFactor()" << endl;
+
+//   TString mode;
+//   if(bProdHistos) mode="recreate";
+//   else            mode="read";
+//   _outfile = new TFile(_dirOut+"/"+_tag+"/plots_"+_tag+".root",mode);
+//   _outfile->cd();
+
+//   // Processes to use
+//   vector<TString> locProcesses;
+//   //
+//   locProcesses.push_back("data_met");
+//   /*
+//   locProcesses.push_back("data_2m");
+//   locProcesses.push_back("data_1m");
+//   locProcesses.push_back("data_1ph");
+//   locProcesses.push_back("data_2e");
+//   */
+//   //
+//   locProcesses.push_back("znn"); 
+//   locProcesses.push_back("zll"); 
+//   locProcesses.push_back("wln"); 
+//   locProcesses.push_back("ttbar"); 
+//   locProcesses.push_back("top"); 
+//   locProcesses.push_back("vv"); 
+//   locProcesses.push_back("qcd"); 
+
+//   // Process to put in the stack plot
+//   vector<TString> stackProcesses;
+//   //
+//   stackProcesses.push_back("data_met");
+//   //
+//   stackProcesses.push_back("qcd"); 
+//   stackProcesses.push_back("znn"); 
+//   stackProcesses.push_back("zll"); 
+//   stackProcesses.push_back("wln"); 
+//   stackProcesses.push_back("ttbar"); 
+//   stackProcesses.push_back("top"); 
+//   stackProcesses.push_back("vv"); 
+
+//   // Selections and variables
+//   const UInt_t nS=4;
+//   TString select[nS] = {"1jet","2jet","3jet","4jet"};
+//   TString selectTitle[nS] = {"1 Jet", "2 Jets", "3 Jets", "4 Jets And More"};
+//   for(UInt_t iS=0 ; iS<nS ; iS++) _Title[ select[iS] ] = selectTitle[iS];
+
+//   const UInt_t nCut=2;
+//   TString scanCut[  nCut] = {"NoJmCut","NoJmCut_FwdVeto"};
+//   Bool_t  scanReset[nCut] = {true, false};
+
+//   // Variables
+//   const UInt_t nV=2;
+//   TString var[nV]     ={"jetmetdphimin:t1mumet", "incjetmetdphimin:t1mumet"};
+//   TString nameAxisX[nV]={"T1 PFMETNoMu"};
+//   TString nameAxisY[nV]={"Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})"};
+//   for(UInt_t iV=0; iV<nV; iV++) {
+//     _AxisX[var[iV]] = nameAxisX[iV];
+//     _AxisY[var[iV]] = nameAxisY[iV];
+//   }
+
+//   // Regular Binning
+//   UInt_t   nBins[nV]={ 100,   64,   64};
+//   Float_t xFirst[nV]={ 200,    0,    0};
+//   Float_t xLast[ nV]={1000,  3.2,  3.2};
+//   Bool_t regular[nV]={true,true,true};
+
+//   // Tuned binning
+//   Float_t* binsTuned[nV];  
+//   /// MET
+//   regular[0] = false;
+//   nBins[0] = 8;
+//   Float_t bins_met[8] = {200, 250, 300, 350, 400, 500, 600, 1000};
+//   binsTuned[0]=bins_met;
+
+//   vector<vector<Float_t>> v_bins;
+//   vector<vector<Float_t>> v_bins2;
+//   vector<Float_t> theBins;
+//   Float_t  binval=0;
+//   //
+//   for(UInt_t iV=0 ; iV<nV ; iV++) {
+//     theBins.clear();
+//     v_bins2.push_back(theBins); // push back empty y-bins vector
+//     for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
+//       if(regular[iV]) {
+// 	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
+// 	else             binval = 0;
+// 	theBins.push_back(binval);
+//       }
+//       else {
+// 	theBins.push_back(binsTuned[iV][iB]);
+//       }
+//     }
+//     v_bins.push_back(theBins);
+//   }
+
+//   // Produce individual histograms
+//   if(bProdHistos) {
+//     for(UInt_t iS=0 ; iS<nS ; iS++) {
+//       if(verbose>1) cout << "- selection : " << select[iS] << endl;
+//       plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, v_bins2, locProcesses);
+//     }
+//   }
+//   else {
+//     GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
+//   }
+
+//   DrawStackPlots(nS, select, nCut, scanCut, nV, nV2D, var, stackProcesses);
+
+//   return 0;
+// }
 
 Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
 {
@@ -346,65 +457,100 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
   for(UInt_t iS=0 ; iS<nS ; iS++) _Title[ select[iS] ] = selectTitle[iS];
 
   const UInt_t nCut=3;
-  TString scanCut[  nCut] = {"NoJmCut","JetMetBelow0p4","JetMet0p4"}; 
+  TString scanCut[  nCut] = {"NoJmCut","JetMetBelow0p5","JetMet0p5"}; 
   Bool_t  scanReset[nCut] = {true,false,true};
 
   // Variables
-  const UInt_t nV=14;
-  TString var[nV]={"njets", 
-		   "nsoftjets", "njets80", 
-		   "nsoftfwdjets", "nfwdjets", "nfwdjets80",
-		   "leadfwdjet_pt", "leadfwdjet_eta", "leadfwdjet_phi", 
-		   "leadfwdjet_CHfrac" , "leadfwdjet_NHfrac", "leadfwdjet_EMfrac",
-		   "leadfwdjet_CEMfrac", "leadfwdjet_Mufrac"};
+  const UInt_t nV=16;
+  const UInt_t nV2D=1;
+  UInt_t idx2D = nV-nV2D; // start index for 2D plots: nV-#(2D plots)
 
-  TString nameAxis[nV]={"# Central Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
-			"# Soft Central Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
-			"# Hard Central Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
-			"# Soft Forward Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
-			"# Forward Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
-			"# Hard Forward Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
-			"Leading Forward Jet p_{T} [GeV]",
-			"Leading Forward Jet #eta [rad]",
-			"Leading Forward Jet #phi [rad]",
-			"Leading Forward Jet Charged Hadronic Energy fraction",
-			"Leading Forward Jet Neutral Hadronic Energy fraction",
-			"Leading Forward Jet Neutral EM Energy fraction",
-			"Leading Forward Jet Charged EM Energy fraction",
-			"Leading Forward Jet Muon Energy fraction"};
+  TString var[nV]={"njets", "nsoftjets", "njets80", "nsoftfwdjets", "nfwdjets", "nfwdjets80",
+		   "leadfwdjet_pt",      "leadfwdjet_eta",    "leadfwdjet_phi", 
+		   "leadfwdjet_CHfrac" , "leadfwdjet_NHfrac", "leadfwdjet_EMfrac",
+		   "leadfwdjet_CEMfrac", "leadfwdjet_Mufrac", "deltapt", "ScatterFwdVsCen"};
+
+  TString nameAxisX[nV]={"# Central Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
+			 "# Soft Central Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
+			 "# Hard Central Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
+			 "# Soft Forward Jets (p_{T}<30 GeV ; |#eta|<2.5)", 
+			 "# Forward Jets (p_{T}>30 GeV ; |#eta|<2.5)", 
+			 "# Hard Forward Jets (p_{T}>80 GeV ; |#eta|<2.5)", 
+			 "Leading Forward Jet p_{T} [GeV]",
+			 "Leading Forward Jet #eta [rad]",
+			 "Leading Forward Jet #phi [rad]",
+			 "Leading Forward Jet Charged Hadronic Energy fraction",
+			 "Leading Forward Jet Neutral Hadronic Energy fraction",
+			 "Leading Forward Jet Neutral EM Energy fraction",
+			 "Leading Forward Jet Charged EM Energy fraction",
+			 "Leading Forward Jet Muon Energy fraction",
+			 "#Delta p_{T} (Lead Central Jet - Lead Forward Jet) [GeV]",
+			 "Leading Central Jet p_{T} [GeV]"};
+
+  TString nameAxisY[nV]={"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", 
+			 "Leading Central Jet p_{T} [GeV]"};
 
   for(UInt_t iV=0; iV<nV; iV++) {
-    _Axis[var[iV]] = nameAxis[iV];
+    _AxisX[var[iV]] = nameAxisX[iV];
+    _AxisY[var[iV]] = nameAxisY[iV];
   }
 
   // Binning
   //
   /// regular binning
-  UInt_t  nBins[ nV]={20, 20, 20, 20, 20, 20,  100, 100,  64, 100,100,100,100,100};
-  Float_t xFirst[nV]={ 0,  0,  0,  0,  0,  0,    0,  -5,   0,   0,  0,  0,  0,  0};
-  Float_t xLast[ nV]={20, 20, 20, 20, 20, 20, 1000,   5, 3.2,   1,  1,  1,  1,  1};
-  Bool_t regular[nV]={ 1, 1,1,1,1,1,             1,   1,   1,   1,  1,  1,  1,  1};
+  UInt_t   nBinsX[nV]={20, 20, 20, 20, 20, 20,  100, 100,  64, 100,100,100,100,100,  200, 100};
+  Float_t  xFirst[nV]={ 0,  0,  0,  0,  0,  0,    0,  -5,   0,   0,  0,  0,  0,  0,-1000,   0};
+  Float_t  xLast[ nV]={20, 20, 20, 20, 20, 20, 1000,   5, 3.2,   1,  1,  1,  1,  1, 1000,1000};
+  Bool_t regularX[nV]={ 1, 1,1,1,1,1,             1,   1,   1,   1,  1,  1,  1,  1,    1,   1};
   //
+  UInt_t   nBinsY[nV]={20, 20, 20, 20, 20, 20,  100, 100,  64, 100,100,100,100,100,  200, 100};
+  Float_t  yFirst[nV]={ 0,  0,  0,  0,  0,  0,    0,  -5,   0,   0,  0,  0,  0,  0,-1000,   0};
+  Float_t  yLast[ nV]={20, 20, 20, 20, 20, 20, 1000,   5, 3.2,   1,  1,  1,  1,  1, 1000,1000};
+  Bool_t regularY[nV]={ 1,  1,  1,  1,  1,  1,    1,   1,   1,   1,  1,  1,  1,  1,    1,   1};
+  //
+
   /// tuned binning
   Float_t* binsTuned[nV];  
+  Float_t* binsTunedY[nV];  
   //
-  vector<vector<Float_t>> v_bins;
-  vector<Float_t> theBins;
+  vector<vector<Float_t>> x_bins, y_bins;
+  vector<Float_t> theBinsX, theBinsY;
   Float_t  binval=0;
   //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
-    theBins.clear();
-    for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
-      if(regular[iV]) {
-	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
+
+    // x bins
+    theBinsX.clear();
+    for(UInt_t iB=0 ; iB<nBinsX[iV] ; iB++) {
+      if(regularX[iV]) {
+	if(nBinsX[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBinsX[iV]);
 	else             binval = 0;
-	theBins.push_back(binval);
+	theBinsX.push_back(binval);
       }
       else {
-	theBins.push_back(binsTuned[iV][iB]);
+	theBinsX.push_back(binsTuned[iV][iB]);
       }
     }
-    v_bins.push_back(theBins);
+    x_bins.push_back(theBinsX);
+
+    // y bins
+    theBinsY.clear();
+    if(iV<idx2D) {
+      y_bins.push_back(theBinsY); // push back empty y-bins vector
+    }
+    else {
+      for(UInt_t iB=0 ; iB<nBinsY[iV] ; iB++) {
+	if(regularY[iV]) {
+	  if(nBinsY[iV]!=0) binval = yFirst[iV] + (iB*(yLast[iV]-yFirst[iV])/nBinsY[iV]);
+	  else              binval = 0;
+	  theBinsY.push_back(binval);
+	}
+	else {
+	  theBinsY.push_back(binsTunedY[iV][iB]);
+	}
+      }
+      y_bins.push_back(theBinsY);
+    }
   }
 
   // Produce individual histograms
@@ -412,14 +558,15 @@ Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
   if(bProdHistos) {
     for(UInt_t iS=0 ; iS<nS ; iS++) {
       if(verbose>1) cout << "-- selection : " << select[iS] << endl;
-      plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, locProcesses);
+      plot(select[iS], nCut, scanCut, scanReset, nV, var, x_bins, y_bins, locProcesses);
     }
   }
   else {
     GetHistos(nS, select, nCut, scanCut, nV, var, locProcesses);
   }
 
-  DrawStackPlots(nS, select, nCut, scanCut, nV, var, stackProcesses);
+  DrawStackPlots(nS, select, nCut, scanCut, nV, nV2D, var, stackProcesses);
+  Draw2DPlots(   nS, select, nCut, scanCut, nV, nV2D, var, stackProcesses);
 
   return 0;
 }
@@ -464,11 +611,13 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   Float_t* binsTuned[nV];  
   //
   vector<vector<Float_t>> v_bins;
+  vector<vector<Float_t>> v_bins2;
   vector<Float_t> theBins;
   Float_t  binval=0;
   //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
     theBins.clear();
+    v_bins2.push_back(theBins); // push back empty y-bins vector
     for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
       if(regular[iV]) {
 	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
@@ -485,7 +634,7 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
   // Produce 1 plot per {selection ; variable}
   for(UInt_t iS=0 ; iS<nS ; iS++) {
     if(verbose>1) cout << "- selection : " << select[iS] << endl;
-    plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, locProcesses);
+    plot(select[iS], nCut, scanCut, scanReset, nV, var, v_bins, v_bins2, locProcesses);
   }
 
   if(_outfile) _outfile->Close();
@@ -500,9 +649,11 @@ Int_t XMetAnalysis::StudyQCDKiller(TString signal="znn")
 Int_t XMetAnalysis::plot(TString select, 
 			 const UInt_t nCut, TString *scanCut, Bool_t *scanReset,
 			 const UInt_t nV,    TString *var, 
-			 vector<vector<Float_t>> v_bins,
+			 vector<vector<Float_t>> v_bins, vector<vector<Float_t>> v_bins2,
 			 vector<TString> locProcesses)
 {
+
+  // LOG FILE //
 
   // Write the arguments in the log file /////////////////////////
   (*_outlog) << "- ::plot(" << select << " , " << nCut << " , {" ;
@@ -531,33 +682,34 @@ Int_t XMetAnalysis::plot(TString select,
 
   (*_outlog) << "Selection: " << select << endl;
 
-  // Define selections //
-  TString selectScan;
-  TCut weight="";
-  TString region = "signal";
-  TCut cut = defineCut(select, region);
+  // Define selections and weights
+  TString selectScan, region;
+  TCut weight, cut;
 
-  // Declare histograms //
-  //M_PROCESS_CUT_VAR_H mapHistos; // made it a member
-  Float_t minPlot = 9999999.;
-  Float_t maxPlot = -9999999.;
-  Float_t locMin, locMax;
-
-  // Loop over chains and generate histograms //
-  //
-  TString nameDir, locVar, variable;
-  Int_t color, style, size;
+  // Declare variables to be used within the loop
+  TH1  *hBasic;
+  TH2F *hTemp2;
   TH1F *hTemp, *hSRDD, *hTemp_cr_d, *hTemp_cr_mc,
     *hTemp_num, *hTemp_den;
+  TString nameDir, locVar, variable;
   pair<Double_t, Double_t> intErr;
-  //
+  Double_t theScale;
+  Int_t color, style, size;
+
+  // Start loop: processes 
   for(UInt_t iP=0 ; iP<nP ; iP++) {
+
     nameDir = locProcesses[iP];
+    color = _mapProcess[nameDir].GetColor();
+    style = _mapProcess[nameDir].GetStyle();
+    size  = _mapProcess[nameDir].GetSize();
+
+    if(verbose>1) cout << "-- process : " << nameDir << endl;
 
     // SR data-driven histograms don't have chains
     if(nameDir.Contains("DD")) continue;
 
-    // check if current requested process is available
+    // Check if currently requested process is available
     if(_mapProcess.find(nameDir)==_mapProcess.end()) { 
       if(verbose>1) {
 	cout << "-- ERROR: requested process '" 
@@ -565,8 +717,6 @@ Int_t XMetAnalysis::plot(TString select,
       }
       continue;
     }
-    //
-    if(verbose>1) cout << "-- process : " << nameDir << endl;
 
     // Define reweighting
     if( nameDir.Contains("data") ||
@@ -576,13 +726,11 @@ Int_t XMetAnalysis::plot(TString select,
     else { 
       if(_isRun1) weight = "puwgt*wgt"; 
       //else if(_isAN15) weight = "xsec*(wgt/wgtsum)*puwgt";  // FIXME
-      //else if(_isAN15) weight = "xsec*puwgt"; // my xsec are buggy => check theXSec in crab
       else if(_isAN15) weight = "editxsec*(wgt/wgtsum)*puwgt"; // using editxsec produced at skim 
     }
 
     // Choose the phase space region
     region = "signal";
-    //
     if(     nameDir.Contains("zn_cr")) {
       if(nameDir.Contains("corr")) {
 	region  = "zctrl_corr";
@@ -590,7 +738,6 @@ Int_t XMetAnalysis::plot(TString select,
       }
       else { region = "zctrl"; }
     }
-    //
     else if(nameDir.Contains("wj_cr"))  {
       if(nameDir.Contains("corr")) {
 	region  = "wctrl_corr";
@@ -598,25 +745,30 @@ Int_t XMetAnalysis::plot(TString select,
       }
       else { region = "wctrl"; }
     }
-    //
     else {region = "signal";}
 
     // Apply k-factors
     if(_useLO) {
       if(nameDir.Contains("znn") || nameDir.Contains("zll") ) {
-	weight *= "1.35";
+	weight *= "1.23";
       }
       if(nameDir.Contains("wln") ) {
-	weight *= "1.2";
+	weight *= "1.21";
       }
     }
-    ////////////////////////////////////
 
-    // First skim based on global selection (select)
+    // Compute Normalization
+    theScale=1.0;
+    if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
+      theScale = _lumi*_rescale;
+      if(nameDir.Contains("qcd")) theScale *= _qcdScale;
+    }
+
+    // Skim chain using global selection ("select")
     cut = defineCut(select, region);
     _mapProcess[nameDir].Skim(select, cut, "ResetProduce");
 
-    // Loop over cuts to be scanned
+    // Loop over extra cuts to be scanned
     for(UInt_t iCut=0; iCut<nCut; iCut++) {
 
       selectScan = select+"_"+scanCut[iCut];
@@ -633,7 +785,6 @@ Int_t XMetAnalysis::plot(TString select,
 	_mapProcess[nameDir].Skim(select, cut, "Reset");
       }
       /// in all cases: apply skim for specific selection
-      /// selectScan contains scanCut[iCut]
       _mapProcess[nameDir].Skim(selectScan, cut, "Produce");
 
       // Loop over requested variables
@@ -641,27 +792,7 @@ Int_t XMetAnalysis::plot(TString select,
 
 	if(verbose>1) cout << "--- variable: " << var[iV] << endl;
 
-	// Re-Build binning 
-	const UInt_t nBins = v_bins[iV].size();
-	Float_t theBins[nBins];
-	for(UInt_t iB=0 ; iB<nBins ; iB++) {
-	  theBins[iB] = v_bins[iV][iB];
-	}
-
-	// Define histogram and set style
-	_mapHistos[select][nameDir][scanCut[iCut]][var[iV]] = 
-	  new TH1F("h_"+var[iV]+"_"+nameDir+"_"+selectScan, 
-		   var[iV]+" "+nameDir+" "+selectScan,
-		   nBins-1, theBins);
-
-	hTemp = _mapHistos[select][nameDir][scanCut[iCut]][var[iV]];
-	color = _mapProcess[nameDir].GetColor();
-	style = _mapProcess[nameDir].GetStyle();
-	size  = _mapProcess[nameDir].GetSize();
-	setStyle( hTemp , color , style , size , kTRUE , kTRUE );
-	hTemp->SetXTitle(_Axis[var[iV]]);
-
-	// Draw the variable
+	// Redefine variable: give correct format to Draw() method.
 	locVar = var[iV];
 	if(var[iV].Contains("phi"))  locVar = "abs("+var[iV]+")";
 	if(     var[iV]=="dphiJ1J3") locVar = "abs(signaljetphi-thirdjetphi)";
@@ -669,48 +800,83 @@ Int_t XMetAnalysis::plot(TString select,
 	else if(var[iV]=="leadjetmetdphi")        locVar = "abs(signaljetphi-t1mumetphi)";
 	else if(var[iV]=="cosjetjetdphiover2")    locVar = "cos(jetjetdphi/2.)";
 	else if(var[iV]=="abscosjetjetdphiover2") locVar = "abs(cos(jetjetdphi/2.))";
-
-	// Jet Arrays
+	//
 	if(var[iV].Contains("leadfwd")) {
 	  cut *= "(jet_pt==Max$(jet_pt * (abs(jet_eta)>2.5)) && abs(jet_eta)>2.5)";
 	  locVar = var[iV](7,var[iV].Sizeof());
+	  if(locVar.Contains("phi")) locVar = "abs("+locVar+")";
+	}
+	if(var[iV].Contains("deltapt")) {
+	  locVar = "(signaljetpt-Max$(jet_pt * (abs(jet_eta)>2.5)))";
+	}
+	if(var[iV]=="ScatterFwdVsCen") {
+	  locVar = "Max$(jet_pt * (abs(jet_eta)>2.5)):signaljetpt";
 	}
 
-	_mapProcess[nameDir].Draw(hTemp, locVar, cut, weight);
-	if(verbose>1) cout << "--- drew variable: " << locVar << endl;
+	// fixme: define case for 2D plots
 
-	// Normalize
-	Double_t theScale=1.0;
-	if( !nameDir.Contains("data") && !nameDir.Contains("DA") ) {
-	  theScale = _lumi*_rescale;
-	  if(nameDir.Contains("qcd")) theScale *= _qcdScale;
+	// Re-format binning
+	const UInt_t nBins = v_bins[iV].size();
+	Float_t theBins[nBins];
+	for(UInt_t iB=0 ; iB<nBins ; iB++) {
+	  theBins[iB] = v_bins[iV][iB];
 	}
-	hTemp->Scale(theScale);
 
-	// Checks
-	intErr = Integrate(hTemp);
+	const UInt_t nBinsY = v_bins2[iV].size(); 
+	Float_t theBinsY[nBinsY];
+	for(UInt_t iB=0 ; iB<nBinsY ; iB++) {
+	  theBinsY[iB] = v_bins2[iV][iB];
+	}
+
+	// Define histogram and set style
+	//
+	if(nBinsY!=0) { // 2D case
+	  _mapHistos2D[select][nameDir][scanCut[iCut]][var[iV]] = 
+	    new TH2F("h_"+var[iV]+"_"+nameDir+"_"+selectScan, 
+		     var[iV]+" "+nameDir+" "+selectScan,
+		     nBins-1, theBins, nBinsY-1, theBinsY);
+	  hTemp2 = _mapHistos2D[select][nameDir][scanCut[iCut]][var[iV]];
+	  hTemp2->SetXTitle(_AxisX[var[iV]]);
+	  hTemp2->SetYTitle(_AxisY[var[iV]]); // fixme: need to define it
+	  setStyle( hTemp2 , color , style , size , kTRUE , kTRUE );
+	  _mapProcess[nameDir].Draw(hTemp2, locVar, cut, weight); // Draw()
+	  if(verbose>1) cout << "--- drew variable: " << locVar << endl;
+	  hTemp2->Scale(theScale);
+	  intErr = Integrate(hTemp2);
+	  hBasic = hTemp2;
+	}
+	//
+	else { // 1D case
+	  _mapHistos[select][nameDir][scanCut[iCut]][var[iV]] = 
+	    new TH1F("h_"+var[iV]+"_"+nameDir+"_"+selectScan, 
+		     var[iV]+" "+nameDir+" "+selectScan,
+		     nBins-1, theBins);
+	  hTemp  = _mapHistos[select][nameDir][scanCut[iCut]][var[iV]];
+	  hTemp->SetXTitle(_AxisX[var[iV]]);
+	  setStyle( hTemp , color , style , size , kTRUE , kTRUE );
+	  _mapProcess[nameDir].Draw(hTemp, locVar, cut, weight); // Draw()
+	  if(verbose>1) cout << "--- drew variable: " << locVar << endl;
+	  hTemp->Scale(theScale);
+	  intErr = Integrate(hTemp);
+	  hBasic = hTemp;
+	}
+
+	// Printout Integral
 	if(verbose>1) {
 	  cout << "--- check:" 
 	       << " nameDir="  << nameDir
-	       << " GetName="  << hTemp->GetName()
-	       << " Entries="  << hTemp->GetEntries()
+	       << " GetName="  << hBasic->GetName()
+	       << " Entries="  << hBasic->GetEntries()
 	       << " Integral=" << intErr.first
 	       << " +/- "      << intErr.second
 	       << " Weight="   << weight
 	       << endl;
 	}
 
-	// Determine extrema
-	locMin = hTemp->GetMinimum();
-	locMax = hTemp->GetMaximum();
-	if(locMin<minPlot) minPlot = locMin;
-	if(locMax>maxPlot) maxPlot = locMax;
-
       } // end loop:variables
     } // end loop:cuts
   } // end loop:processes 
   if(verbose>1) cout << "-- end loop over processes" << endl;
-  
 
   // DATA-DRIVEN //
 
@@ -832,26 +998,52 @@ Int_t XMetAnalysis::plot(TString select,
 
       // Get histogram
       for(UInt_t iCut=0; iCut<nCut; iCut++) {
-	hTemp = _mapHistos[select][locProcesses[iP]][scanCut[iCut]][var[iV]];
-	if(!hTemp) {
-	  if(verbose>1) {
-	    cout << "ERROR : yield loop did not find histo:"
-		 << locProcesses[iP]+" "+var[iV]
-		 << endl;
+	
+	if(v_bins2[iV].size()==0) {
+	  hTemp = _mapHistos[select][locProcesses[iP]][scanCut[iCut]][var[iV]];
+
+	  if(!hTemp) {
+	    if(verbose>1) {
+	      cout << "ERROR : yield loop did not find histo:"
+		   << locProcesses[iP]+" "+var[iV]
+		   << endl;
+	    }
+	    (*_outlog) << setw(23) << "ERROR" ;
+	    continue;
 	  }
-	  (*_outlog) << setw(23) << "ERROR" ;
-	  continue;
-	}
+	  else {
+	    intErr = Integrate(hTemp);
+	    if(verbose>2) cout << " ==> " << intErr.first 
+			       << " +/- " << intErr.second 
+			       << endl;
+	    (*_outlog) << setw(10) << intErr.first 
+		       << setw(5)  << "+/-"
+		       << setw(8) << intErr.second;
+	  }
+	} // end if (1D case)
 	else {
-	  intErr = Integrate(hTemp);
-	  if(verbose>2) cout << " ==> " << intErr.first 
-			     << " +/- " << intErr.second 
-			     << endl;
-	  (*_outlog) << setw(10) << intErr.first 
-		     << setw(5)  << "+/-"
-		     << setw(8) << intErr.second;
-	}
-      } // end loop:cuts
+	  hTemp2 = _mapHistos2D[select][locProcesses[iP]][scanCut[iCut]][var[iV]];
+	  
+	  if(!hTemp2) {
+	    if(verbose>1) {
+	      cout << "ERROR : yield loop did not find histo:"
+		   << locProcesses[iP]+" "+var[iV]
+		   << endl;
+	    }
+	    (*_outlog) << setw(23) << "ERROR" ;
+	  continue;
+	  }
+	  else {
+	    intErr = Integrate(hTemp2);
+	    if(verbose>2) cout << " ==> " << intErr.first 
+			       << " +/- " << intErr.second 
+			       << endl;
+	    (*_outlog) << setw(10) << intErr.first 
+		       << setw(5)  << "+/-"
+		       << setw(8) << intErr.second;
+	  }
+	} // end else (2D case)
+      } // end loop: cuts
 
       if(verbose>2) cout << "end loop:cuts" << endl;
       (*_outlog) << endl;
@@ -893,13 +1085,45 @@ Int_t XMetAnalysis::plot(TString select,
 	     _itVarH!=_itCutVarH->second.end() ; 
 	     _itVarH++) {
 
-	hTemp = _itVarH->second;
+	  hTemp = _itVarH->second;
 
-	if(hTemp) {
-	  nameHisto = hTemp->GetName();
-	  hTemp->Write();
+	  if(hTemp) {
+	    nameHisto = hTemp->GetName();
+	    hTemp->Write();
+	    if(verbose>2) cout << "---- histo written: " << nameHisto << endl;
+	    //delete hTemp; // ND
+	    //if(verbose>2) cout << "---- histo deleted: " << nameHisto << endl; // ND
+	  }
+	  
+	}// end loop:histos
+      }  // end loop:variables
+    }    // end loop:cuts
+  }      // end loop: selections
+
+  // 2D case
+  for( _itSelProcCutVarH2=_mapHistos2D.begin() ; 
+       _itSelProcCutVarH2!=_mapHistos2D.end() ; 
+       _itSelProcCutVarH2++) {
+
+    for( _itProcCutVarH2=_itSelProcCutVarH2->second.begin() ; 
+	 _itProcCutVarH2!=_itSelProcCutVarH2->second.end() ; 
+	 _itProcCutVarH2++) {
+
+      for( _itCutVarH2=_itProcCutVarH2->second.begin() ; 
+	   _itCutVarH2!=_itProcCutVarH2->second.end() ; 
+	   _itCutVarH2++) {
+
+	for( _itVarH2=_itCutVarH2->second.begin() ; 
+	     _itVarH2!=_itCutVarH2->second.end() ; 
+	     _itVarH2++) {
+
+	  hTemp2 = _itVarH2->second;
+	  
+	if(hTemp2) {
+	  nameHisto = hTemp2->GetName();
+	  hTemp2->Write();
 	  if(verbose>2) cout << "---- histo written: " << nameHisto << endl;
-	  //delete hTemp; // ND
+	  //delete hTemp2; // ND
 	  //if(verbose>2) cout << "---- histo deleted: " << nameHisto << endl; // ND
 	}
 
@@ -907,6 +1131,7 @@ Int_t XMetAnalysis::plot(TString select,
       }  // end loop:variables
     }    // end loop:cuts
   }      // end loop: selections
+
   //////////////////////////
 
   // END //
@@ -953,6 +1178,7 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(_isAN15)        metID = "";
   //
   TCut metCut="";
+  TCut fwdveto="";
   const UInt_t nIn=2;
   TString inputs[nIn] = {_tag, select};
   for(UInt_t in=0 ; in<nIn ; in++) {
@@ -963,6 +1189,9 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
     else if(inputs[in].Contains("MetFrom0to200"))   metCut = "t1mumet<=200";
     else if(inputs[in].Contains("MetFrom200to250")) metCut = "t1mumet>200 && t1mumet<=250";
     else if(inputs[in].Contains("MetFrom250to350")) metCut = "t1mumet>250 && t1mumet<=350";
+    
+    if(inputs[in].Contains("FwdVeto")) fwdveto = "(signaljetpt>Max$(jet_pt * (abs(jet_eta)>2.5)))";
+    //if(inputs[in].Contains("FwdVeto")) fwdveto = "Max$(jet_pt * (abs(jet_eta)>2.5))>100"; //fixme: test
   }
 
   // JETS
@@ -1003,6 +1232,7 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(select.Contains("JetMet0p6"))       jmdphi = "abs(jetmetdphimin)>0.6";
   if(select.Contains("JetMet0p8"))       jmdphi = "abs(jetmetdphimin)>0.8";
   if(select.Contains("JetMetBelow0p4"))  jmdphi = "abs(jetmetdphimin)<0.4";
+  if(select.Contains("JetMetBelow0p5"))  jmdphi = "abs(jetmetdphimin)<0.5";
 
   if(     select.Contains("alljets")) {
     jetBin = "njets>=1 && njets<=3";
@@ -1051,14 +1281,14 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
     if(inputs[in].Contains("JetMet"))        noqcd *= jmdphi;
   }
 
-  // Noise cleaning
+  // Noise cleaning // fixme : need update
   TCut noise="(flaghbheloose>0 && flagcsctight>0 && flageebadsc>0)";
 
   // Max run
   TCut maxrun="";
   if(_tag.Contains("MaxRun256730")) maxrun="(run<256730)";
   
-  return (trig*noise*maxrun*metCut*metID*leptons*photons*jetID*jetBin*noqcd);
+  return (trig*noise*maxrun*metCut*metID*leptons*photons*jetID*jetBin*noqcd*fwdveto);
 
   // "(hltmet90>0 || hltmet120>0) && t1mumet>200 && nelectrons == 0 && ntaus == 0 && nmuons == 0 && nphotons==0 signaljetpt>30 && abs(signaljeteta)<2.5 && signaljetCHfrac > 0.1 && njets==1"
 
@@ -1362,10 +1592,55 @@ Int_t XMetAnalysis::GetHistos(const UInt_t nS  , TString *select,
   return 0;
 }
 
+Int_t XMetAnalysis::Draw2DPlots(const UInt_t nS  , TString* select, 
+				const UInt_t nCut, TString* scanCut,
+				const UInt_t nV  , const UInt_t nV2D, 
+				TString* var, vector<TString> locProcesses)
+{
+
+  const UInt_t nP  = locProcesses.size();
+  TH2F* hTemp2;
+  TString name;
+
+  // Produce stack plots
+  for(UInt_t iS=0 ; iS<nS ; iS++) {
+    for(UInt_t iC=0 ; iC<nCut ; iC++) {
+      for(UInt_t iV=nV-nV2D ; iV<nV ; iV++) {
+
+	TCanvas c("c","c",20,20,600,600);
+	gPad->SetLogy();
+	gStyle->SetOptStat(0);
+
+	// Loop over processes
+	for(UInt_t iP=0; iP<nP ; iP++) {
+
+	  hTemp2 = _mapHistos2D[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]];
+	  if(!hTemp2) continue;
+
+	  hTemp2->SetTitle(_Title[select[iS]]);
+
+	  // Debug printouts
+	  if(verbose>2) {
+	    cout << "----- stack-get: " << hTemp2->GetName() 
+		 << "->Integral()="     << hTemp2->Integral() 
+		 << endl;
+	  }
+
+	  hTemp2->Draw("P");  // set max with data
+	  name = "scat_"+select[iS]+"_"+scanCut[iC]+"_"+var[iV]+"_"+locProcesses[iP];
+	  c.Print(_dirOut+"/"+_tag+"/"+name+".pdf","pdf");
+	} // end loop: processes
+      } // end loop: variables
+    } // end loop: cuts
+  } // end loop: selections
+
+  return 0;
+}
+
 Int_t XMetAnalysis::DrawStackPlots(const UInt_t nS  , TString* select, 
 				   const UInt_t nCut, TString* scanCut,
-				   const UInt_t nV  , TString* var,
-				   vector<TString> locProcesses)
+				   const UInt_t nV  , const UInt_t nV2D, 
+				   TString* var, vector<TString> locProcesses)
 {
 
   const UInt_t nP  = locProcesses.size();
@@ -1381,7 +1656,7 @@ Int_t XMetAnalysis::DrawStackPlots(const UInt_t nS  , TString* select,
   // Produce stack plots
   for(UInt_t iS=0 ; iS<nS ; iS++) {
     for(UInt_t iC=0 ; iC<nCut ; iC++) {
-      for(UInt_t iV=0 ; iV<nV ; iV++) {
+      for(UInt_t iV=0 ; iV<(nV-nV2D) ; iV++) {
 
 	TCanvas c("c","c",20,20,600,600);
 	gPad->SetLogy();
