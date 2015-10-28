@@ -43,7 +43,7 @@ class XMetProcess {
 
   // Analysis tools
   Int_t Skim(TString select, TCut cut, TString reset);
-  Int_t Draw(TH1F* h, TString var, TCut cut, TCut weight);
+  Int_t Draw(TH1* h, TString var, TCut cut, TCut weight);
     
  private:
   TChain* _chain;
@@ -262,7 +262,7 @@ Int_t XMetProcess::Skim(TString select, TCut cut, TString option)
   return 0;
 }
 
-Int_t XMetProcess::Draw(TH1F* h, TString var, TCut cut, TCut weight)
+Int_t XMetProcess::Draw(TH1* h, TString var, TCut cut, TCut weight)
 {
   _chain->Draw(var+">>"+TString(h->GetName()), cut*weight);
   //_chain->Draw(var+">>"+TString(h->GetName()), cut*weight, "", 1000); // FIXME
