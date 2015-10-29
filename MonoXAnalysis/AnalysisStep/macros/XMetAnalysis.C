@@ -310,7 +310,13 @@ Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
   //
   //locProcesses.push_back("data_met");
   locProcesses.push_back("data_jetht");
-  //locProcesses.push_back("qcd"); 
+  locProcesses.push_back("qcd"); 
+  locProcesses.push_back("znn"); 
+  locProcesses.push_back("zll"); 
+  locProcesses.push_back("wln"); 
+  locProcesses.push_back("ttbar"); 
+  locProcesses.push_back("top"); 
+  locProcesses.push_back("vv"); 
 
   // Selections and variables
   const UInt_t nS=5;
@@ -529,7 +535,7 @@ TGraphErrors XMetAnalysis::TransferFactor(TH2F *hTemp2, Float_t cut)
 Int_t XMetAnalysis::CheckForwardJets(Bool_t bProdHistos)
 {
 
-  (*_outlog) << "- ::AnalysisAN15()" << endl;
+  (*_outlog) << "- ::CheckForwardJets()" << endl;
 
   TString mode;
   if(bProdHistos) mode="recreate";
@@ -865,8 +871,10 @@ Int_t XMetAnalysis::plot(TString select,
       }
       else { region = "wctrl"; }
     }
-    else if(nameDir.Contains("jetht")) {
-      region = "signal_jetht";
+    //else if(nameDir.Contains("jetht")) {
+    else if(_tag.Contains("JetHT")) {
+      if(nameDir.Contains("data")) region = "signal_jetht_data";
+      else                         region = "signal_jetht_mc";
     }
     else {region = "signal";}
 
@@ -1278,7 +1286,14 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   // Trigger
   TCut trig  = "(hltmet120 > 0 || hltmet95jet80 > 0 || hltmet105jet80 > 0)";
   if(_isAN15) trig = "hltmet90>0 || hltmet120>0";
-  if(region.Contains("jetht")) trig = "hltpfht200>0 || hltpfht250>0 || hltpfht300>0 || hltpfht350>0 || hltpfht400>0 || hltpfht475>0 || hltpfht600>0 || hltpfht650>0 || hltpfht800>0";
+  //
+  /// PFHT trigger for QCD studies
+  if(region.Contains("jetht")) {
+    if(region.Contains("data")) trig = "hltpfht200>0 && ht>300"; // exists only in data
+    else                        trig = "ht>300"; // simple plateau cut in MC
+  }
+  //if(region.Contains("jetht")) trig = "hltpfht200>0 || hltpfht250>0 || hltpfht300>0 || hltpfht350>0 || hltpfht400>0 || hltpfht475>0 || hltpfht600>0 || hltpfht650>0 || hltpfht800>0";
+  //if(region.Contains("jetht")) trig = "hltpfht350>0"; // exists in both MC and data
 
   // Lepton selection depending on the region
   TCut leptons = "";
@@ -1446,24 +1461,30 @@ Int_t XMetAnalysis::DefineChainsAN15()
   _useLO   = true; // apply k-factors to LO Z/W samples // fixme
 
   // // Data
-  _mapProcess["data_met"]   = XMetProcess("data_met",   kBlack, "skimJSON.root");
-  //_mapProcess["data_jetht"] = XMetProcess("data_jetht", kBlack, "skimJSON.root");
-  _mapProcess["data_jetht"] = XMetProcess("data_jetht", kBlack, "skimJSON_t1mumet50.root");
+  TString nameFilesData="skimJSON.root";
+  TString nameFilesMC  ="skimMuMet200.root";
+  if(_tag.Contains("Met50")) {
+    nameFilesData="skimJSON_t1mumet50.root";
+    nameFilesMC  ="skimMuMet50.root";
+  }
+
+  _mapProcess["data_met"]   = XMetProcess("data_met",   kBlack, nameFilesData);
+  _mapProcess["data_jetht"] = XMetProcess("data_jetht", kBlack, nameFilesData);
   /*
-  _mapProcess["data_2m" ] = XMetProcess("data_2m",  kBlack, "skimJSON.root");
-  _mapProcess["data_1m" ] = XMetProcess("data_1m",  kBlack, "skimJSON.root");
-  _mapProcess["data_1ph"] = XMetProcess("data_1ph", kBlack, "skimJSON.root");
-  _mapProcess["data_2e" ] = XMetProcess("data_2e",  kBlack, "skimJSON.root");
+  _mapProcess["data_2m" ] = XMetProcess("data_2m",  kBlack, nameFilesData);
+  _mapProcess["data_1m" ] = XMetProcess("data_1m",  kBlack, nameFilesData);
+  _mapProcess["data_1ph"] = XMetProcess("data_1ph", kBlack, nameFilesData);
+  _mapProcess["data_2e" ] = XMetProcess("data_2e",  kBlack, nameFilesData);
   */
   
   // MC backgrounds
-  _mapProcess["znn"  ] = XMetProcess("znn",   kAzure+7,  "skimMuMet200.root");
-  _mapProcess["zll"  ] = XMetProcess("zll",   kPink+9,   "skimMuMet200.root");
-  _mapProcess["wln"  ] = XMetProcess("wln",   kGreen+2,  "skimMuMet200.root");
-  _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3,"skimMuMet200.root");
-  _mapProcess["qcd"  ] = XMetProcess("qcd",   kRed,      "skimMuMet200.root");
-  _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "skimMuMet200.root");
-  _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "skimMuMet200.root");
+  _mapProcess["znn"  ] = XMetProcess("znn",   kAzure+7,  nameFilesMC);
+  _mapProcess["zll"  ] = XMetProcess("zll",   kPink+9,   nameFilesMC);
+  _mapProcess["wln"  ] = XMetProcess("wln",   kGreen+2,  nameFilesMC);
+  _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3,nameFilesMC);
+  _mapProcess["qcd"  ] = XMetProcess("qcd",   kRed,      nameFilesMC);
+  _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   nameFilesMC);
+  _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, nameFilesMC);
 
   // Sub-directories in _path
   //
