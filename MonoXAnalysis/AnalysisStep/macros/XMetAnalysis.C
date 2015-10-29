@@ -324,9 +324,9 @@ Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
   TString selectTitle[nS] = {"Inclusive in Jets", "1 Jet", "2 Jets", "3 Jets", "4 Jets And More"};
   for(UInt_t iS=0 ; iS<nS ; iS++) _Title[ select[iS] ] = selectTitle[iS];
 
-  const UInt_t nCut=1;
-  TString scanCut[  nCut] = {"NoJmCut"};
-  Bool_t  scanReset[nCut] = {true};
+  const UInt_t nCut=2;
+  TString scanCut[  nCut] = {"NoJmCut","NoJmCut_FwdVeto"};
+  Bool_t  scanReset[nCut] = {true, false};
 
   // Variables
   const UInt_t nV=2;
@@ -404,7 +404,7 @@ Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
     }
   }
 
-  // Produce individual histograms
+  // Produce/Retrieve individual histograms
   if(bProdHistos) {
     for(UInt_t iS=0 ; iS<nS ; iS++) {
       if(verbose>1) cout << "- selection : " << select[iS] << endl;
@@ -415,10 +415,66 @@ Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
     GetHistos(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses);
   }
 
+  // Prepare Bkg subtraction from data
+  TString data="data_jetht";
+  vector<TString> backgrounds;
+  const UInt_t nBkg=6;
+  TString arrayBkg[nBkg]={"znn","zll","wln","ttbar","top","vv"};
+  CleanData(  nS, select, nCut, scanCut, nV, nV2D, var, data, backgrounds);
+
+  // Draw the 2D plots
+  locProcesses.push_back(data+"_cleaned"); // add the cleaned data histo on the fly
   Draw2DPlots(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses);
 
+  // Produce the TransferFactor plots for cleaned data and qcd
+  vector<TString> tfProcesses;
+  tfProcesses.push_back("data_jetht_cleaned");
+  tfProcesses.push_back("qcd");
   Float_t theCut=0.5;
-  ComputeQCDSF(nS, select, nCut, scanCut, nV, nV2D, var, locProcesses, theCut);
+  ComputeQCDSF(nS, select, nCut, scanCut, nV, nV2D, var, tfProcesses, theCut);
+
+  return 0;
+}
+
+Int_t XMetAnalysis::CleanData(const UInt_t nS  , TString* select, 
+			      const UInt_t nCut, TString* scanCut,
+			      const UInt_t nV  , const UInt_t nV2D,
+			      TString* var, TString data, 
+			      vector<TString> backgrounds)
+{
+
+  TH2F *hDataClean, *hTemp2;
+  TString name;
+
+  for(UInt_t iS=0 ; iS<nS ; iS++) {
+    for(UInt_t iC=0 ; iC<nCut ; iC++) {
+      for(UInt_t iV=nV-nV2D ; iV<nV ; iV++) { // loop over 2D variables
+	
+	// Clone the data histogram to be cleaned
+	hTemp2 = _mapHistos2D[select[iS]][data][scanCut[iC]][var[iV]];
+	if(!hTemp2) {
+	  cout << "ERROR: did not found data to be cleaned (" << data << ")" << endl;
+	  continue;
+	}
+	name = "hCleaned_"+var[iV]+"_"+data+"_"+select[iS]+"_"+scanCut[iC];
+	hDataClean = (TH2F*) hTemp2->Clone(name);
+
+	// Subtract the backgrounds
+	for(UInt_t iP=0 ; iP<backgrounds.size() ; iP++) {
+	  hTemp2 = _mapHistos2D[select[iS]][backgrounds[iP]][scanCut[iC]][var[iV]];
+	  if(!hTemp2) {
+	    cout << "ERROR: did not found bkg (" << backgrounds[iP] << ")" << endl;
+	    continue;
+	  }
+	  hDataClean->Add(hTemp2, -1.0);
+	}
+
+	// Store the histogram
+	_mapHistos2D[select[iS]][data+"_cleaned"][scanCut[iC]][var[iV]] = hTemp2;
+	
+      }
+    }
+  }
 
   return 0;
 }
@@ -433,9 +489,8 @@ Int_t XMetAnalysis::ComputeQCDSF(const UInt_t nS  , TString* select,
   
   const UInt_t nP  = locProcesses.size();
   //TGraphErrors* gSF;
-  TH2F* hTemp2;
+  TH2F *hTemp2;
   TString name;
-  TString selectScan; 
 
   // Produce stack plots
   for(UInt_t iS=0 ; iS<nS ; iS++) {
@@ -448,7 +503,7 @@ Int_t XMetAnalysis::ComputeQCDSF(const UInt_t nS  , TString* select,
 
 	// Loop over processes
 	for(UInt_t iP=0; iP<nP ; iP++) {
-
+			       				
 	  hTemp2 = _mapHistos2D[select[iS]][locProcesses[iP]][scanCut[iC]][var[iV]];
 	  if(!hTemp2) continue;
 
@@ -459,8 +514,6 @@ Int_t XMetAnalysis::ComputeQCDSF(const UInt_t nS  , TString* select,
 		 << endl;
 	  }
 
-	  selectScan = select[iS]+"_"+scanCut[iC];
-
 	  cout << "----- " << select[iS] << " " << scanCut[iC] << " " << var[iV] << " " << locProcesses[iP] << endl;
 
 	  //gSF=0;
@@ -470,7 +523,7 @@ Int_t XMetAnalysis::ComputeQCDSF(const UInt_t nS  , TString* select,
 	  gSF.SetMinimum(0.0001);
 	  gSF.SetMaximum(1000);
 
-	  gSF.Draw("AP");  // set max with data
+	  gSF.Draw("AP");
 	  name = "sf_"+select[iS]+"_"+scanCut[iC]+"_"+var[iV]+"_"+locProcesses[iP];
 	  c.Print(_dirOut+"/"+_tag+"/"+name+".pdf","pdf");
 
@@ -1320,6 +1373,10 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   TCut photons="";
   if(_isAN15) photons="nphotons==0";
 
+  // b-jets veto
+  TCut bveto="";
+  if(_isAN15) bveto="nbjets==0";
+
   // MET
   TCut metID = "(abs(pfmet - calomet) < 2*calomet)" ;
   if(_tag.Contains("NoMetClean"))  metID = "";
@@ -1355,11 +1412,12 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
     jetIDMono = "(njets==1 || (njets==2 && secondjetpt>30 && abs(secondjeteta)<4.5) )" ;
   }
   else { // Updated cuts
-    jetID1 = "(signaljetpt>30 && abs(signaljeteta)<2.5 && signaljetCHfrac > 0.1)";
-    jetID2 = "(secondjetpt>30 && abs(secondjeteta)<2.5 && secondjetCHfrac > 0.1)";
-    jetID3 = "( thirdjetpt>30 &&  abs(thirdjeteta)<2.5 &&  thirdjetCHfrac > 0.1)";
+    jetID1 = "(signaljetpt>100 && abs(signaljeteta)<2.5 && signaljetCHfrac > 0.1 && signaljetNHfrac < 0.8)";
+    jetID2 = "(secondjetpt>30  && abs(secondjeteta)<2.5 && secondjetCHfrac > 0.1 && secondjetNHfrac < 0.8)";
+    jetID3 = "( thirdjetpt>30  && abs(thirdjeteta)<2.5  &&  thirdjetCHfrac > 0.1 &&  thirdjetNHfrac < 0.8)";
     //
-    jetIDMult = "(njets==1 || ( (secondjetpt>30 && abs(secondjeteta)<2.5 && secondjetCHfrac > 0.1) && (njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5 && thirdjetCHfrac  > 0.1) ) ) )" ;
+    jetIDMult = jetID1;
+    //jetIDMult = "(njets==1 || ( (secondjetpt>30 && abs(secondjeteta)<2.5 && secondjetCHfrac > 0.1) && (njets==2 || (njets==3 && thirdjetpt>30 && abs(thirdjeteta)<2.5 && thirdjetCHfrac  > 0.1) ) ) )" ;
     //
     jetIDMono = "(njets==1 || (njets==2 && secondjetCHfrac>0.1 && secondjetpt>30 && abs(secondjeteta)<2.5) )" ;
   }
@@ -1372,7 +1430,7 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   TCut apcjetmetmax="apcjetmetmax>0.55";
 
   TCut jmdphi="";
-  if(     select.Contains("JetMet0p2"))  jmdphi = "abs(jetmetdphimin)>0.2";
+  if(select.Contains("JetMet0p2"))       jmdphi = "abs(jetmetdphimin)>0.2";
   if(select.Contains("JetMet0p4"))       jmdphi = "abs(jetmetdphimin)>0.4";
   if(select.Contains("JetMet0p45"))      jmdphi = "abs(jetmetdphimin)>0.45";
   if(select.Contains("JetMet0p5"))       jmdphi = "abs(jetmetdphimin)>0.5";
@@ -1383,8 +1441,10 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   if(select.Contains("JetMetBelow0p5"))  jmdphi = "abs(jetmetdphimin)<0.5";
 
   if(     select.Contains("alljets")) {
-    jetBin = "njets>=1 && njets<=3";
-    jetID  = jetID1*jetIDMult;
+    //jetBin = "njets>=1 && njets<=3";
+    //jetID  = jetID1*jetIDMult;
+    jetBin = "njets>=1";
+    jetID  = jetID1;
     dphi   = "njets==1 || abs(jetjetdphi) < 2.5";
     alphat = "njets==1 || alphat>0.55";
   }
@@ -1431,12 +1491,15 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
 
   // Noise cleaning // fixme : need update
   TCut noise="(flaghbheloose>0 && flagcsctight>0 && flageebadsc>0)";
+  // FIXME !!! Missing Flag_goodVertices in all trees => recommended one!
+  // FIXME !!! Missing flaghbheiso in Nadir trees
 
   // Max run
   TCut maxrun="";
-  if(_tag.Contains("MaxRun256730")) maxrun="(run<256730)";
+  if(     _tag.Contains("MaxRun256730")) maxrun="(run<256730)";
+  else if(_tag.Contains("MaxRun257599")) maxrun="(run<257599)";
   
-  return (trig*noise*maxrun*metCut*metID*leptons*photons*jetID*jetBin*noqcd*fwdveto);
+  return (trig*noise*maxrun*metCut*metID*leptons*photons*bveto*jetID*jetBin*noqcd*fwdveto);
 
   // "(hltmet90>0 || hltmet120>0) && t1mumet>200 && nelectrons == 0 && ntaus == 0 && nmuons == 0 && nphotons==0 signaljetpt>30 && abs(signaljeteta)<2.5 && signaljetCHfrac > 0.1 && njets==1"
 
@@ -1454,8 +1517,8 @@ Int_t XMetAnalysis::DefineChainsAN15()
   _pathMC   = "/user/ndaci/Data/XMET/NadirTrees_26Oct2015/Spring15MC_25ns/";
   _pathData = "/user/ndaci/Data/XMET/NadirTrees_26Oct2015/Run2015D/";
 
-  //_lumi  = 0.210; // fixme: we have 210 /pb up to run 257599
-  _lumi    = 0.553150; // 2015D 05Oct2015 JSON 246908-258750
+  _lumi  = 0.210; // fixme: we have 210 /pb up to run 257599
+  //_lumi    = 0.553150; // 2015D 05Oct2015 JSON 246908-258750
   _rescale = 1.0; 
   _qcdScale= 1.0; // fixme: will need update
   _useLO   = true; // apply k-factors to LO Z/W samples // fixme
@@ -1862,7 +1925,7 @@ Int_t XMetAnalysis::DrawStackPlots(const UInt_t nS  , TString* select,
 
 	  // Debug printouts
 	  if(verbose>2) {
-	    cout << "----- stack-get: " << hTemp->GetName() 
+	    cout << "----- 2D-get: " << hTemp->GetName() 
 		 << "->Integral()="     << hTemp->Integral() 
 		 << endl;
 	  }
