@@ -77,6 +77,7 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         void findFirstNonPhotonMother(const reco::Candidate*, int &, double &, double &, double &);
         std::string concatenate(std::vector<std::string> vstring);
         void Init();
+        double computeMuonIso(const reco::Muon&);
 
         // InputTags
         edm::InputTag triggerResultsTag;
@@ -87,9 +88,9 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         edm::EDGetTokenT<edm::TriggerResults>              triggerResultsToken;
         edm::EDGetTokenT<pat::TriggerObjectStandAloneCollection> trgObjectsToken_;
         edm::EDGetTokenT<edm::TriggerResults>              filterResultsToken;
-        edm::EDGetTokenT<HcalNoiseSummary>                 hcalnoiseToken;
         edm::EDGetTokenT<bool>                             hbhelooseToken;
         edm::EDGetTokenT<bool>                             hbhetightToken;
+        edm::EDGetTokenT<bool>                             hbheisoToken;
         edm::EDGetTokenT<std::vector<PileupSummaryInfo> >  pileupInfoToken;
         edm::EDGetTokenT<GenEventInfoProduct>              genevtInfoToken;
         edm::EDGetTokenT<std::vector<reco::Vertex> >       verticesToken;
@@ -104,7 +105,6 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         edm::EDGetTokenT<edm::ValueMap<bool> >             photonTightIdToken;
         edm::EDGetTokenT<std::vector<pat::Tau> >           tausToken;
         edm::EDGetTokenT<std::vector<pat::Jet> >           jetsToken;
-        edm::EDGetTokenT<std::vector<pat::Jet> >           fatjetsToken;
         edm::EDGetTokenT<edm::ValueMap<float> >            qglToken;
         edm::EDGetTokenT<edm::ValueMap<float> >            qgs2Token;
         edm::EDGetTokenT<edm::ValueMap<int> >              qgmultToken;
@@ -130,14 +130,13 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         TTree* tree;
 
         int32_t  puobs, putrue; 
-        int32_t  wzid, l1id, l2id, mu1pid, mu2pid, mu1id, mu2id, el1pid, el2pid, el1id, el2id, phidm, phidt, parid, ancid; 
+        int32_t  wzid, l1id, l2id, mu1pid, mu2pid, mu1id, mu2id, mu1idm, mu2idm, mu1idt, mu2idt, el1pid, el2pid, el1id, el2id, phidm, phidt, parid, ancid; 
         uint32_t event, run, lumi;
-        uint32_t nvtx, nmuons, nelectrons, ntaus, ntightmuons, ntightelectrons, nphotons, njets, njets80, nbjets, nfatjets, nfwdjets, nfwdjets80, nsoftjets, nsoftbjets, nsoftfwdjets;
+        uint32_t nvtx, nmuons, nelectrons, ntaus, ntightmuons, ntightelectrons, nphotons, njets, njets80, nbjets, nfwdjets, nfwdjets80, nsoftjets, nsoftbjets, nsoftfwdjets, nbjetslowpt;
         uint8_t  hltmet90, hltmet120, hltmetwithmu90, hltmetwithmu120, hltmetwithmu170, hltmetwithmu300, hltjetmet90, hltjetmet120, hltphoton165, hltphoton175, hltdoublemu, hltsinglemu, hltdoubleel, hltsingleel, hltpfht200, hltpfht250, hltpfht300, hltpfht350, hltpfht400, hltpfht475, hltpfht600, hltpfht650, hltpfht800;
-        uint8_t  flagcsctight, flaghbhenoise, flaghbheloose, flaghbhetight, flaghcallaser, flagecaltrig, flageebadsc, flagecallaser, flagtrkfail, flagtrkpog, flaghnoiseloose, flaghnoisetight, flaghnoisehilvl;
+        uint8_t  flagcsctight, flaghbhenoise, flaghbheloose, flaghbhetight, flaghbheiso, flaghcallaser, flagecaltrig, flageebadsc, flagecallaser, flagtrkfail, flagtrkpog;
         double   pfmet, pfmetphi, t1pfmet, t1pfmetphi, calomet, calometphi, pfmupt, pfmuphi, mumet, mumetphi, t1mumet, t1mumetphi, elmet, elmetphi, t1elmet, t1elmetphi, phmet, phmetphi, t1phmet, t1phmetphi;
         double   hmet, hmetphi, amet, ametphi, bmet, bmetphi, cmet, cmetphi, emet, emetphi, mmet, mmetphi, pmet, pmetphi, omet, ometphi;
-        double   fatjetpt, fatjeteta, fatjetphi, fatjettau2, fatjettau1, fatjetCHfrac, fatjetNHfrac, fatjetEMfrac, fatjetCEMfrac, fatjetmetdphi, fatjetprmass, fatjetsdmass, fatjettrmass, fatjetftmass;
         double   signaljetpt, signaljeteta, signaljetphi, signaljetbtag, signaljetCHfrac, signaljetNHfrac, signaljetEMfrac, signaljetCEMfrac, signaljetmetdphi, signaljetqgl, signaljetqgs2, signaljetqgptd;
         double   secondjetpt, secondjeteta, secondjetphi, secondjetbtag, secondjetCHfrac, secondjetNHfrac, secondjetEMfrac, secondjetCEMfrac, secondjetmetdphi, secondjetqgl, secondjetqgs2, secondjetqgptd;
         double   thirdjetpt , thirdjeteta , thirdjetphi , thirdjetbtag , thirdjetCHfrac , thirdjetNHfrac , thirdjetEMfrac , thirdjetCEMfrac , thirdjetmetdphi , thirdjetqgl , thirdjetqgs2 , thirdjetqgptd ;
@@ -145,7 +144,7 @@ class MonoJetTreeMaker : public edm::EDAnalyzer {
         double   jetjetdphi, jetmetdphimin, incjetmetdphimin, jetelmetdphimin, incjetelmetdphimin, jetphmetdphimin, incjetphmetdphimin;
         double   ht, dht, mht, alphat, apcjetmetmax, apcjetmetmin; 
         double   wzmass, wzmt, wzpt, wzeta, wzphi, l1pt, l1eta, l1phi, l2pt, l2eta, l2phi, parpt, pareta, parphi, ancpt, anceta, ancphi;
-        double   mu1pt, mu1eta, mu1phi, mu1pfpt, mu1pfeta, mu1pfphi, mu2pt, mu2eta, mu2phi, mu2pfpt, mu2pfeta, mu2pfphi, el1pt, el1eta, el1phi, el2pt, el2eta, el2phi, phpt, pheta, phphi;
+        double   mu1pt, mu1eta, mu1phi, mu1pfpt, mu1pfeta, mu1pfphi, mu1iso, mu2pt, mu2eta, mu2phi, mu2pfpt, mu2pfeta, mu2pfphi, mu2iso, el1pt, el1eta, el1phi, el2pt, el2eta, el2phi, phpt, pheta, phphi;
         double   zmass, zpt, zeta, zphi, wmt, emumass, emupt, emueta, emuphi, zeemass, zeept, zeeeta, zeephi, wemt;
         double   xsec, wgt, kfact, puwgt;
         int32_t  _verbose;
@@ -203,9 +202,9 @@ MonoJetTreeMaker::MonoJetTreeMaker(const edm::ParameterSet& iConfig):
     triggerResultsToken(consumes<edm::TriggerResults> (triggerResultsTag)),
     trgObjectsToken_(consumes<pat::TriggerObjectStandAloneCollection>(_IT_trg_obj)),
     filterResultsToken(consumes<edm::TriggerResults> (filterResultsTag)),
-    hcalnoiseToken(consumes<HcalNoiseSummary> (iConfig.getParameter<edm::InputTag>("hcalnoise"))),
     hbhelooseToken(consumes<bool> (iConfig.getParameter<edm::InputTag>("hbheloose"))),
     hbhetightToken(consumes<bool> (iConfig.getParameter<edm::InputTag>("hbhetight"))),
+    hbheisoToken(consumes<bool> (iConfig.getParameter<edm::InputTag>("hbheiso"))),
     pileupInfoToken(consumes<std::vector<PileupSummaryInfo> > ((iConfig.existsAs<edm::InputTag>("pileup") ? iConfig.getParameter<edm::InputTag>("pileup") : edm::InputTag("addPileupInfo")))),
     genevtInfoToken(consumes<GenEventInfoProduct> ((iConfig.existsAs<edm::InputTag>("genevt") ? iConfig.getParameter<edm::InputTag>("genevt") : edm::InputTag("generator")))),
     verticesToken(consumes<std::vector<reco::Vertex> > (iConfig.getParameter<edm::InputTag>("vertices"))),
@@ -220,7 +219,6 @@ MonoJetTreeMaker::MonoJetTreeMaker(const edm::ParameterSet& iConfig):
     photonTightIdToken(consumes<edm::ValueMap<bool> > (iConfig.getParameter<edm::InputTag>("photonTightId"))),
     tausToken(consumes<std::vector<pat::Tau> > (iConfig.getParameter<edm::InputTag>("taus"))),
     jetsToken(consumes<std::vector<pat::Jet> > (iConfig.getParameter<edm::InputTag>("jets"))),
-    fatjetsToken(consumes<std::vector<pat::Jet> > (iConfig.getParameter<edm::InputTag>("fatjets"))),
     qglToken(consumes<edm::ValueMap<float> > (iConfig.getParameter<edm::InputTag>("qgl"))),
     qgs2Token(consumes<edm::ValueMap<float> > (iConfig.getParameter<edm::InputTag>("qgs2"))),
     qgmultToken(consumes<edm::ValueMap<int> > (iConfig.getParameter<edm::InputTag>("qgmult"))),
@@ -271,14 +269,14 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     Handle<TriggerResults> filterResultsH;
     iEvent.getByToken(filterResultsToken, filterResultsH);
 
-    Handle<HcalNoiseSummary> hcalnoiseH;
-    iEvent.getByToken(hcalnoiseToken, hcalnoiseH);
-
     Handle<bool> hbhelooseH;
     iEvent.getByToken(hbhelooseToken, hbhelooseH);
 
     Handle<bool> hbhetightH;
     iEvent.getByToken(hbhetightToken, hbhetightH);
+
+    Handle<bool> hbheisoH;
+    iEvent.getByToken(hbheisoToken, hbheisoH);
 
     Handle<vector<PileupSummaryInfo> > pileupInfoH;
     iEvent.getByToken(pileupInfoToken, pileupInfoH);
@@ -327,9 +325,6 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 
     Handle<std::vector<pat::Jet> > jetsH;
     iEvent.getByToken(jetsToken, jetsH);
-
-    Handle<std::vector<pat::Jet> > fatjetsH;
-    iEvent.getByToken(fatjetsToken, fatjetsH);
 
     Handle<edm::ValueMap<float> > qglH;
     iEvent.getByToken(qglToken, qglH);
@@ -421,44 +416,21 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         if (i == 24 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoublemu     = 1; // Double muon trigger
         if (i == 25 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
         if (i == 26 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
-        if (i == 27 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
-        if (i == 28 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
-        if (i == 29 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
-        if (i == 30 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
-        if (i == 31 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
-        if (i == 32 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
-        if (i == 33 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsinglemu     = 1; // Single muon trigger
-        if (i == 34 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
-        if (i == 35 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
-        if (i == 36 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
-        if (i == 37 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
-        if (i == 38 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
-        if (i == 39 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
-        if (i == 40 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
-        if (i == 41 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 42 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 43 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 44 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 45 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 46 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 47 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 48 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 49 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 50 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 51 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 52 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 53 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 54 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 55 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
-        if (i == 56 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht200      = 1; // Pure PFHT trigger
-        if (i == 57 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht250      = 1; // Pure PFHT trigger
-        if (i == 58 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht300      = 1; // Pure PFHT trigger
-        if (i == 59 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht350      = 1; // Pure PFHT trigger
-        if (i == 60 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht400      = 1; // Pure PFHT trigger
-        if (i == 61 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht475      = 1; // Pure PFHT trigger
-        if (i == 62 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht600      = 1; // Pure PFHT trigger
-        if (i == 63 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht650      = 1; // Pure PFHT trigger
-        if (i == 64 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht800      = 1; // Pure PFHT trigger
+        if (i == 27 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
+        if (i == 28 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltdoubleel     = 1; // Double electron trigger
+        if (i == 29 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 30 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 31 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 32 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltsingleel     = 1; // Single electron trigger
+        if (i == 33 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht200      = 1; // Pure PFHT trigger
+        if (i == 34 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht250      = 1; // Pure PFHT trigger
+        if (i == 35 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht300      = 1; // Pure PFHT trigger
+        if (i == 36 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht350      = 1; // Pure PFHT trigger
+        if (i == 37 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht400      = 1; // Pure PFHT trigger
+        if (i == 38 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht475      = 1; // Pure PFHT trigger
+        if (i == 39 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht600      = 1; // Pure PFHT trigger
+        if (i == 40 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht650      = 1; // Pure PFHT trigger
+        if (i == 41 && triggerResultsH->accept(triggerPathsMap[triggerPathsVector[i]])) hltpfht800      = 1; // Pure PFHT trigger
     }
 
     bool triggered = false;
@@ -488,16 +460,10 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     flagtrkfail   = 0;
     flagtrkpog    = 0;
 
-    // HCAL Noise info
-    flaghnoiseloose = 0;
-    flaghnoisetight = 0;
-    flaghnoisehilvl = 0;
-    if (hcalnoiseH->passLooseNoiseFilter()    ) flaghnoiseloose = 1; 
-    if (hcalnoiseH->passTightNoiseFilter()    ) flaghnoisetight = 1; 
-    if (hcalnoiseH->passHighLevelNoiseFilter()) flaghnoisehilvl = 1; 
-
+    // HBHE Noise 
     flaghbheloose = (*hbhelooseH ? 1 : 0);
     flaghbhetight = (*hbhetightH ? 1 : 0);
+    flaghbheiso   = (*hbheisoH   ? 1 : 0);
 
     // Which MET filters passed
     for (size_t i = 0; i < filterPathsVector.size(); i++) {
@@ -763,10 +729,12 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         }
         if (skipjet) continue;
         bool passjetid = false;
-        if (jets_iter->neutralHadronEnergyFraction() < 0.99 && jets_iter->neutralEmEnergyFraction() < 0.99 && (jets_iter->chargedMultiplicity() + jets_iter->neutralMultiplicity()) > 1 && jets_iter->muonEnergyFraction() < 0.8) {
+        if (fabs(jets_iter->eta()) <= 3.0 && jets_iter->neutralHadronEnergyFraction() < 0.99 && jets_iter->neutralEmEnergyFraction() < 0.99 && (jets_iter->chargedMultiplicity() + jets_iter->neutralMultiplicity()) > 1) {
             if (fabs(jets_iter->eta()) > 2.4) passjetid = true;
             else if (fabs(jets_iter->eta()) <= 2.4 && jets_iter->chargedHadronEnergyFraction() > 0. && jets_iter->chargedEmEnergyFraction() < 0.99 && jets_iter->chargedMultiplicity() > 0) passjetid = true;
         }
+        if (fabs(jets_iter->eta()) > 3.0 && jets_iter->neutralEmEnergyFraction() < 0.9 && jets_iter->neutralMultiplicity() > 10) passjetid = true;
+            
         if (!passjetid) continue;
         bool passpuid = false;
         double puidval = jets_iter->userFloat("pileupJetId:fullDiscriminant");
@@ -782,46 +750,13 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 
     if(_verbose>3) cout << "- Build fat jets." << endl;
 
-    vector<pat::JetRef> fatjets;
-    for (vector<pat::Jet>::const_iterator fatjets_iter = fatjetsH->begin(); fatjets_iter != fatjetsH->end(); ++fatjets_iter) {
-        if (fabs(fatjets_iter->eta()) > 2.5) continue;
-        bool skipfatjet = false;
-        for (std::size_t j = 0; j < muons.size(); j++) {
-            if (cleanMuonJet && deltaR(muons[j]->eta(), muons[j]->phi(), fatjets_iter->eta(), fatjets_iter->phi()) < 0.4) skipfatjet = true;
-        }
-        for (std::size_t j = 0; j < electrons.size(); j++) {
-            if (cleanElectronJet && deltaR(electrons[j]->eta(), electrons[j]->phi(), fatjets_iter->eta(), fatjets_iter->phi()) < 0.4) skipfatjet = true;
-        }
-        for (std::size_t j = 0; j < photons.size(); j++) {
-            if (cleanPhotonJet && deltaR(photons[j]->eta(), photons[j]->phi(), fatjets_iter->eta(), fatjets_iter->phi()) < 0.4) skipfatjet = true;
-        }
-        if (skipfatjet) continue;
-        bool passfatjetid = false;
-        if (fatjets_iter->neutralHadronEnergyFraction()<0.99 && fatjets_iter->neutralEmEnergyFraction()<0.99 && (fatjets_iter->chargedMultiplicity() + fatjets_iter->neutralMultiplicity()) > 1 && fatjets_iter->muonEnergyFraction()<0.8) {
-            if (fabs(fatjets_iter->eta()) > 2.4) passfatjetid = true;
-            else if (fabs(fatjets_iter->eta()) <= 2.4 && fatjets_iter->chargedHadronEnergyFraction() > 0. && fatjets_iter->chargedEmEnergyFraction() < 0.99 && fatjets_iter->chargedMultiplicity() > 0) passfatjetid = true;
-        }
-        if (!passfatjetid) continue;
-        bool passpuid = false;
-        double puidval = fatjets_iter->userFloat("pileupJetId:fullDiscriminant");
-        double fatjetabseta = fabs(fatjets_iter->eta());
-        if (fatjetabseta >= 0.00 && fatjetabseta < 2.50 && puidval > -0.63) passpuid = true;
-        if (fatjetabseta >= 2.50 && fatjetabseta < 2.75 && puidval > -0.60) passpuid = true;
-        if (fatjetabseta >= 2.75 && fatjetabseta < 3.00 && puidval > -0.55) passpuid = true;
-        if (fatjetabseta >= 3.00 && fatjetabseta < 5.00 && puidval > -0.45) passpuid = true;
-        if (!passpuid) continue;
-        pat::JetRef fatjetref(fatjetsH, fatjets_iter - fatjetsH->begin());
-        fatjets.push_back(fatjetref);
-    }
-
     // Sort inclusive jets and fat jets
     if(_verbose>3) cout << "- Sort inclusive jets and fat jets" << endl;
     sort(incjets.begin(), incjets.end(), jetsorter);
-    sort(fatjets.begin(), fatjets.end(), jetsorter);
 
     // Build central jets collection and perform jet counting
     if(_verbose>3) cout << "- Build central jets collection" << endl;
-    njets = njets80 = nbjets = nfatjets = nfwdjets = nfwdjets80 = nsoftjets = nsoftbjets = nsoftfwdjets = _jet_n = 0;
+    njets = njets80 = nbjets = nbjetslowpt = nfwdjets = nfwdjets80 = nsoftjets = nsoftbjets = nsoftfwdjets = _jet_n = 0;
 
     for (size_t i = 0; i < incjets.size(); i++) {
 
@@ -832,11 +767,14 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 	if(incjets[i]->pt() > 30) {
 	  njets++;
 	  if(incjets[i]->pt() > 80) njets80++;
-	  if(incjets[i]->bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.814) nbjets++;
+	  if(incjets[i]->bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.89) nbjets++;
+	}
+	else if(incjets[i]->pt() > 15) {
+	  if (jets[i]->pt() > 15 && jets[i]->bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.89) nbjetslowpt++;
 	}
 	else {
 	  nsoftjets++;
-	  if(incjets[i]->bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.814) nsoftbjets++;
+	  if(incjets[i]->bDiscriminator("pfCombinedInclusiveSecondaryVertexV2BJetTags") > 0.89) nsoftbjets++;
 	}
       }
 
@@ -967,10 +905,10 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         thirdjetNHfrac   = jets[2]->neutralHadronEnergyFraction();
         thirdjetEMfrac   = jets[2]->neutralEmEnergyFraction();
         thirdjetCEMfrac  = jets[2]->chargedEmEnergyFraction();
-        thirdjetqgl      = (*qglH)   [jets[2]];
-        thirdjetqgs2     = (*qgs2H)  [jets[2]];
-        thirdjetqgmult   = (*qgmultH)[jets[2]];
-        thirdjetqgptd    = (*qgptdH) [jets[2]];
+        thirdjetqgl      = (*qglH)   [jets[1]];
+        thirdjetqgs2     = (*qgs2H)  [jets[1]];
+        thirdjetqgmult   = (*qgmultH)[jets[1]];
+        thirdjetqgptd    = (*qgptdH) [jets[1]];
     }
 
     if(_verbose>3) cout << "- Compute DeltaPhi(Jet,MET)." << endl;
@@ -1033,45 +971,6 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         }
     }
     if (incjetphmetdphiminvector.size() > 0) incjetphmetdphimin = *min_element(incjetphmetdphiminvector.begin(), incjetphmetdphiminvector.end());
-
-    // Fat jets
-    if(_verbose>3) cout << "- Process fat jets collection." << endl;
-    nfatjets = 0;
-    for (size_t i = 0; i < fatjets.size(); i++) {
-        if (fatjets[i]->pt() > 100) nfatjets++;
-    }
-
-    fatjetpt         = 0.0;
-    fatjeteta        = 0.0;
-    fatjetphi        = 0.0;
-    fatjettau2       = -1.0;
-    fatjettau1       = 1.0;
-    fatjetprmass     = 0.0;
-    fatjetsdmass     = 0.0;
-    fatjettrmass     = 0.0;
-    fatjetftmass     = 0.0;
-    fatjetCHfrac     = 0.0;
-    fatjetNHfrac     = 0.0;
-    fatjetEMfrac     = 0.0;
-    fatjetCEMfrac    = 0.0;
-    fatjetmetdphi    = 0.0;
-
-    if (fatjets.size() > 0) {
-        fatjetpt         = fatjets[0]->pt();
-        fatjeteta        = fatjets[0]->eta();
-        fatjetphi        = fatjets[0]->phi();
-        fatjettau2       = fatjets[0]->userFloat("NjettinessAK8:tau2");
-        fatjettau1       = fatjets[0]->userFloat("NjettinessAK8:tau1");
-        fatjetprmass     = fatjets[0]->userFloat("ak8PFJetsCHSPrunedMass");
-        fatjetsdmass     = fatjets[0]->userFloat("ak8PFJetsCHSSoftDropMass");
-        fatjettrmass     = fatjets[0]->userFloat("ak8PFJetsCHSTrimmedMass");
-        fatjetftmass     = fatjets[0]->userFloat("ak8PFJetsCHSFilteredMass");
-        fatjetCHfrac     = fatjets[0]->chargedHadronEnergyFraction();
-        fatjetNHfrac     = fatjets[0]->neutralHadronEnergyFraction();
-        fatjetEMfrac     = fatjets[0]->neutralEmEnergyFraction();
-        fatjetCEMfrac    = fatjets[0]->chargedEmEnergyFraction();
-        fatjetmetdphi    = deltaPhi(fatjetphi, t1mumetphi);;
-    }
 
     // QCD suppression handles
     if(_verbose>3) cout << "- QCD suppression handles." << endl;
@@ -1190,6 +1089,9 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     mu1pfeta    = 0.0;
     mu1pfphi    = 0.0;
     mu1id       = 0;
+    mu1idm      = 0;
+    mu1idt      = 0;
+    mu1iso      = 0.0;
     mu2pid      = 0;
     mu2pt       = 0.0;
     mu2eta      = 0.0; 
@@ -1198,6 +1100,9 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
     mu2pfeta    = 0.0;
     mu2pfphi    = 0.0;
     mu2id       = 0;
+    mu2idm      = 0;
+    mu2idt      = 0;
+    mu2iso      = 0.0;
     el1pid      = 0;
     el1pt       = 0.0;
     el1eta      = 0.0;
@@ -1221,6 +1126,9 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
         mu1pfpt  = muon->pfP4().Pt();
         mu1pfeta = muon->pfP4().Eta();
         mu1pfphi = muon->pfP4().Phi();
+        mu1iso   = computeMuonIso(*muon); 
+        mu1idm   = (muon::isMediumMuon(*muon) ? 1 : 0);
+        if (verticesH->size() > 0) mu1idt = (muon::isTightMuon(*muon, *(verticesH->begin())) ? 1 : 0);
 
         for (std::size_t i = 0; i < tightmuons.size(); i++) {
             if (muon == tightmuons[i]) mu1id = 1;
@@ -1231,13 +1139,16 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
  
     if (nmuons == 2) {        
         pat::MuonRef muon = muons[1];
-        mu2pid = muon->pdgId(); 
-        mu2pt  = muon->pt(); 
-        mu2eta = muon->eta(); 
-        mu2phi = muon->phi();
+        mu2pid   = muon->pdgId(); 
+        mu2pt    = muon->pt(); 
+        mu2eta   = muon->eta(); 
+        mu2phi   = muon->phi();
         mu2pfpt  = muon->pfP4().Pt();
         mu2pfeta = muon->pfP4().Eta();
         mu2pfphi = muon->pfP4().Phi();
+        mu2iso   = computeMuonIso(*muon); 
+        mu2idm   = (muon::isMediumMuon(*muon) ? 1 : 0);
+        if (verticesH->size() > 0) mu2idt = (muon::isTightMuon(*muon, *(verticesH->begin())) ? 1 : 0);
     
         for (std::size_t i = 0; i < tightmuons.size(); i++) {
             if (muon == tightmuons[i]) mu2id = 1;
@@ -1481,15 +1392,13 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("flaghbhenoise"        , &flaghbhenoise        , "flaghbhenoise/b");
     tree->Branch("flaghbheloose"        , &flaghbheloose        , "flaghbheloose/b");
     tree->Branch("flaghbhetight"        , &flaghbhetight        , "flaghbhetight/b");
+    tree->Branch("flaghbheiso"          , &flaghbheiso          , "flaghbheiso/b");
     tree->Branch("flaghcallaser"        , &flaghcallaser        , "flaghcallaser/b");
     tree->Branch("flagecaltrig"         , &flagecaltrig         , "flagecaltrig/b");
     tree->Branch("flageebadsc"          , &flageebadsc          , "flageebadsc/b");
     tree->Branch("flagecallaser"        , &flagecallaser        , "flagecallaser/b");
     tree->Branch("flagtrkfail"          , &flagtrkfail          , "flagtrkfail/b");
     tree->Branch("flagtrkpog"           , &flagtrkpog           , "flagtrkpog/b");
-    tree->Branch("flaghnoiseloose"      , &flaghnoiseloose      , "flaghnoiseloose/b");
-    tree->Branch("flaghnoisetight"      , &flaghnoisetight      , "flaghnoisetight/b");
-    tree->Branch("flaghnoisehilvl"      , &flaghnoisehilvl      , "flaghnoisehilvl/b");
 
     // Object counts
     tree->Branch("nmuons"               , &nmuons               , "nmuons/i");
@@ -1499,13 +1408,13 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("ntaus"                , &ntaus                , "ntaus/i");
     tree->Branch("njets"                , &njets                , "njets/i");
     tree->Branch("nbjets"               , &nbjets               , "nbjets/i");
-    tree->Branch("nfatjets"             , &nfatjets             , "nfatjets/i");
     tree->Branch("njets80"              , &njets80              , "njets80/i");
     tree->Branch("nfwdjets"             , &nfwdjets             , "nfwdjets/i");
     tree->Branch("nfwdjets80"           , &nfwdjets80           , "nfwdjets80/i");
     tree->Branch("nsoftjets"            , &nsoftjets            , "nsoftjets/i");
     tree->Branch("nsoftbjets"           , &nsoftbjets           , "nsoftbjets/i");
     tree->Branch("nsoftfwdjets"         , &nsoftfwdjets         , "nsoftfwdjets/i");
+    tree->Branch("nbjetslowpt"          , &nbjetslowpt          , "nbjetslowpt/i");
     tree->Branch("nphotons"             , &nphotons             , "nphotons/i");
 
     // MET info
@@ -1544,20 +1453,6 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("omet"                 , &omet                 , "omet/D");
     tree->Branch("ometphi"              , &ometphi              , "ometphi/D");
     // Jet info
-    tree->Branch("fatjetpt"             , &fatjetpt             , "fatjetpt/D");
-    tree->Branch("fatjeteta"            , &fatjeteta            , "fatjeteta/D");
-    tree->Branch("fatjetphi"            , &fatjetphi            , "fatjetphi/D");
-    tree->Branch("fatjetprmass"         , &fatjetprmass         , "fatjetprmass/D");
-    tree->Branch("fatjetsdmass"         , &fatjetsdmass         , "fatjetsdmass/D");
-    tree->Branch("fatjettrmass"         , &fatjettrmass         , "fatjettrmass/D");
-    tree->Branch("fatjetftmass"         , &fatjetftmass         , "fatjetftmass/D");
-    tree->Branch("fatjettau2"           , &fatjettau2           , "fatjettau2/D");
-    tree->Branch("fatjettau1"           , &fatjettau1           , "fatjettau1/D");
-    tree->Branch("fatjetCHfrac"         , &fatjetCHfrac         , "fatjetCHfrac/D");
-    tree->Branch("fatjetNHfrac"         , &fatjetNHfrac         , "fatjetNHfrac/D");
-    tree->Branch("fatjetEMfrac"         , &fatjetEMfrac         , "fatjetEMfrac/D");
-    tree->Branch("fatjetCEMfrac"        , &fatjetCEMfrac        , "fatjetCEMfrac/D");
-    tree->Branch("fatjetmetdphi"        , &fatjetmetdphi        , "fatjetmetdphi/D");
     tree->Branch("signaljetpt"          , &signaljetpt          , "signaljetpt/D");
     tree->Branch("signaljeteta"         , &signaljeteta         , "signaljeteta/D");
     tree->Branch("signaljetphi"         , &signaljetphi         , "signaljetphi/D");
@@ -1620,6 +1515,9 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("mu1pfeta"             , &mu1pfeta             , "mu1pfeta/D");
     tree->Branch("mu1pfphi"             , &mu1pfphi             , "mu1pfphi/D");
     tree->Branch("mu1id"                , &mu1id                , "mu1id/I");
+    tree->Branch("mu1idm"               , &mu1idm               , "mu1idm/I");
+    tree->Branch("mu1idt"               , &mu1idt               , "mu1idt/I");
+    tree->Branch("mu1iso"               , &mu1iso               , "mu1iso/D");
     tree->Branch("mu2pid"               , &mu2pid               , "mu2pid/I");
     tree->Branch("mu2pt"                , &mu2pt                , "mu2pt/D");
     tree->Branch("mu2eta"               , &mu2eta               , "mu2eta/D");
@@ -1628,6 +1526,9 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("mu2pfeta"             , &mu2pfeta             , "mu2pfeta/D");
     tree->Branch("mu2pfphi"             , &mu2pfphi             , "mu2pfphi/D");
     tree->Branch("mu2id"                , &mu2id                , "mu2id/I");
+    tree->Branch("mu2idm"               , &mu2idm               , "mu2idm/I");
+    tree->Branch("mu2idt"               , &mu2idt               , "mu2idt/I");
+    tree->Branch("mu2iso"               , &mu2iso               , "mu2iso/D");
     tree->Branch("el1pid"               , &el1pid               , "el1pid/I");
     tree->Branch("el1pt"                , &el1pt                , "el1pt/D");
     tree->Branch("el1eta"               , &el1eta               , "el1eta/D");
@@ -1715,37 +1616,14 @@ void MonoJetTreeMaker::beginRun(edm::Run const& iRun, edm::EventSetup const& iSe
     triggerPathsVector.push_back("HLT_Photon175_v");
     triggerPathsVector.push_back("HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_v");
     triggerPathsVector.push_back("HLT_Mu17_TrkIsoVVL_TkMu8_TrkIsoVVL_DZ_v");
-    triggerPathsVector.push_back("HLT_IsoMu17_eta2p1_v");
-    triggerPathsVector.push_back("HLT_IsoMu20_eta2p1_v");
-    triggerPathsVector.push_back("HLT_IsoMu24_eta2p1_v");
     triggerPathsVector.push_back("HLT_IsoMu20_v");
-    triggerPathsVector.push_back("HLT_IsoMu27_v");
-    triggerPathsVector.push_back("HLT_IsoTkMu20_eta2p1_v");
-    triggerPathsVector.push_back("HLT_IsoTkMu24_eta2p1_v");
     triggerPathsVector.push_back("HLT_IsoTkMu20_v");
-    triggerPathsVector.push_back("HLT_IsoTkMu27_v");
-    triggerPathsVector.push_back("HLT_DoubleEle24_22_eta2p1_WPLoose_Gsf_v");
-    triggerPathsVector.push_back("HLT_DoubleEle33_CaloIdL_GsfTrkIdVL_MW_v");
-    triggerPathsVector.push_back("HLT_DoubleEle33_CaloIdL_GsfTrkIdVL_v");
-    triggerPathsVector.push_back("HLT_DoubleEle8_CaloIdM_TrackIdM_Mass8_PFHT300_v");
-    triggerPathsVector.push_back("HLT_Ele16_Ele12_Ele8_CaloIdL_TrackIdL_v");
     triggerPathsVector.push_back("HLT_Ele17_Ele12_CaloIdL_TrackIdL_IsoVL_DZ_v");
     triggerPathsVector.push_back("HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_DZ_v");
-    triggerPathsVector.push_back("HLT_Ele27_eta2p1_WPLoose_Gsf_v");
-    triggerPathsVector.push_back("HLT_Ele27_eta2p1_WPTight_Gsf_v");
-    triggerPathsVector.push_back("HLT_Ele32_eta2p1_WPLoose_Gsf_v");
-    triggerPathsVector.push_back("HLT_Ele32_eta2p1_WPTight_Gsf_v");
-    triggerPathsVector.push_back("HLT_Ele27_WPLoose_Gsf_WHbbBoost_v");
-    triggerPathsVector.push_back("HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL_v"); //ND: Spring15 MC single ele
-    triggerPathsVector.push_back("HLT_Ele17_Ele12_CaloIdL_TrackIdL_IsoVL_v");
+    triggerPathsVector.push_back("HLT_Ele23_WPLoose_Gsf_v");
+    triggerPathsVector.push_back("HLT_Ele27_WPLoose_Gsf_v");
     triggerPathsVector.push_back("HLT_Ele23_CaloIdL_TrackIdL_IsoVL_v");
-    triggerPathsVector.push_back("HLT_Ele12_CaloIdL_TrackIdL_IsoVL_v");
-    triggerPathsVector.push_back("HLT_Ele22_eta2p1_WP75_Gsf_v");
     triggerPathsVector.push_back("HLT_Ele27_WP85_Gsf_v");
-    triggerPathsVector.push_back("HLT_Ele27_eta2p1_WP75_Gsf_v");
-    triggerPathsVector.push_back("HLT_Ele32_eta2p1_WP75_Gsf_v");
-    triggerPathsVector.push_back("HLT_Ele105_CaloIdVT_GsfTrkIdT_v");
-    triggerPathsVector.push_back("HLT_Ele25WP60_SC4_Mass55_v");
     triggerPathsVector.push_back("HLT_PFHT200_v");
     triggerPathsVector.push_back("HLT_PFHT250_v");
     triggerPathsVector.push_back("HLT_PFHT300_v");
@@ -1889,6 +1767,16 @@ std::string MonoJetTreeMaker::concatenate(std::vector<std::string> vstring)
     return result;
 }
 
+double MonoJetTreeMaker::computeMuonIso(const reco::Muon& mu) {
+    double isoval = mu.pfIsolationR04().sumNeutralHadronEt;
+    isoval += mu.pfIsolationR04().sumPhotonEt;
+    isoval -= 0.5*mu.pfIsolationR04().sumPUPt;
+    if (isoval < 0.) isoval = 0.;
+    isoval += mu.pfIsolationR04().sumChargedHadronPt;
+    isoval /= mu.pt();            
+
+    return isoval;
+}
 
 void MonoJetTreeMaker::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
     edm::ParameterSetDescription desc;

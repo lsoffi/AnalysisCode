@@ -61,7 +61,7 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 if isMC:
     process.GlobalTag.globaltag = '74X_mcRun2_asymptotic_v2'   # for Simulation
 else:
-    process.GlobalTag.globaltag = '74X_dataRun2_v4'            # for Data
+    process.GlobalTag.globaltag = '74X_dataRun2_Prompt_v4'            # for Data
 
 # Setup the private SQLite -- Ripped from PhysicsTools/PatAlgos/test/corMETFromMiniAOD.py
 if usePrivateSQlite:
@@ -103,6 +103,9 @@ else :
 
 # Re-run the HBHE Noise filter
 process.load('CommonTools.RecoAlgos.HBHENoiseFilterResultProducer_cfi')
+process.HBHENoiseFilterResultProducer.minZeros = cms.int32(99999)
+process.HBHENoiseFilterResultProducer.IgnoreTS4TS5ifJetInLowBVRegion=cms.bool(False) 
+process.HBHENoiseFilterResultProducer.defaultDecision = cms.string("HBHENoiseFilterResultRun2Loose")
 
 # Select good primary vertices
 process.goodVertices = cms.EDFilter("VertexSelector",
@@ -239,7 +242,6 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     photonTightId = cms.InputTag("egmPhotonIDs:cutBasedPhotonID-Spring15-50ns-V1-standalone-tight"),
     taus = cms.InputTag("slimmedTaus"),
     jets = cms.InputTag(jetCollName),
-    fatjets = cms.InputTag("slimmedJetsAK8"),
     qgl = cms.InputTag("QGTagger", "qgLikelihood"),
     qgs2 = cms.InputTag("QGTagger", "axis2"),
     qgmult = cms.InputTag("QGTagger", "mult"),
@@ -258,6 +260,7 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     hcalnoise = cms.InputTag("hcalnoise"),
     hbheloose = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Loose"),
     hbhetight = cms.InputTag("HBHENoiseFilterResultProducer","HBHENoiseFilterResultRun2Tight"),
+    hbheiso   = cms.InputTag("HBHENoiseFilterResultProducer","HBHEIsoNoiseFilterResult"),
     xsec = cms.double(0.001),
     cleanMuonJet = cms.bool(True),
     cleanElectronJet = cms.bool(True),
