@@ -2,7 +2,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413Update_Spring15'
-proc = 'ST_tW_antitop_V10'
+proc = 'ST_tW_antitop_V11'
 dataset = '/ST_tW_antitop_5f_inclusiveDecays_13TeV-powheg-pythia8_TuneCUETP8M1/RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v1/MINIAODSIM'
 
 # GENERAL

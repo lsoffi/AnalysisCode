@@ -2,7 +2,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413_Run2015D_05Oct2015'
-proc = 'HLTPhysicsETM_V1'
+proc = 'HLTPhysicsETM_V11'
 dataset = '/HLTPhysics/Run2015D-05Oct2015-v1/MINIAOD'
 
 # GENERAL

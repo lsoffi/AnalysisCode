@@ -2,7 +2,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413Update_Run2015D_PRV4'
-proc = 'SingleMu_V1'
+proc = 'SingleMu_V11'
 dataset = '/SingleMuon/Run2015D-PromptReco-v4/MINIAOD'
 
 # GENERAL

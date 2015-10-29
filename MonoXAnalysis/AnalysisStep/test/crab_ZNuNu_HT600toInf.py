@@ -2,7 +2,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413Update_Spring15'
-proc = 'ZNuNu_HT600toInf_V10'
+proc = 'ZNuNu_HT600toInf_V11'
 dataset = '/ZJetsToNuNu_HT-600ToInf_13TeV-madgraph/RunIISpring15MiniAODv2-74X_mcRun2_asymptotic_v2-v2/MINIAODSIM'
 
 # GENERAL

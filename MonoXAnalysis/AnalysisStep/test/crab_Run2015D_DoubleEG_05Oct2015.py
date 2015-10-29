@@ -2,7 +2,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413Update_Run2015D_05Oct2015'
-proc = 'DoubleEG_V2'
+proc = 'DoubleEG_V11'
 dataset = '/DoubleEG/Run2015D-05Oct2015-v1/MINIAOD'
 
 # GENERAL

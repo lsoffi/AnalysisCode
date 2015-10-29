@@ -2,7 +2,7 @@ from WMCore.Configuration import Configuration
 config = Configuration()
 
 name = 'EffAN_7413Update_Run2015D_PRV4'
-proc = 'SinglePhoton_V1'
+proc = 'SinglePhoton_V11'
 dataset = '/SinglePhoton/Run2015D-PromptReco-v4/MINIAOD'
 
 # GENERAL
