@@ -46,6 +46,12 @@ class XMetAnalysis {
 		     const UInt_t nV  , const UInt_t nV2D,
 		     TString* var, vector<TString> locProcesses, Float_t cut);
 
+  Int_t CleanData(const UInt_t nS  , TString* select, 
+		  const UInt_t nCut, TString* scanCut,
+		  const UInt_t nV  , const UInt_t nV2D,
+		  TString* var, TString data, 
+		  vector<TString> backgrounds);
+
   //Int_t TransferFactor(TGraphErrors *gSF, TH2F *hTemp2, Float_t cut);
   TGraphErrors TransferFactor(TH2F *hTemp2, Float_t cut);
 
