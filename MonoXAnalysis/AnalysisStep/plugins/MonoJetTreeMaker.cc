@@ -821,7 +821,8 @@ void MonoJetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& 
 
     // Build central jets collection and perform jet counting
     if(_verbose>3) cout << "- Build central jets collection" << endl;
-    njets = nbjets = nfwdjets = nfwdjets80 = _jet_n = 0;
+    njets = njets80 = nbjets = nfatjets = nfwdjets = nfwdjets80 = nsoftjets = nsoftbjets = nsoftfwdjets = _jet_n = 0;
+
     for (size_t i = 0; i < incjets.size(); i++) {
 
       if(_verbose>4) cout << "-- incjets #" << i << endl;
@@ -1499,7 +1500,14 @@ void MonoJetTreeMaker::beginJob() {
     tree->Branch("njets"                , &njets                , "njets/i");
     tree->Branch("nbjets"               , &nbjets               , "nbjets/i");
     tree->Branch("nfatjets"             , &nfatjets             , "nfatjets/i");
+    tree->Branch("njets80"              , &njets80              , "njets80/i");
+    tree->Branch("nfwdjets"             , &nfwdjets             , "nfwdjets/i");
+    tree->Branch("nfwdjets80"           , &nfwdjets80           , "nfwdjets80/i");
+    tree->Branch("nsoftjets"            , &nsoftjets            , "nsoftjets/i");
+    tree->Branch("nsoftbjets"           , &nsoftbjets           , "nsoftbjets/i");
+    tree->Branch("nsoftfwdjets"         , &nsoftfwdjets         , "nsoftfwdjets/i");
     tree->Branch("nphotons"             , &nphotons             , "nphotons/i");
+
     // MET info
     tree->Branch("pfmet"                , &pfmet                , "pfmet/D");
     tree->Branch("pfmetphi"             , &pfmetphi             , "pfmetphi/D");
