@@ -40,6 +40,7 @@ class XMetProcess {
   Double_t GetXSec();
   Double_t GetWeight();
   Int_t    GetNGen();
+  Int_t    GetEntries();
 
   // Analysis tools
   Int_t Skim(TString select, TCut cut, TString reset);
@@ -145,6 +146,13 @@ Int_t XMetProcess::AddTrees()
 }
 
 // Getters //
+Int_t XMetProcess::GetEntries()
+{
+  if(_chain && !_chain->IsZombie()) return _chain->GetEntries();
+  else return -1;
+}
+
+
 Double_t XMetProcess::GetXSec()
 {
   return _xsec;
@@ -243,21 +251,31 @@ Int_t XMetProcess::Skim(TString select, TCut cut, TString option)
   TEntryList* skim; 
 
   if(option.Contains("Reset")) {
+    cout << "_chain->SetEntryList(0)... ";
     _chain->SetEntryList(0);
+    cout << "done!" << endl;
   }
 
   if(option.Contains("Produce")) {
+    cout << "_chain->Draw('>>+'+tskim, cut, 'entrylist')... ";
     _chain->Draw(">>+"+tskim, cut, "entrylist");
     //_chain->Draw(">>+"+tskim, cut, "entrylist",1000); // FIXME
+    cout << "done!" << endl;
   }
 
+  cout << "getting tskim: " << tskim << endl;
   skim = (TEntryList*)gDirectory->Get(tskim);
   _mapSkim[select] = skim;
-  _chain->SetEntryList(skim);
 
-  cout << "--- produced skim : " << tskim 
-       << " : " << skim->GetN() << " entries" 
-       << endl;
+  if(skim) {
+    _chain->SetEntryList(skim);
+    cout << "--- produced skim : " << tskim 
+	 << " : " << skim->GetN() << " entries" 
+	 << endl;
+  }    
+  else {
+    cout << "ERROR: could not use skim: " << tskim << endl;
+  }
 
   return 0;
 }
