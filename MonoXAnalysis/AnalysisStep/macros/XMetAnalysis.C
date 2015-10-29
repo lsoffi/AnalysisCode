@@ -308,9 +308,9 @@ Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
   // Processes to use
   vector<TString> locProcesses;
   //
-  locProcesses.push_back("data_met");
-  //locProcesses.push_back("data_jetht");
-  locProcesses.push_back("qcd"); 
+  //locProcesses.push_back("data_met");
+  locProcesses.push_back("data_jetht");
+  //locProcesses.push_back("qcd"); 
 
   // Selections and variables
   const UInt_t nS=5;
@@ -350,12 +350,12 @@ Int_t XMetAnalysis::QCDScaleFactor(Bool_t bProdHistos)
   Float_t* binsTunedY[nV];    
 
   /// MET
-  Float_t bins_met[8] = {200, 250, 300, 350, 400, 500, 600, 1000};
+  Float_t bins_met[17] = {50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 350, 400, 500, 600, 1000};
   regularX[0] = false;
-  nBinsX[0] = 8;
+  nBinsX[0] = 17;
   binsTunedX[0]=bins_met;
   regularX[1] = false;
-  nBinsX[1] = 8;
+  nBinsX[1] = 17;
   binsTunedX[1]=bins_met;
 
   vector<vector<Float_t>> x_bins, y_bins;
@@ -865,6 +865,9 @@ Int_t XMetAnalysis::plot(TString select,
       }
       else { region = "wctrl"; }
     }
+    else if(nameDir.Contains("jetht")) {
+      region = "signal_jetht";
+    }
     else {region = "signal";}
 
     // Apply k-factors
@@ -885,10 +888,14 @@ Int_t XMetAnalysis::plot(TString select,
     }
 
     // Skim chain using global selection ("select")
+    if(verbose>2) cout << "-- skim chain using global selection: " << select << endl;
     cut = defineCut(select, region);
+    if(verbose>2) cout << "-- cut defined: " << cut << endl 
+		       << "-- launch Skim" << endl;
     _mapProcess[nameDir].Skim(select, cut, "ResetProduce");
 
     // Loop over extra cuts to be scanned
+    cout << "-- Start loop: cuts" << endl;
     for(UInt_t iCut=0; iCut<nCut; iCut++) {
 
       selectScan = select+"_"+scanCut[iCut];
@@ -1271,6 +1278,7 @@ TCut XMetAnalysis::defineCut(TString select, TString region)
   // Trigger
   TCut trig  = "(hltmet120 > 0 || hltmet95jet80 > 0 || hltmet105jet80 > 0)";
   if(_isAN15) trig = "hltmet90>0 || hltmet120>0";
+  if(region.Contains("jetht")) trig = "hltpfht200>0 || hltpfht250>0 || hltpfht300>0 || hltpfht350>0 || hltpfht400>0 || hltpfht475>0 || hltpfht600>0 || hltpfht650>0 || hltpfht800>0";
 
   // Lepton selection depending on the region
   TCut leptons = "";
@@ -1438,7 +1446,9 @@ Int_t XMetAnalysis::DefineChainsAN15()
   _useLO   = true; // apply k-factors to LO Z/W samples // fixme
 
   // // Data
-  _mapProcess["data_met"] = XMetProcess("data_met", kBlack, "skimJSON.root");
+  _mapProcess["data_met"]   = XMetProcess("data_met",   kBlack, "skimJSON.root");
+  //_mapProcess["data_jetht"] = XMetProcess("data_jetht", kBlack, "skimJSON.root");
+  _mapProcess["data_jetht"] = XMetProcess("data_jetht", kBlack, "skimJSON_t1mumet50.root");
   /*
   _mapProcess["data_2m" ] = XMetProcess("data_2m",  kBlack, "skimJSON.root");
   _mapProcess["data_1m" ] = XMetProcess("data_1m",  kBlack, "skimJSON.root");
@@ -1455,22 +1465,6 @@ Int_t XMetAnalysis::DefineChainsAN15()
   _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "skimMuMet200.root");
   _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "skimMuMet200.root");
 
-  // // Data
-  // _mapProcess["data_met"] = XMetProcess("data_met", kBlack, "skimMumet100WgtSum.root");
-  // _mapProcess["data_2m" ] = XMetProcess("data_2m",  kBlack, "skimMumet100WgtSum.root");
-  // _mapProcess["data_1m" ] = XMetProcess("data_1m",  kBlack, "skimMumet100WgtSum.root");
-  // _mapProcess["data_1ph"] = XMetProcess("data_1ph", kBlack, "skimMumet100WgtSum.root");
-  // _mapProcess["data_2e" ] = XMetProcess("data_2e",  kBlack, "skimMumet100WgtSum.root");
-  
-  // MC backgrounds
-  // _mapProcess["znn"  ] = XMetProcess("znn",   kAzure+7,  "skimMumet100WgtSum.root");
-  // _mapProcess["zll"  ] = XMetProcess("zll",   kPink+9,   "skimMumet100WgtSum.root");
-  // _mapProcess["wln"  ] = XMetProcess("wln",   kGreen+2,  "skimMumet100WgtSum.root");
-  // _mapProcess["ttbar"] = XMetProcess("ttbar", kMagenta+3,"skimMumet100WgtSum.root");
-  // _mapProcess["qcd"  ] = XMetProcess("qcd",   kRed,      "skimMumet100WgtSum.root");
-  // _mapProcess["vv"   ] = XMetProcess("vv",    kBlue+1,   "skimMumet100WgtSum.root");
-  // _mapProcess["top"  ] = XMetProcess("top",   kOrange-3, "skimMumet100WgtSum.root");
-
   // Sub-directories in _path
   //
   // data
@@ -1483,10 +1477,13 @@ Int_t XMetAnalysis::DefineChainsAN15()
   */
 
   _mapProcess["data_met"].AddDir("met_05Oct2015");
+  _mapProcess["data_jetht"].AddDir("jetht_05Oct2015");
+  /*
   _mapProcess["data_1ph"].AddDir("singleph_05Oct2015");
   _mapProcess["data_2e" ].AddDir("doubleel_05Oct2015");
   _mapProcess["data_1m" ].AddDir("singlemu_05Oct2015");
   _mapProcess["data_2m" ].AddDir("doublemu_05Oct2015");
+  */
 
   /*
   _mapProcess["data_met"].AddDir("met_PRV4");
@@ -1552,6 +1549,7 @@ Int_t XMetAnalysis::DefineChainsAN15()
       _itProcess->second.SetPath(_pathMC);
 
     _itProcess->second.AddTrees();
+    cout << "- Chain: " << _itProcess->first << " has " << _itProcess->second.GetEntries() << " entries." << endl;
   }
 
   return 0;
