@@ -31,6 +31,10 @@ theXSec = 0.001 # to be set in the crab config files
 
 # Is this a simulation or real data
 isMC = True
+isWZ = False
+doLheTreeProd = False
+doLheGenTree  = False
+doPdfGenTree  = False
 
 # Filter on high MET events
 filterHighMETEvents = True
@@ -270,8 +274,8 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
     cleanElectronJet = cms.bool(True),
     cleanPhotonJet = cms.bool(True),
     applyHLTFilter = cms.bool(filterOnHLT),
-    uselheweights = cms.bool(False),
-    isWorZMCSample = cms.bool(False),
+    uselheweights = cms.bool(doLheTreeProd),
+    isWorZMCSample = cms.bool(isWZ),
     verbose        = cms.int32(1),
     useTrigObj     = cms.bool(False)
 )
@@ -280,8 +284,8 @@ process.tree = cms.EDAnalyzer("MonoJetTreeMaker",
 process.gentree = cms.EDAnalyzer("LHEWeightsTreeMaker",
     lheinfo = cms.InputTag("externalLHEProducer"),
     geninfo = cms.InputTag("generator"),
-    uselheweights = cms.bool(False),
-    addqcdpdfweights = cms.bool(False)
+    uselheweights = cms.bool(doLheGenTree),
+    addqcdpdfweights = cms.bool(doPdfGenTree)
 )
 
 # MET filter
