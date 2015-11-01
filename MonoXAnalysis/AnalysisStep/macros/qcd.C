@@ -1,6 +1,7 @@
 #include "myIncludes.h"
 
-bool FAST=true; // fixme
+bool FAST=false; // fixme
+int  NFAST=10000;
 
 using namespace std;
 typedef map<TString, map<TString, map<TString, TH1F*> > > M_SEL_PROC_VAR_H1D;
@@ -21,8 +22,8 @@ typedef map<TString, M_PROC_CUT_VAR_H2D >  M_SEL_PROC_CUT_VAR_H2D;
 // Declare functions //
 Int_t GetNGen(TString process);
 Int_t writeHistos(TString tag, M_SEL_PROC_CUT_VAR_H1D histos1D, M_SEL_PROC_CUT_VAR_H2D histos2D);
-Int_t doStackPlots(TString tag, M_SEL_PROC_CUT_VAR_H1D histos1D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra);
-Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra);
+Int_t doStackPlots(TString tag, TString region1D, M_SEL_PROC_CUT_VAR_H1D histos1D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra);
+Int_t doTransferPlots(TString tag, TString region2D, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra);
 Int_t defineChains(M_PROC_CH &chains);
 TCut  defineWeight(TString process);
 TCut  defineCut(TString sample, TString region);
@@ -32,13 +33,16 @@ Int_t defineHistos1D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H1D &histos1D,
 Int_t defineHistos2D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H2D &histos2D,
 		     const UInt_t nS,    const UInt_t nC,
 		     TString* selection, TString* extra);
-Int_t analyze(Float_t lumi, TString tag, M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1D &histos1D, M_SEL_PROC_CUT_VAR_H2D &histos2D,
+
+Int_t analyze(Float_t lumi, TString tag, TString region1D, TString region2D,
+	      M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1D &histos1D, M_SEL_PROC_CUT_VAR_H2D &histos2D,
 	      const UInt_t nS,    const UInt_t nC, TString* selection, TString* extra);
+
 vector<TString> GetVarName(M_SEL_PROC_CUT_VAR_H1D histos1D, M_SEL_PROC_CUT_VAR_H2D histos2D, TString mode);
 TGraphErrors TransferFactor(TH2F *hTemp2, Float_t cut);
 
 // MAIN //
-Int_t qcd(TString tag)
+Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
 {
 
   Float_t lumi=0.210;
@@ -68,22 +72,22 @@ Int_t qcd(TString tag)
 
   // 2D plots: region="HT"
   // 1D stack: region="Met200_1jet"
-  analyze(lumi, tag, chains, histos1D, histos2D, nS, nC, selection, extra);
+  analyze(lumi, tag, region1D, region2D, chains, histos1D, histos2D, nS, nC, selection, extra);
 
   writeHistos(tag, histos1D, histos2D);
 
-  doStackPlots(   tag, histos1D, nS, nC, selection, extra);
-  doTransferPlots(tag, histos2D, nS, nC, selection, extra);
+  doStackPlots(   tag, region1D, histos1D, nS, nC, selection, extra);
+  doTransferPlots(tag, region2D, histos2D, nS, nC, selection, extra);
 
   return 0;
 }
 
-Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra)
+Int_t doTransferPlots(TString tag, TString region2D, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra)
 {
 
   // Output
   TString dirOut="/user/ndaci/Results/Monojet/QCD/"+tag+"/";
-  TFile* outfile = new TFile(dirOut+"/"+tag+"/plots_"+tag+".root","recreate");
+  TFile* outfile = new TFile(dirOut+"/plots_"+tag+".root","recreate");
   outfile->cd();
 
   // Retrieve 1D variables
@@ -107,10 +111,16 @@ Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t
 
 	// Data
 	name="h1D_"+selection[iS]+"_dataTotal_"+extra[iC]+"_"+var[iV];
-	hData = (TH2F*) histos2D[selection[iS]]["data_jetht"][extra[iC]][var[iV]]->Clone(name);
+
+	if(region2D.Contains("MET"))
+	  hData = (TH2F*) histos2D[selection[iS]]["data_met"][extra[iC]][var[iV]]->Clone(name);
+	else if(region2D.Contains("HT"))
+	  hData = (TH2F*) histos2D[selection[iS]]["data_jetht"][extra[iC]][var[iV]]->Clone(name);
+	else hData = (TH2F*) histos2D[selection[iS]]["data_jetht"][extra[iC]][var[iV]]->Clone(name);
+	
 	if(hData) {
 	  hData->Write();
-	  //setStyle(hData, kBlack, kFullCircle, 1.2, false);
+	  //setStyle(hData, kBlack, kFullCircle, 1.00, false);
 	  cout << "---- hData: Entries=" << hData->GetEntries() << " Integral=" << hData->Integral() << endl;
 	}
 
@@ -126,7 +136,7 @@ Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t
 	  hQCD   ->Add(histos2D[selection[iS]]["qcdht500to700"][extra[iC]][var[iV]]);
 	  hQCD   ->Add(histos2D[selection[iS]]["qcdht700to1000"][extra[iC]][var[iV]]);
 	  hQCD->Write();
-	  //setStyle(hQCD, kRed, kOpenSquare, 1.2, true);
+	  //setStyle(hQCD, kRed, kOpenSquare, 1.00, true);
 	  cout << "---- hQCD: Entries=" << hQCD->GetEntries() << " Integral=" << hQCD->Integral() << endl;
 	}
 
@@ -231,7 +241,7 @@ Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t
 	/// DATA TF 
 	color=kBlack;
 	style=kFullCircle;
-	size=1.2;
+	size=1.00;
 	name  = "tf_"+selection[iS]+"_"+extra[iC]+"_"+var[iV]+"_data";
 	gSF_data = TransferFactor(hDataClean, cut);
 	gSF_data.SetName(name);
@@ -255,7 +265,7 @@ Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t
 	/// QCD TF 
 	color=kRed;
 	style=kOpenSquare;
-	size=1.2;
+	size=1.00;
 	name  = "tf_"+selection[iS]+"_"+extra[iC]+"_"+var[iV]+"_qcd";
 	gSF_qcd = TransferFactor(hQCD, cut);
 	gSF_qcd.SetName(name);
@@ -277,9 +287,9 @@ Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t
 	c.Print(dirOut+"/"+name+".pdf","pdf");
 
 	// Print both
-	gSF_qcd.SetTitle("QCD Transfer Factor");
+	gSF_data.SetTitle("QCD Transfer Factor");
 	gSF_qcd .SetTitle("QCD Transfer Factor");
-	gSF_qcd.Draw("AP");
+	gSF_data.Draw("AP");
 	gSF_qcd .Draw("PSAME");
 	
 	TLegend* leg = new TLegend(0.7,0.79,0.89,0.89,"","brNDC");
@@ -298,7 +308,7 @@ Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t
   return 0;
 }
 
-Int_t doStackPlots(TString tag, M_SEL_PROC_CUT_VAR_H1D histos1D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra)
+Int_t doStackPlots(TString tag, TString region1D, M_SEL_PROC_CUT_VAR_H1D histos1D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra)
 {
 
   // Output
@@ -324,8 +334,14 @@ Int_t doStackPlots(TString tag, M_SEL_PROC_CUT_VAR_H1D histos1D, const UInt_t nS
 
 	// Data
 	name="h1D_"+selection[iS]+"_dataTotal_"+extra[iC]+"_"+var[iV];
-	hData = (TH1F*) histos1D[selection[iS]]["data_met"][extra[iC]][var[iV]]->Clone(name);
-	setStyle(hData, kBlack, kFullCircle, 1.2, false);
+
+	if(region1D.Contains("MET"))
+	  hData = (TH1F*) histos1D[selection[iS]]["data_met"][extra[iC]][var[iV]]->Clone(name);
+	else if(region1D.Contains("HT"))
+	  hData = (TH1F*) histos1D[selection[iS]]["data_jetht"][extra[iC]][var[iV]]->Clone(name);
+	else hData = (TH1F*) histos1D[selection[iS]]["data_jetht"][extra[iC]][var[iV]]->Clone(name);
+
+	setStyle(hData, kBlack, kFullCircle, 1.00, false);
 	cout << "---- hData: Entries=" << hData->GetEntries() << " Integral=" << hData->Integral() << endl;
 
 	// QCD
@@ -338,7 +354,7 @@ Int_t doStackPlots(TString tag, M_SEL_PROC_CUT_VAR_H1D histos1D, const UInt_t nS
 	hQCD   ->Add(histos1D[selection[iS]]["qcdht300to500"][extra[iC]][var[iV]]);
 	hQCD   ->Add(histos1D[selection[iS]]["qcdht500to700"][extra[iC]][var[iV]]);
 	hQCD   ->Add(histos1D[selection[iS]]["qcdht700to1000"][extra[iC]][var[iV]]);
-	setStyle(hQCD, kRed, kOpenSquare, 1.2, true);
+	setStyle(hQCD, kRed, kOpenSquare, 1.00, true);
 	cout << "---- hQCD: Entries=" << hQCD->GetEntries() << " Integral=" << hQCD->Integral() << endl;
 
 	// ZLL
@@ -482,7 +498,8 @@ Int_t writeHistos(TString tag, M_SEL_PROC_CUT_VAR_H1D histos1D, M_SEL_PROC_CUT_V
   return 0;
 }
 
-Int_t analyze(Float_t lumi, TString tag, M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1D &histos1D, M_SEL_PROC_CUT_VAR_H2D &histos2D,
+Int_t analyze(Float_t lumi, TString tag, TString region1D, TString region2D,
+	      M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1D &histos1D, M_SEL_PROC_CUT_VAR_H2D &histos2D,
 	      const UInt_t nS,    const UInt_t nC, TString* selection, TString* extra)
 {
 
@@ -494,7 +511,7 @@ Int_t analyze(Float_t lumi, TString tag, M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1
   TEntryList* skim;
   TH1F* hTemp1;
   TH2F* hTemp2;
-  TString process, tskim, select, hname, locVar;
+  TString process, tskim, select, hname, locVar, region;
   M_PROC_CH::iterator itCh;
   TCut theCut, theWeight;
   Float_t theScale;
@@ -529,14 +546,14 @@ Int_t analyze(Float_t lumi, TString tag, M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1
 	
 	// Skim the chain
 	select = selection[iS]+"_"+extra[iC];
-	theCut = defineCut(process, select); 
+	theCut = defineCut(process, select);
 	theWeight = defineWeight(process);
 	cout << "--- cut: "    << theCut    << endl
 	     << "--- weight: " << theWeight << endl;
 	//
 	ch->SetEntryList(0);
 	tskim  = "skim_"+process+"_"+select;
-	if(FAST) ch->Draw(">>+"+tskim, theCut, "entrylist", 100); // fixme
+	if(FAST) ch->Draw(">>+"+tskim, theCut, "entrylist", NFAST); // fixme
 	else     ch->Draw(">>+"+tskim, theCut, "entrylist");
 	skim = (TEntryList*)gDirectory->Get(tskim);
 	if(skim) {
@@ -551,21 +568,29 @@ Int_t analyze(Float_t lumi, TString tag, M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1
 
 	  // Translate variable names
 	  locVar=var[iV];
-	  if(     var[iV]=="jetmetdphimin_vs_t1mumet")    locVar="jetmetdphimin:t1mumet";
-	  else if(var[iV]=="incjetmetdphimin_vs_t1mumet") locVar="incjetmetdphimin:t1mumet";
+	  if(     var[iV]=="jetmetdphimin_vs_t1mumet")    locVar="abs(jetmetdphimin):t1mumet";
+	  else if(var[iV]=="incjetmetdphimin_vs_t1mumet") locVar="abs(incjetmetdphimin):t1mumet";
+	  else if(var[iV].Contains("phi")) locVar = "abs("+var[iV]+")";
 
 	  // Launch calls to TTree::Draw()
 	  if(var[iV].Contains("_vs_")) { // 2D
 	    hTemp2 = histos2D[selection[iS]][process][extra[iC]][var[iV]];
 	    hname  = hTemp2->GetName();
-	    theCut = defineCut(process, select+"_HT");
+	    //region = "HT";
+	    region = region2D;
+	    theCut = defineCut(process, select+"_"+region); // "HT" => use HT triggers + offline HT cut
+	    cout << "------ 2D: " << theCut << endl;
 	    ch->Draw(locVar+">>"+hname, theCut*theWeight);
 	    hTemp2->Scale(theScale);
 	  }
 	  else { // 1D
 	    hTemp1 = histos1D[selection[iS]][process][extra[iC]][var[iV]];
 	    hname  = hTemp1->GetName();
-	    theCut = defineCut(process, select+"_Met200");
+	    //region = "MET_Met200"; // "MET" => use MET triggers + offline MET cut
+	    //region = "HT"; // Look at the HT region now
+	    region = region1D;
+	    theCut = defineCut(process, select+"_"+region); 
+	    cout << "------ 1D: " << theCut << endl;
 	    ch->Draw(locVar+">>"+hname, theCut*theWeight);
 	    hTemp1->Scale(theScale);
 	  }
@@ -584,8 +609,8 @@ TCut defineWeight(TString process)
   TCut weight="1";
 
   if(!process.Contains("data")) {
-    weight = "xsec*puweight*(wgt/wgtsum)";
-    //weight = "xsec*puweight"; // fixme
+    //weight = "xsec*puweight*(wgt/wgtsum)";
+    weight = "xsec*puweight"; // fixme
   }
 
   return weight;
@@ -603,36 +628,36 @@ Int_t defineHistos1D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H1D &histos1D,
 			 "Number of Vertices", "Reco PFHT [GeV]" , "Number of Jets" };
   TString nameAxisY[nV]={"Events","Events","Events","Events","Events","Events"};
 
-  UInt_t   nBins[nV]={ 100,   64,   64, 40,  200, 10};
+  UInt_t   nBins[nV]={ 100,   64,   64, 40,   50, 10};
   Float_t xFirst[nV]={ 200,    0,    0,  0,    0,  0};
   Float_t xLast[ nV]={1000,  3.2,  3.2, 40, 1000, 10};
   Bool_t regular[nV]={true,true,true,true,true,true};
 
-  vector<UInt_t>   v_nBins;
-  vector<Float_t*> v_bins;
-
+  // Tuned binning
   Float_t* binsTuned[nV];  
   /// MET
   regular[0] = false;
-  nBins[0]   = 8;
+  nBins[0] = 8;
   Float_t bins_met[8] = {200, 250, 300, 350, 400, 500, 600, 1000};
   binsTuned[0]=bins_met;
 
+  vector<vector<Float_t>> x_bins;
+  vector<Float_t> theBins;
+  Float_t  binval=0;
+  //
   for(UInt_t iV=0 ; iV<nV ; iV++) {
-    const UInt_t theNbins = nBins[iV];
-    Float_t bins[theNbins];
-    if(regular[iV]) {
-      for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
-	bins[iB] = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
+    theBins.clear();
+    for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
+      if(regular[iV]) {
+	if(nBins[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
+	else             binval = 0;
+	theBins.push_back(binval);
+      }
+      else {
+	theBins.push_back(binsTuned[iV][iB]);
       }
     }
-    else {
-      for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
-	bins[iB] = binsTuned[iV][iB];
-      }
-    }
-    v_nBins.push_back(nBins[iV]);
-    v_bins .push_back(bins);
+    x_bins.push_back(theBins);
   }
 
   TString name,title;
@@ -656,8 +681,14 @@ Int_t defineHistos1D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H1D &histos1D,
 	  name ="h1D_"+selection[iS]+"_"+process[iP]+"_"+extra[iC]+"_"+var[iV];
 	  title=selection[iS]+" "+process[iP]+" "+extra[iC]+" "+var[iV];
 
+	  const UInt_t nBins = x_bins[iV].size();
+	  Float_t theBins[nBins];
+	  for(UInt_t iB=0 ; iB<nBins ; iB++) {
+	    theBins[iB] = x_bins[iV][iB];
+	  }
+
 	  histos1D[selection[iS]][process[iP]][extra[iC]][var[iV]] = 
-	    new TH1F(name,title,v_nBins[iV]-1,v_bins[iV]);
+	    new TH1F(name, title, nBins-1, theBins);
 
 	  histos1D[selection[iS]][process[iP]][extra[iC]][var[iV]]->Sumw2();	  
 	}
@@ -679,27 +710,63 @@ Int_t defineHistos2D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H2D &histos2D,
   TString nameAxisX[nV]={"Type1 PFMETNoMu [GeV]", "Type1 PFMETNoMu [GeV]"};
   TString nameAxisY[nV]={"Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})"};
 
+  UInt_t   nBinsX[nV]={ 100,  100};  
+  Float_t  xFirst[nV]={ 200,  200};
+  Float_t  xLast[ nV]={1000, 1000};
+  Bool_t regularX[nV]={true,true};
+
   UInt_t   nBinsY[nV]={64,   64};
   Float_t yFirst[ nV]={ 0,    0};
   Float_t yLast[  nV]={ 3.2,  3.2};
+  Bool_t regularY[nV]={true,true};
 
-  vector<UInt_t>   v_nBinsX, v_nBinsY;
-  vector<Float_t*> v_xbins,  v_ybins;
+  // Tuned binning
+  Float_t* binsTunedX[nV];
+  Float_t* binsTunedY[nV];    
 
-  const UInt_t nBinsMet=8;
-  Float_t bins_met[nBinsMet] = {200, 250, 300, 350, 400, 500, 600, 1000};
+  /// MET
+  Float_t bins_met[17] = {50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 350, 400, 500, 600, 1000};
+  regularX[0] = false;
+  nBinsX[0] = 17;
+  binsTunedX[0]=bins_met;
+  // FIXME
+  regularX[1] = false;
+  nBinsX[1] = 17;
+  binsTunedX[1]=bins_met;
 
-  const UInt_t nBinsPhi=64;
-  Float_t bins_phi[nBinsPhi];
-  for(UInt_t iB=0 ; iB<nBinsPhi ; iB++) {
-    bins_phi[iB] = yFirst[1] + (iB*(yLast[1]-yFirst[1])/nBinsY[1]);
-  }
+  vector<vector<Float_t>> x_bins, y_bins;
+  vector<Float_t> theBinsX, theBinsY;
+  Float_t  binval=0;
+  //
+  for(UInt_t iV=0 ; iV<nV ; iV++) {
 
-  for(UInt_t i=0 ; i<nV ; i++) {
-    v_nBinsX.push_back(nBinsMet);
-    v_xbins .push_back(bins_met);
-    v_nBinsY.push_back(nBinsPhi);
-    v_ybins .push_back(bins_phi);
+    // x bins
+    theBinsX.clear();
+    for(UInt_t iB=0 ; iB<nBinsX[iV] ; iB++) {
+      if(regularX[iV]) {
+	if(nBinsX[iV]!=0) binval = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBinsX[iV]);
+	else             binval = 0;
+	theBinsX.push_back(binval);
+      }
+      else {
+	theBinsX.push_back(binsTunedX[iV][iB]);
+      }
+    }
+    x_bins.push_back(theBinsX);
+
+    // y bins
+    theBinsY.clear();
+    for(UInt_t iB=0 ; iB<nBinsY[iV] ; iB++) {
+      if(regularY[iV]) {
+	if(nBinsY[iV]!=0) binval = yFirst[iV] + (iB*(yLast[iV]-yFirst[iV])/nBinsY[iV]);
+	else              binval = 0;
+	theBinsY.push_back(binval);
+      }
+      else {
+	theBinsY.push_back(binsTunedY[iV][iB]);
+      }
+    }
+    y_bins.push_back(theBinsY);
   }
 
   TString name,title;
@@ -722,8 +789,20 @@ Int_t defineHistos2D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H2D &histos2D,
 	  name ="h2D_"+selection[iS]+"_"+process[iP]+"_"+extra[iC]+"_"+var[iV];
 	  title=selection[iS]+" "+process[iP]+" "+extra[iC]+" "+var[iV];
 
+	  const UInt_t nBins = x_bins[iV].size();
+	  Float_t theBins[nBins];
+	  for(UInt_t iB=0 ; iB<nBins ; iB++) {
+	    theBins[iB] = x_bins[iV][iB];
+	  }
+
+	  const UInt_t nBinsY = y_bins[iV].size(); 
+	  Float_t theBinsY[nBinsY];
+	  for(UInt_t iB=0 ; iB<nBinsY ; iB++) {
+	    theBinsY[iB] = y_bins[iV][iB];
+	  }
+
 	  histos2D[selection[iS]][process[iP]][extra[iC]][var[iV]] = 
-	    new TH2F(name,title,v_nBinsX[iV]-1,v_xbins[iV],v_nBinsY[iV]-1,v_ybins[iV]);
+	    new TH2F(name, title, nBins-1, theBins, nBinsY-1, theBinsY);
 	}
       }
     }
@@ -777,7 +856,8 @@ Int_t defineChains(M_PROC_CH &chains)
 TCut defineCut(TString sample, TString region)
 {
 
-  TCut trig ="hltmet90>0 || hltmet120>0";
+  //TCut trig ="hltmet90>0 || hltmet120>0";
+  TCut trig="";
   TCut noise="flaghbheloose>0 && flagcsctight>0 && flageebadsc>0";
   TCut maxrun="run<257599";
   TCut metCut="";
@@ -789,17 +869,22 @@ TCut defineCut(TString sample, TString region)
   TCut noqcd="";
   TCut fwdveto="";
 
+  // FwdVeto
   if(region.Contains("FwdVeto")) {
-    fwdveto="abs(leadingjeteta)<2.5";
-    if(sample.Contains("jetht")) fwdveto="(signaljetpt>Max$(jet_pt * (abs(jet_eta)>2.5)))";
+    fwdveto="abs(leadingjeteta)<2.5"; // Adish trees
+    if(sample.Contains("jetht")) fwdveto="(signaljetpt>Max$(jet_pt * (abs(jet_eta)>2.5)))"; // Nadir trees
   }
 
+  // HT or MET region
   if(region.Contains("HT")) {
-    if(sample.Contains("jetht")) trig = "hltpfht200 && ht>300";
-    else                         trig = "ht>300";
+    if(sample.Contains("jetht")) trig = "hltpfht200 && ht>300"; // Nadir trees
+    else                         trig = "ht>300"; // no hltpfht branch in Adish trees
   }  
-  
-  if(region.Contains("Met200")) metCut="t1mumet>200";
+
+  else if(region.Contains("MET")) {
+    trig = "hltmet90>0 || hltmet120>0";
+    if(region.Contains("Met200")) metCut="t1mumet>200";
+  }
 
   // Jet ID //
   TCut jetID1 = "(signaljetpt>100 && abs(signaljeteta)<2.5 && signaljetCHfrac > 0.1 && signaljetNHfrac < 0.8)";
