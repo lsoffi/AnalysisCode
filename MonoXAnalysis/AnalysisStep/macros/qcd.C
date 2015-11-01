@@ -589,6 +589,7 @@ Int_t analyze(Float_t lumi, TString tag, TString region1D, TString region2D,
 	    //region = "MET_Met200"; // "MET" => use MET triggers + offline MET cut
 	    //region = "HT"; // Look at the HT region now
 	    region = region1D;
+	    if(!var[iV].Contains("phimin") && region1D.Contains("MET")) region+="_JetMet0p5";
 	    theCut = defineCut(process, select+"_"+region); 
 	    cout << "------ 1D: " << theCut << endl;
 	    ch->Draw(locVar+">>"+hname, theCut*theWeight);
@@ -868,6 +869,9 @@ TCut defineCut(TString sample, TString region)
   TCut jetBin="njets>=1";
   TCut noqcd="";
   TCut fwdveto="";
+
+  // QCD Killer
+  if(region.Contains("JetMet0p5")) noqcd="abs(jetmetdphimin)>0.5";
 
   // FwdVeto
   if(region.Contains("FwdVeto")) {
