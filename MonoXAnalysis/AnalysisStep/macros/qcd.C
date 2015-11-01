@@ -1,6 +1,6 @@
 #include "myIncludes.h"
 
-bool FAST=false; // fixme
+bool FAST=true; // fixme
 
 using namespace std;
 typedef map<TString, map<TString, map<TString, TH1F*> > > M_SEL_PROC_VAR_H1D;
@@ -35,6 +35,7 @@ Int_t defineHistos2D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H2D &histos2D,
 Int_t analyze(Float_t lumi, TString tag, M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1D &histos1D, M_SEL_PROC_CUT_VAR_H2D &histos2D,
 	      const UInt_t nS,    const UInt_t nC, TString* selection, TString* extra);
 vector<TString> GetVarName(M_SEL_PROC_CUT_VAR_H1D histos1D, M_SEL_PROC_CUT_VAR_H2D histos2D, TString mode);
+TGraphErrors TransferFactor(TH2F *hTemp2, Float_t cut);
 
 // MAIN //
 Int_t qcd(TString tag)
@@ -79,6 +80,220 @@ Int_t qcd(TString tag)
 
 Int_t doTransferPlots(TString tag, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra)
 {
+
+  // Output
+  TString dirOut="/user/ndaci/Results/Monojet/QCD/"+tag+"/";
+  TFile* outfile = new TFile(dirOut+"/"+tag+"/plots_"+tag+".root","recreate");
+  outfile->cd();
+
+  // Retrieve 1D variables
+  M_SEL_PROC_CUT_VAR_H1D dummy;
+  vector<TString> var = GetVarName(dummy, histos2D, "2D");
+  const UInt_t nV=var.size();
+
+  // Retrieve histograms  
+  TString name,title;
+  Int_t color,style; 
+  Float_t size;
+  TH2F *hData, *hDataClean, *hQCD, *hZLL, *hWLN, *hZNN, *hVV, *hTT, *hTop;
+  TLegend* leg;
+
+  // Loop over histos map
+  for(UInt_t iS=0 ; iS<nS ; iS++) {
+    for(UInt_t iC=0 ; iC<nC ; iC++) {
+      for(UInt_t iV=0 ; iV<nV ; iV++) {
+
+	cout << "---- " << " " << selection[iS] << " " << extra[iC] << " " << var[iV] << endl;
+
+	// Data
+	name="h1D_"+selection[iS]+"_dataTotal_"+extra[iC]+"_"+var[iV];
+	hData = (TH2F*) histos2D[selection[iS]]["data_jetht"][extra[iC]][var[iV]]->Clone(name);
+	if(hData) {
+	  hData->Write();
+	  //setStyle(hData, kBlack, kFullCircle, 1.2, false);
+	  cout << "---- hData: Entries=" << hData->GetEntries() << " Integral=" << hData->Integral() << endl;
+	}
+
+	// QCD
+	name="h1D_"+selection[iS]+"_qcdTotal_"+extra[iC]+"_"+var[iV];
+	hQCD=(TH2F*) histos2D[selection[iS]]["qcdht1000to1500"][extra[iC]][var[iV]]->Clone(name);
+	if(hQCD) {
+	  hQCD   ->Add(histos2D[selection[iS]]["qcdht100to200"][extra[iC]][var[iV]]);
+	  hQCD   ->Add(histos2D[selection[iS]]["qcdht1500to2000"][extra[iC]][var[iV]]);
+	  hQCD   ->Add(histos2D[selection[iS]]["qcdht2000toinf"][extra[iC]][var[iV]]);
+	  hQCD   ->Add(histos2D[selection[iS]]["qcdht200to300"][extra[iC]][var[iV]]);
+	  hQCD   ->Add(histos2D[selection[iS]]["qcdht300to500"][extra[iC]][var[iV]]);
+	  hQCD   ->Add(histos2D[selection[iS]]["qcdht500to700"][extra[iC]][var[iV]]);
+	  hQCD   ->Add(histos2D[selection[iS]]["qcdht700to1000"][extra[iC]][var[iV]]);
+	  hQCD->Write();
+	  //setStyle(hQCD, kRed, kOpenSquare, 1.2, true);
+	  cout << "---- hQCD: Entries=" << hQCD->GetEntries() << " Integral=" << hQCD->Integral() << endl;
+	}
+
+	// ZLL
+	name="h1D_"+selection[iS]+"_zllTotal_"+extra[iC]+"_"+var[iV];
+	hZLL=(TH2F*) histos2D[selection[iS]]["zll100to200"][extra[iC]][var[iV]]->Clone(name);
+	if(hZLL) {
+	  hZLL   ->Add(histos2D[selection[iS]]["zll200to400"][extra[iC]][var[iV]]);
+	  hZLL   ->Add(histos2D[selection[iS]]["zll400to600"][extra[iC]][var[iV]]);
+	  hZLL   ->Add(histos2D[selection[iS]]["zll600toinf"][extra[iC]][var[iV]]);
+	  //setStyle(hZLL, kPink+9, kOpenSquare, 2, true);
+	  cout << "---- hZLL: Entries=" << hZLL->GetEntries() << " Integral=" << hZLL->Integral() << endl;
+	  hZLL->Write();
+	}
+
+	// WLN
+	name="h1D_"+selection[iS]+"_wlnTotal_"+extra[iC]+"_"+var[iV];
+	hWLN=(TH2F*) histos2D[selection[iS]]["wln100to200"][extra[iC]][var[iV]]->Clone(name);
+	if(hWLN) {
+	  hWLN   ->Add(histos2D[selection[iS]]["wln200to400"][extra[iC]][var[iV]]);
+	  hWLN   ->Add(histos2D[selection[iS]]["wln400to600"][extra[iC]][var[iV]]);
+	  hWLN   ->Add(histos2D[selection[iS]]["wln600toinf"][extra[iC]][var[iV]]);
+	  //setStyle(hWLN, kGreen+2, kOpenSquare, 2, true);
+	  cout << "---- hWLN: Entries=" << hWLN->GetEntries() << " Integral=" << hWLN->Integral() << endl;
+	  hWLN->Write();
+	}
+
+	// ZNN
+	name="h1D_"+selection[iS]+"_znnTotal_"+extra[iC]+"_"+var[iV];
+	hZNN=(TH2F*) histos2D[selection[iS]]["znn100to200"][extra[iC]][var[iV]]->Clone(name);
+	if(hZNN) {
+	  hZNN   ->Add(histos2D[selection[iS]]["znn200to400"][extra[iC]][var[iV]]);
+	  hZNN   ->Add(histos2D[selection[iS]]["znn400to600"][extra[iC]][var[iV]]);
+	  hZNN   ->Add(histos2D[selection[iS]]["znn600toinf"][extra[iC]][var[iV]]);
+	  //setStyle(hZNN, kAzure+7, kOpenSquare, 2, true);
+	  cout << "---- hZNN: Entries=" << hZNN->GetEntries() << " Integral=" << hZNN->Integral() << endl;
+	  hZNN->Write();
+	}
+
+	// VV
+	name="h1D_"+selection[iS]+"_vvTotal_"+extra[iC]+"_"+var[iV];
+	hVV=(TH2F*) histos2D[selection[iS]]["ww"][extra[iC]][var[iV]]->Clone(name);
+	if(hVV) {
+	  hVV   ->Add(histos2D[selection[iS]]["zz"][extra[iC]][var[iV]]);
+	  hVV   ->Add(histos2D[selection[iS]]["wz"][extra[iC]][var[iV]]);
+	  //setStyle(hVV, kBlue+1, kOpenSquare, 2, true);
+	  cout << "---- hVV: Entries=" << hVV->GetEntries() << " Integral=" << hVV->Integral() << endl;
+	  hVV->Write();
+	}
+
+	// Single Top AND TTBAR
+	name="h1D_"+selection[iS]+"_topTotal_"+extra[iC]+"_"+var[iV];
+	hTop=(TH2F*) histos2D[selection[iS]]["singletbart"][extra[iC]][var[iV]]->Clone(name);
+	if(hTop) {
+	  hTop   ->Add(histos2D[selection[iS]]["singletbarw"][extra[iC]][var[iV]]);
+	  hTop   ->Add(histos2D[selection[iS]]["singlett"][extra[iC]][var[iV]]);
+	  hTop   ->Add(histos2D[selection[iS]]["singletw"][extra[iC]][var[iV]]);
+	  hTop   ->Add(histos2D[selection[iS]]["ttbar"][extra[iC]][var[iV]]);
+	  //setStyle(hTop, kOrange-3, kOpenSquare, 2, true);
+	  cout << "---- hTop: Entries=" << hTop->GetEntries() << " Integral=" << hTop->Integral() << endl;
+	  hTop->Write();
+	}
+
+	// Data Cleaned
+	TString nameData=TString(hData->GetName());
+	hDataClean = (TH2F*) hData->Clone(nameData+"_clean");
+	if(hDataClean) {
+	  hDataClean->Add(hZNN, -1.0);
+	  hDataClean->Add(hWLN, -1.0);
+	  hDataClean->Add(hZLL, -1.0);
+	  hDataClean->Add(hVV, -1.0);
+	  hDataClean->Add(hTop, -1.0);
+	  hDataClean->Write();
+	}
+
+	// Produce plot //
+	//
+	/// canvas
+	TCanvas c("c","c",20,20,600,600);
+	gPad->SetLogy();
+	gStyle->SetOptStat(0);
+
+	/// Print
+	name = "scat_"+selection[iS]+"_"+extra[iC]+"_"+var[iV];
+	if(hData) {
+	  hData->Draw("COLZ");
+	  c.Print(dirOut+"/"+name+"_data.pdf","pdf");
+	}
+	if(hDataClean) {
+	  hDataClean->Draw("COLZ");
+	  c.Print(dirOut+"/"+name+"_dataclean.pdf","pdf");
+	}
+	if(hQCD) {
+	  hQCD->Draw("COLZ");
+	  c.Print(dirOut+"/"+name+"_qcd.pdf","pdf");
+	}
+
+	// Produce Transfer Factors plots
+	TGraphErrors gSF_data, gSF_qcd;
+	Float_t cut=0.5;
+
+	/// DATA TF 
+	color=kBlack;
+	style=kFullCircle;
+	size=1.2;
+	name  = "tf_"+selection[iS]+"_"+extra[iC]+"_"+var[iV]+"_data";
+	gSF_data = TransferFactor(hDataClean, cut);
+	gSF_data.SetName(name);
+	gSF_data.SetTitle("QCD Transfer Factor (data)");
+	gSF_data.SetMinimum(0.0001);
+	gSF_data.SetMaximum(1000);
+	gSF_data.SetMarkerSize(size);
+	gSF_data.SetMarkerStyle(style);
+	gSF_data.SetMarkerColor(color);
+	gSF_data.SetLineColor(  color);
+	/// print data	
+	gSF_data.Draw("AP");
+	c.Print(dirOut+"/"+name+".pdf","pdf");
+	/// print zoome data	
+	gSF_data.GetXaxis()->SetRangeUser(40, 200);
+	gSF_data.GetXaxis()->SetTitle("PFMETNoMu [GeV]");
+	gSF_data.Draw("AP");
+	name = "sfzoom_"+selection[iS]+"_"+extra[iC]+"_"+var[iV]+"_data";
+	c.Print(dirOut+"/"+name+".pdf","pdf");
+
+	/// QCD TF 
+	color=kRed;
+	style=kOpenSquare;
+	size=1.2;
+	name  = "tf_"+selection[iS]+"_"+extra[iC]+"_"+var[iV]+"_qcd";
+	gSF_qcd = TransferFactor(hQCD, cut);
+	gSF_qcd.SetName(name);
+	gSF_qcd.SetTitle("QCD Transfer Factor (QCD MC)");
+	gSF_qcd.SetMinimum(0.0001);
+	gSF_qcd.SetMaximum(1000);
+	gSF_qcd.SetMarkerSize(size);
+	gSF_qcd.SetMarkerStyle(style);
+	gSF_qcd.SetMarkerColor(color);
+	gSF_qcd.SetLineColor(  color);
+	/// print qcd	
+	gSF_qcd.Draw("AP");
+	c.Print(dirOut+"/"+name+".pdf","pdf");
+	/// print zoome qcd	
+	gSF_qcd.GetXaxis()->SetRangeUser(40, 200);
+	gSF_qcd.GetXaxis()->SetTitle("PFMETNoMu [GeV]");
+	gSF_qcd.Draw("AP");
+	name = "sfzoom_"+selection[iS]+"_"+extra[iC]+"_"+var[iV]+"_qcd";
+	c.Print(dirOut+"/"+name+".pdf","pdf");
+
+	// Print both
+	gSF_qcd.SetTitle("QCD Transfer Factor");
+	gSF_qcd .SetTitle("QCD Transfer Factor");
+	gSF_qcd.Draw("AP");
+	gSF_qcd .Draw("PSAME");
+	
+	TLegend* leg = new TLegend(0.7,0.79,0.89,0.89,"","brNDC");
+	setStyle(leg);
+	leg->AddEntry(&gSF_data, "Data (JetHT)", "P");
+	leg->AddEntry(&gSF_qcd,  "QCD  (MC)"   , "P");
+	leg->Draw();
+	
+	name = "sfboth_"+selection[iS]+"_"+extra[iC]+"_"+var[iV];
+	c.Print(dirOut+"/"+name+".pdf","pdf");
+
+      } // end loop: var
+    } // end loop: extra cuts
+  } // end loop: selections
 
   return 0;
 }
@@ -321,7 +536,7 @@ Int_t analyze(Float_t lumi, TString tag, M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1
 	//
 	ch->SetEntryList(0);
 	tskim  = "skim_"+process+"_"+select;
-	if(FAST) ch->Draw(">>+"+tskim, theCut, "entrylist", 10000); // fixme
+	if(FAST) ch->Draw(">>+"+tskim, theCut, "entrylist", 100); // fixme
 	else     ch->Draw(">>+"+tskim, theCut, "entrylist");
 	skim = (TEntryList*)gDirectory->Get(tskim);
 	if(skim) {
@@ -369,8 +584,8 @@ TCut defineWeight(TString process)
   TCut weight="1";
 
   if(!process.Contains("data")) {
-    //weight = "xsec*puweight*(wgt/wgtsum)";
-    weight = "xsec*puweight"; // fixme
+    weight = "xsec*puweight*(wgt/wgtsum)";
+    //weight = "xsec*puweight"; // fixme
   }
 
   return weight;
@@ -382,29 +597,42 @@ Int_t defineHistos1D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H1D &histos1D,
 {
 
   /// Stack 1D plots
-  const UInt_t nV=3;
-  TString var[nV]     ={"t1mumet", "jetmetdphimin", "incjetmetdphimin"};
-  TString nameAxisX[nV]={"Type1 PFMETNoMu [GeV]", "Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})"};
-  TString nameAxisY[nV]={"Events","Events","Events"};
+  const UInt_t nV=6;
+  TString var[nV]     ={"t1mumet", "jetmetdphimin", "incjetmetdphimin", "nvtx", "ht", "njets"};
+  TString nameAxisX[nV]={"Type1 PFMETNoMu [GeV]", "Min #Delta#phi(M,J_{i}^{C})", "Min #Delta#phi(M,J_{i})",
+			 "Number of Vertices", "Reco PFHT [GeV]" , "Number of Jets" };
+  TString nameAxisY[nV]={"Events","Events","Events","Events","Events","Events"};
 
-  UInt_t   nBins[nV]={ 100,   64,   64};
-  Float_t xFirst[nV]={ 200,    0,    0};
-  Float_t xLast[ nV]={1000,  3.2,  3.2};
+  UInt_t   nBins[nV]={ 100,   64,   64, 40,  200, 10};
+  Float_t xFirst[nV]={ 200,    0,    0,  0,    0,  0};
+  Float_t xLast[ nV]={1000,  3.2,  3.2, 40, 1000, 10};
+  Bool_t regular[nV]={true,true,true,true,true,true};
 
   vector<UInt_t>   v_nBins;
   vector<Float_t*> v_bins;
 
+  Float_t* binsTuned[nV];  
+  /// MET
+  regular[0] = false;
+  nBins[0]   = 8;
   Float_t bins_met[8] = {200, 250, 300, 350, 400, 500, 600, 1000};
-  v_nBins.push_back(8);
-  v_bins .push_back(bins_met);
-  
-  Float_t bins_phi[64];
-  for(UInt_t iB=0 ; iB<64 ; iB++) {
-    bins_phi[iB] = xFirst[1] + (iB*(xLast[1]-xFirst[1])/nBins[1]);
-  }
-  for(UInt_t i=1 ; i<nV ; i++) {
-    v_nBins.push_back(64);
-    v_bins .push_back(bins_phi);
+  binsTuned[0]=bins_met;
+
+  for(UInt_t iV=0 ; iV<nV ; iV++) {
+    const UInt_t theNbins = nBins[iV];
+    Float_t bins[theNbins];
+    if(regular[iV]) {
+      for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
+	bins[iB] = xFirst[iV] + (iB*(xLast[iV]-xFirst[iV])/nBins[iV]);
+      }
+    }
+    else {
+      for(UInt_t iB=0 ; iB<nBins[iV] ; iB++) {
+	bins[iB] = binsTuned[iV][iB];
+      }
+    }
+    v_nBins.push_back(nBins[iV]);
+    v_bins .push_back(bins);
   }
 
   TString name,title;
@@ -665,4 +893,54 @@ Int_t GetNGen(TString sample)
   else if(sample=="zz")              return 996944;
 
   else return 1;
+}
+
+
+TGraphErrors TransferFactor(TH2F *hTemp2, Float_t cut)
+{
+  
+  UInt_t nBinsX = hTemp2->GetNbinsX();
+  UInt_t nBinsY = hTemp2->GetNbinsY();
+
+  Float_t low1=0;
+  Float_t low2=0;
+  UInt_t  idxB=0;
+  
+  for(UInt_t iB=1 ; iB<nBinsY ; iB++) {
+    low1 = hTemp2->GetYaxis()->GetBinLowEdge(iB);
+    low2 = hTemp2->GetYaxis()->GetBinLowEdge(iB+1);
+    if(low1<cut && low2>=cut) idxB=iB;
+  }
+
+  Double_t integral1, integral2, error1, error2, ratio, error;
+  integral1 = integral2 = error1 = error2 = ratio = error = 0;
+
+  Double_t posX[nBinsX];
+  Double_t posY[nBinsX];
+  Double_t errX[nBinsX];
+  Double_t errY[nBinsX];
+
+  for(UInt_t iB=1 ; iB<nBinsX+1 ; iB++) {
+
+    integral1 = hTemp2->IntegralAndError(iB, iB, 0, idxB, error1);
+    integral2 = hTemp2->IntegralAndError(iB, iB, idxB+1, nBinsY+1, error2);
+    ratio = integral1!=0 ? integral2/integral1 : -0.1;
+    error = ErrorRatio(integral2, integral1, error2, error1);
+    //error = QuadSum(error1, error2);
+    //hSF->SetBinContent(iB, ratio);
+    //hSF->SetBinError(  iB, error);
+
+    posX[iB-1] = hTemp2->GetXaxis()->GetBinCenter(iB);
+    errX[iB-1] = abs(posX[iB-1] - hTemp2->GetXaxis()->GetBinLowEdge(iB));
+    posY[iB-1] = ratio;
+    errY[iB-1] = error;
+
+    cout << "MET=" << posX[iB-1] << "("   << integral2 << "+/-" << error2 << "/" << integral1 << "+/-" << error1 
+	 << "="    << ratio      << "+/-" << error     << endl;
+  }
+
+  //gSF = new TGraphErrors( nBinsX, posX, posY, errX, errY );
+  TGraphErrors gSF( nBinsX, posX, posY, errX, errY );
+
+  return gSF;
 }
