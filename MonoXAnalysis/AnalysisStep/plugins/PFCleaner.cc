@@ -177,7 +177,7 @@ void PFCleaner::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
         const Ptr<pat::Photon> photonPtr(photonsH, photons_iter - photonsH->begin());
         bool passeslooseid = (*photonLooseIdH)[photonPtr];
-        if (passeslooseid) {
+        if (passeslooseid && photons_iter->passElectronVeto()) {
             outputphotons->push_back(pat::PhotonRef(photonsH, photons_iter - photonsH->begin()));
             if (photons_iter->pt() > 175) outputtightphotons->push_back(pat::PhotonRef(photonsH, photons_iter - photonsH->begin()));
         }
