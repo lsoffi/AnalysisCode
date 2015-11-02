@@ -47,12 +47,14 @@ Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
 
   cout << "- Start qcd study" << endl;
 
+  // LUMINOSITY //
+
   //Float_t lumi=0.210;  // OUR PREVIOUS HYPOTHESIS
   Float_t lumi   =0.135210; // BRILCALC Cert_246908-259891_13TeV_PromptReco_Collisions15_25ns_JSON.txt 256630-257599
   Float_t lumiMET=0.109329; // BRILCALC Same + "HLT_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight_v*"
-  //Float_t lumiHT =0.000172; // BRILCALC 05Oct2015 256630-258158 HLT_PFHT200_v*
+  Float_t lumiHT =0.000172; // BRILCALC 05Oct2015 256630-258158 HLT_PFHT200_v*
   //Float_t lumiHT =0.000470; // BRILCALC 05Oct2015+PRV4 256630-259862 HLT_PFHT200_v*
-  Float_t lumiHT = 0.553150; // BRILCALC 05Oct2015 256630-258158 No trigger <=> Nadir_26Oct2015 trees
+  //Float_t lumiHT =0.553150; // BRILCALC 05Oct2015 256630-258158 No trigger <=> Nadir_26Oct2015 trees
 
   Float_t lumi1D, lumi2D;
   if(region1D=="HT") lumi1D=lumiHT;
@@ -62,6 +64,7 @@ Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
 
   cout << "- lumi1D=" << lumi1D << " lumi2D=" << lumi2D << endl;
 
+  // Define Output
   TString dirOut="/user/ndaci/Results/Monojet/QCD/"+tag+"/";
   ofstream outlog(dirOut+"yields_"+tag+".txt",ios::out);
 
@@ -77,17 +80,21 @@ Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
   //const UInt_t nS=2;
   //TString selection[nS] = {"inclusive","1jet"};
 
+  // Define extra cut to be tested, for each selection
   const UInt_t nC=2;
   TString extra[nC]={"None","FwdVeto"};
 
   // Define histograms
+  //
+  /// 1D
   M_SEL_PROC_CUT_VAR_H1D histos1D;
   if(tag.Contains("1D")) {
     cout << "- defineHistos1D(chains, histos1D, " << nS << "," << nC << ",selection,extra);...";
     defineHistos1D(chains, histos1D, nS, nC, selection, extra);
     cout << " done!" << endl;
   }
-
+  //
+  /// 2D
   M_SEL_PROC_CUT_VAR_H2D histos2D;
   if(tag.Contains("2D")) {
     cout << "- defineHistos1D(chains, histos2D, " << nS << "," << nC << ",selection,extra);...";
@@ -107,14 +114,18 @@ Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
   cout << " done!" << endl;
 
   // Produce the 1D stack plots
-  cout << "- doStackPlots(" << tag << ", " << region1D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" ;
-  doStackPlots(   tag, region1D, histos1D, nS, nC, selection, extra);
-  cout << " done!" << endl;
+  if(tag.Contains("1D")) {
+    cout << "- doStackPlots(" << tag << ", " << region1D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" ;
+    doStackPlots(   tag, region1D, histos1D, nS, nC, selection, extra);
+    cout << " done!" << endl;
+  }
 
-  // Produce the 2D scatter plots and transfer plots
-  cout << "- doTransferPlots(" << tag << ", " << region2D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" ;
-  doTransferPlots(tag, region2D, histos2D, nS, nC, selection, extra);
-  cout << " done!" << endl;
+  // Produce the 2D scatter plots and the 1D transfer plots
+  if(tag.Contains("2D")) {
+    cout << "- doTransferPlots(" << tag << ", " << region2D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" ;
+    doTransferPlots(tag, region2D, histos2D, nS, nC, selection, extra);
+    cout << " done!" << endl;
+  }
 
   // END //
   cout << "--- THE END ==> [] ---" << endl;
@@ -614,7 +625,7 @@ Int_t analyze(Float_t lumi1D, Float_t lumi2D, TString tag, TString region1D, TSt
 	  theScale = 1; // lumi is applied later depending on the requested region
 	  nGen     = GetNGen(process);
 	  if(!process.Contains("data")) {
-	    theScale = nGen!=0 ? 1/nGen : 1;
+	    theScale = nGen!=0 ? 1.0/nGen : 1.0;
 	  }
 	  if(process.Contains("zll") || process.Contains("znn")) {
 	    theScale *= 1.23;
@@ -622,6 +633,8 @@ Int_t analyze(Float_t lumi1D, Float_t lumi2D, TString tag, TString region1D, TSt
 	  if(process.Contains("wln")) {
 	    theScale *= 1.21;
 	  }
+
+	  cout << "------ before switching between 1D and 2D case: theScale=" << theScale << endl;
 
 	  // Launch calls to TTree::Draw()
 	  if(var[iV].Contains("_vs_")) { // 2D
@@ -632,7 +645,11 @@ Int_t analyze(Float_t lumi1D, Float_t lumi2D, TString tag, TString region1D, TSt
 	    cout << "------ 2D: " << theCut << endl;
 	    ch->Draw(locVar+">>"+hname, theCut*theWeight);
 	    if(!process.Contains("data")) theScale *= lumi2D;
-	    hTemp2->Scale(theScale);
+	    if(hTemp2) {
+	      hTemp2->Scale(theScale);
+	      cout << "------ lumi2D=" << lumi2D << " theScale=" << theScale 
+		   << " Entries=" << hTemp2->GetEntries() << " Integral=" << hTemp2->Integral() << endl;
+	    }
 	  }
 	  else { // 1D
 	    hTemp1 = histos1D[selection[iS]][process][extra[iC]][var[iV]];
@@ -643,7 +660,11 @@ Int_t analyze(Float_t lumi1D, Float_t lumi2D, TString tag, TString region1D, TSt
 	    cout << "------ 1D: " << theCut << endl;
 	    ch->Draw(locVar+">>"+hname, theCut*theWeight);
 	    if(!process.Contains("data")) theScale *= lumi1D;
-	    hTemp1->Scale(theScale);
+	    if(hTemp1) {
+	      hTemp1->Scale(theScale);
+	      cout << "------ lumi1D=" << lumi1D << " theScale=" << theScale 
+		   << " Entries=" << hTemp1->GetEntries() << " Integral=" << hTemp1->Integral() << endl;
+	    }
 	  }
 
 	} // end loop: var
@@ -777,10 +798,11 @@ Int_t defineHistos2D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H2D &histos2D,
 
   /// MET
   Float_t bins_met[17] = {50, 60, 70, 80, 90, 100, 125, 150, 175, 200, 250, 300, 350, 400, 500, 600, 1000};
+  //
   regularX[0] = false;
   nBinsX[0] = 17;
   binsTunedX[0]=bins_met;
-  // FIXME
+  //
   regularX[1] = false;
   nBinsX[1] = 17;
   binsTunedX[1]=bins_met;
@@ -872,7 +894,8 @@ Int_t defineChains(M_PROC_CH &chains, TString region1D, TString region2D)
   TString nameTreeMC= "tree/tree";
 
   TString pathData= "/user/ndaci/Data/XMET/AdishTrees_29Oct2015/Run2015D/";
-  TString pathDataHT= "/user/ndaci/Data/XMET/NadirTrees_26Oct2015/Run2015D/";
+  //TString pathDataHT= "/user/ndaci/Data/XMET/NadirTrees_26Oct2015/Run2015D/";
+  TString pathDataHT= "/user/ndaci/Data/XMET/NadirTrees_02Nov2015/Run2015D/";
   TString nameFileData="tree.root";
   TString nameTreeData= "tree/tree";
 
@@ -902,7 +925,8 @@ Int_t defineChains(M_PROC_CH &chains, TString region1D, TString region2D)
   if(region1D=="HT" || region2D=="HT") {
     cout << "- data_jetht:";
     chains["data_jetht"] = new TChain(nameTreeData);
-    chains["data_jetht"]->Add(pathDataHT+"/jetht_05Oct2015/skimJSON_t1mumet50.root");
+    //chains["data_jetht"]->Add(pathDataHT+"/jetht_05Oct2015/skimJSON_t1mumet50.root");
+    chains["data_jetht"]->Add(pathDataHT+"/jetht_05Oct2015/skimJSON.root");
     cout << "done! ";
   }
   cout << endl;
@@ -924,7 +948,7 @@ TCut defineCut(TString sample, TString region)
 
   //TCut trig ="hltmet90>0 || hltmet120>0";
   TCut trig="";
-  TCut noise="flaghbheloose>0 && flagcsctight>0 && flageebadsc>0";
+  TCut noise="flaghbheloose>0 && flagcsctight>0 && flageebadsc>0 && flaghbheiso>0";
   TCut maxrun=""; 
   TCut metCut="";
   TCut leptons="nelectrons == 0 && ntaus == 0 && nmuons == 0";
@@ -947,7 +971,7 @@ TCut defineCut(TString sample, TString region)
   // HT or MET region
   if(region.Contains("HT")) {
     if(sample.Contains("jetht")) trig = "hltpfht200 && ht>300"; // Nadir trees
-    else                         trig = "ht>300"; // no hltpfht branch in Adish trees
+    else                         trig = "ht>300"; // no hltpfht branch in Adish trees and no HLT_PFHT200 in Spring15 anyway
   }  
 
   else if(region.Contains("MET")) {
@@ -955,7 +979,7 @@ TCut defineCut(TString sample, TString region)
     trig = "hltmet90>0"; // to be sure of the lumi measurement
     if(region.Contains("Met200")) metCut="t1mumet>200";
     maxrun="run<257599"; // stay blind only in MET region
-    noise *= "flaghbheiso>0"; // fixme: add to everybody once I get updated JetHT trees
+    //noise *= "flaghbheiso>0"; // fixme: add to everybody once I get updated JetHT trees
   }
 
   // Jet ID //
@@ -968,8 +992,8 @@ TCut defineCut(TString sample, TString region)
   else if(region.Contains("3jet"))   {jetBin="njets>=3"; jetID = jetID1*jetID2*jetID3;}
   //else if(region.Contains("4jet"))   {jetBin="njets>=4"; jetID = jetID1*jetID2*jetID3;}
 
-  return trig*noise*maxrun*metCut*leptons*photons*bveto*jetID*jetBin*noqcd*fwdveto;
-  //return "t1mumet>200"; // FIXME: debug test
+  //return trig*noise*maxrun*metCut*leptons*photons*bveto*jetID*jetBin*noqcd*fwdveto;
+  return "t1mumet>200"; // FIXME: debug test
 
 }
 
