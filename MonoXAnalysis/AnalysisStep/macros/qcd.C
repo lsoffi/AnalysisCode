@@ -57,10 +57,10 @@ Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
   //Float_t lumiHT =0.553150; // BRILCALC 05Oct2015 256630-258158 No trigger <=> Nadir_26Oct2015 trees
 
   Float_t lumi1D, lumi2D;
-  if(region1D=="HT") lumi1D=lumiHT;
-  else               lumi1D=lumiMET;
-  if(region2D=="HT") lumi2D=lumiHT;
-  else               lumi2D=lumiMET;
+  if(region1D.Contains("HT")) lumi1D=lumiHT;
+  else                        lumi1D=lumiMET;
+  if(region2D.Contains("HT")) lumi2D=lumiHT;
+  else                        lumi2D=lumiMET;
 
   cout << "- lumi1D=" << lumi1D << " lumi2D=" << lumi2D << endl;
 
@@ -89,42 +89,42 @@ Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
   /// 1D
   M_SEL_PROC_CUT_VAR_H1D histos1D;
   if(tag.Contains("1D")) {
-    cout << "- defineHistos1D(chains, histos1D, " << nS << "," << nC << ",selection,extra);...";
+    cout << "- defineHistos1D(chains, histos1D, " << nS << "," << nC << ",selection,extra);..." << endl;
     defineHistos1D(chains, histos1D, nS, nC, selection, extra);
-    cout << " done!" << endl;
+    cout << "=> done!" << endl;
   }
   //
   /// 2D
   M_SEL_PROC_CUT_VAR_H2D histos2D;
   if(tag.Contains("2D")) {
-    cout << "- defineHistos1D(chains, histos2D, " << nS << "," << nC << ",selection,extra);...";
+    cout << "- defineHistos1D(chains, histos2D, " << nS << "," << nC << ",selection,extra);..." << endl;
     defineHistos2D(chains, histos2D, nS, nC, selection, extra);
-    cout << " done!" << endl;
+    cout << "=> done!" << endl;
   }
 
   // Process input chains
   cout << "- analyze(" << lumi1D << ", " << lumi2D << ", " << tag << ", " << region1D << ", " << region2D 
-       << ",chains, histos1D, histos2D, " << nS << ", " << nC << ", selection, extra);...";
+       << ",chains, histos1D, histos2D, " << nS << ", " << nC << ", selection, extra);..." << endl;
   analyze(lumi1D, lumi2D, tag, region1D, region2D, chains, histos1D, histos2D, nS, nC, selection, extra);
-  cout << " done!" << endl;
+  cout << "=> done!" << endl;
 
   // Write out the histograms
-  cout << "- writeHistos(" << tag << ", histos1D, histos2D);...";
+  cout << "- writeHistos(" << tag << ", histos1D, histos2D);..." << endl;
   writeHistos(tag, histos1D, histos2D);
-  cout << " done!" << endl;
+  cout << "=> done!" << endl;
 
   // Produce the 1D stack plots
   if(tag.Contains("1D")) {
-    cout << "- doStackPlots(" << tag << ", " << region1D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" ;
+    cout << "- doStackPlots(" << tag << ", " << region1D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" << endl;
     doStackPlots(   tag, region1D, histos1D, nS, nC, selection, extra);
-    cout << " done!" << endl;
+    cout << "=> done!" << endl;
   }
 
   // Produce the 2D scatter plots and the 1D transfer plots
   if(tag.Contains("2D")) {
-    cout << "- doTransferPlots(" << tag << ", " << region2D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" ;
+    cout << "- doTransferPlots(" << tag << ", " << region2D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" endl;
     doTransferPlots(tag, region2D, histos2D, nS, nC, selection, extra);
-    cout << " done!" << endl;
+    cout << "=> done!" << endl;
   }
 
   // END //
@@ -922,7 +922,7 @@ Int_t defineChains(M_PROC_CH &chains, TString region1D, TString region2D)
   }
   cout << endl;
   //
-  if(region1D=="HT" || region2D=="HT") {
+  if(region1D.Contains("HT") || region2D.Contains("HT")) {
     cout << "- data_jetht:";
     chains["data_jetht"] = new TChain(nameTreeData);
     //chains["data_jetht"]->Add(pathDataHT+"/jetht_05Oct2015/skimJSON_t1mumet50.root");
@@ -931,7 +931,7 @@ Int_t defineChains(M_PROC_CH &chains, TString region1D, TString region2D)
   }
   cout << endl;
 
-  if(region1D=="MET" || region2D=="MET") {
+  if(region1D.Contains("MET") || region2D.COntains("MET")) {
     cout << "- datamet:";
     chains["data_met"] = new TChain(nameTreeData);
     chains["data_met"]->Add(pathData+"/met/tree.root");
