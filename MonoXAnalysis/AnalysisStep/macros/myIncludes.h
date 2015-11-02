@@ -70,7 +70,8 @@ struct PATH{
 // style
 Int_t setStyle(TEfficiency* f, Int_t color, Int_t style);
 Int_t setStyle(TH1* h, Int_t color);
-Int_t setStyle(TH1* h, Int_t color, Int_t style, Int_t size,
+Int_t setStyle(TH1* h, Int_t color, Int_t style, Float_t size, Bool_t fill);
+Int_t setStyle(TH1* h, Int_t color, Int_t style, Float_t size,
 	       Bool_t sumw, Bool_t fill);
 Int_t setStyle(TF1*  f, Int_t color, Int_t style);
 Int_t setStyle(TCanvas* c);
@@ -214,10 +215,21 @@ Int_t setStyle(TEfficiency* f, Int_t color, Int_t style)
   return 0;
 }
 
-Int_t setStyle(TH1* h, Int_t color, Int_t style, Int_t size,
+Int_t setStyle(TH1* h, Int_t color, Int_t style, Float_t size,
 	       Bool_t sumw, Bool_t fill)
 {
   if(sumw) h->Sumw2();
+  h->SetMarkerSize(size);
+  h->SetMarkerStyle(style);
+  h->SetLineColor(color);
+  h->SetMarkerColor(color);
+  if(fill) h->SetFillColor(color);
+  return 0;
+}
+
+Int_t setStyle(TH1* h, Int_t color, Int_t style, Float_t size, Bool_t fill)
+{
+
   h->SetMarkerSize(size);
   h->SetMarkerStyle(style);
   h->SetLineColor(color);
