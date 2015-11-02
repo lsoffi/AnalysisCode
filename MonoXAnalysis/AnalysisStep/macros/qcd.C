@@ -1,7 +1,7 @@
 #include "myIncludes.h"
 
 bool FAST=false; // fixme
-int  NFAST=10000;
+int  NFAST=1000;
 
 using namespace std;
 typedef map<TString, map<TString, map<TString, TH1F*> > > M_SEL_PROC_VAR_H1D;
@@ -24,7 +24,7 @@ Int_t GetNGen(TString process);
 Int_t writeHistos(TString tag, M_SEL_PROC_CUT_VAR_H1D histos1D, M_SEL_PROC_CUT_VAR_H2D histos2D);
 Int_t doStackPlots(TString tag, TString region1D, M_SEL_PROC_CUT_VAR_H1D histos1D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra);
 Int_t doTransferPlots(TString tag, TString region2D, M_SEL_PROC_CUT_VAR_H2D histos2D, const UInt_t nS, const UInt_t nC, TString* selection, TString* extra);
-Int_t defineChains(M_PROC_CH &chains);
+Int_t defineChains(M_PROC_CH &chains, TString region1D, TString region2D);
 TCut  defineWeight(TString process);
 TCut  defineCut(TString sample, TString region);
 Int_t defineHistos1D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H1D &histos1D,
@@ -34,7 +34,7 @@ Int_t defineHistos2D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H2D &histos2D,
 		     const UInt_t nS,    const UInt_t nC,
 		     TString* selection, TString* extra);
 
-Int_t analyze(Float_t lumi, TString tag, TString region1D, TString region2D,
+Int_t analyze(Float_t lumi1D, Float_t lumi2D, TString tag, TString region1D, TString region2D,
 	      M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1D &histos1D, M_SEL_PROC_CUT_VAR_H2D &histos2D,
 	      const UInt_t nS,    const UInt_t nC, TString* selection, TString* extra);
 
@@ -45,40 +45,79 @@ TGraphErrors TransferFactor(TH2F *hTemp2, Float_t cut);
 Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
 {
 
-  Float_t lumi=0.210;
-  
+  cout << "- Start qcd study" << endl;
+
+  //Float_t lumi=0.210;  // OUR PREVIOUS HYPOTHESIS
+  Float_t lumi   =0.135210; // BRILCALC Cert_246908-259891_13TeV_PromptReco_Collisions15_25ns_JSON.txt 256630-257599
+  Float_t lumiMET=0.109329; // BRILCALC Same + "HLT_PFMETNoMu90_JetIdCleaned_PFMHTNoMu90_IDTight_v*"
+  //Float_t lumiHT =0.000172; // BRILCALC 05Oct2015 256630-258158 HLT_PFHT200_v*
+  //Float_t lumiHT =0.000470; // BRILCALC 05Oct2015+PRV4 256630-259862 HLT_PFHT200_v*
+  Float_t lumiHT = 0.553150; // BRILCALC 05Oct2015 256630-258158 No trigger <=> Nadir_26Oct2015 trees
+
+  Float_t lumi1D, lumi2D;
+  if(region1D=="HT") lumi1D=lumiHT;
+  else               lumi1D=lumiMET;
+  if(region2D=="HT") lumi2D=lumiHT;
+  else               lumi2D=lumiMET;
+
+  cout << "- lumi1D=" << lumi1D << " lumi2D=" << lumi2D << endl;
+
   TString dirOut="/user/ndaci/Results/Monojet/QCD/"+tag+"/";
   ofstream outlog(dirOut+"yields_"+tag+".txt",ios::out);
 
   // Define Chains
   M_PROC_CH chains;
-  defineChains(chains);
+  cout << "- defineChains(chains," << region1D << "," << region2D << ");... " ;
+  defineChains(chains, region1D, region2D);
+  cout << " done!" << endl;
 
   // Define selections to be explored
-  // const UInt_t nS=5;
-  // TString selection[nS] = {"inclusive","1jet","2jet","3jet","4jet"};
-  const UInt_t nS=2;
-  TString selection[nS] = {"inclusive","1jet"};
+  const UInt_t nS=4;
+  TString selection[nS] = {"inclusive","1jet","2jet","3jet"};
+  //const UInt_t nS=2;
+  //TString selection[nS] = {"inclusive","1jet"};
 
   const UInt_t nC=2;
   TString extra[nC]={"None","FwdVeto"};
 
   // Define histograms
   M_SEL_PROC_CUT_VAR_H1D histos1D;
-  if(tag.Contains("1D")) defineHistos1D(chains, histos1D, nS, nC, selection, extra);
+  if(tag.Contains("1D")) {
+    cout << "- defineHistos1D(chains, histos1D, " << nS << "," << nC << ",selection,extra);...";
+    defineHistos1D(chains, histos1D, nS, nC, selection, extra);
+    cout << " done!" << endl;
+  }
 
   M_SEL_PROC_CUT_VAR_H2D histos2D;
-  if(tag.Contains("2D")) defineHistos2D(chains, histos2D, nS, nC, selection, extra);
+  if(tag.Contains("2D")) {
+    cout << "- defineHistos1D(chains, histos2D, " << nS << "," << nC << ",selection,extra);...";
+    defineHistos2D(chains, histos2D, nS, nC, selection, extra);
+    cout << " done!" << endl;
+  }
 
-  // 2D plots: region="HT"
-  // 1D stack: region="Met200_1jet"
-  analyze(lumi, tag, region1D, region2D, chains, histos1D, histos2D, nS, nC, selection, extra);
+  // Process input chains
+  cout << "- analyze(" << lumi1D << ", " << lumi2D << ", " << tag << ", " << region1D << ", " << region2D 
+       << ",chains, histos1D, histos2D, " << nS << ", " << nC << ", selection, extra);...";
+  analyze(lumi1D, lumi2D, tag, region1D, region2D, chains, histos1D, histos2D, nS, nC, selection, extra);
+  cout << " done!" << endl;
 
+  // Write out the histograms
+  cout << "- writeHistos(" << tag << ", histos1D, histos2D);...";
   writeHistos(tag, histos1D, histos2D);
+  cout << " done!" << endl;
 
+  // Produce the 1D stack plots
+  cout << "- doStackPlots(" << tag << ", " << region1D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" ;
   doStackPlots(   tag, region1D, histos1D, nS, nC, selection, extra);
-  doTransferPlots(tag, region2D, histos2D, nS, nC, selection, extra);
+  cout << " done!" << endl;
 
+  // Produce the 2D scatter plots and transfer plots
+  cout << "- doTransferPlots(" << tag << ", " << region2D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" ;
+  doTransferPlots(tag, region2D, histos2D, nS, nC, selection, extra);
+  cout << " done!" << endl;
+
+  // END //
+  cout << "--- THE END ==> [] ---" << endl;
   return 0;
 }
 
@@ -429,6 +468,7 @@ Int_t doStackPlots(TString tag, TString region1D, M_SEL_PROC_CUT_VAR_H1D histos1
 	stack->Add(hZNN);
 	//
 	/// Print
+	hData->SetMinimum(1.0);
 	hData->Draw("P");
 	stack->Draw("HISTSAME");
 	hData->Draw("PSAME");
@@ -498,12 +538,21 @@ Int_t writeHistos(TString tag, M_SEL_PROC_CUT_VAR_H1D histos1D, M_SEL_PROC_CUT_V
   return 0;
 }
 
-Int_t analyze(Float_t lumi, TString tag, TString region1D, TString region2D,
+Int_t analyze(Float_t lumi1D, Float_t lumi2D, TString tag, TString region1D, TString region2D,
 	      M_PROC_CH chains, M_SEL_PROC_CUT_VAR_H1D &histos1D, M_SEL_PROC_CUT_VAR_H2D &histos2D,
 	      const UInt_t nS,    const UInt_t nC, TString* selection, TString* extra)
 {
 
-  vector<TString> var = GetVarName(histos1D, histos2D, "both");
+  cout << "- START analyze()" << endl
+       << "- Getting variable names: GetVarName(histos1D, histos2D, 'both');" << endl;
+
+  TString mode;
+  if(tag.Contains("1D") && tag.Contains("2D")) mode="both";
+  else if(tag.Contains("1D"))                  mode="1D";
+  else if(tag.Contains("2D"))                  mode="2D";
+  else mode="1D";
+
+  vector<TString> var = GetVarName(histos1D, histos2D, mode);
   const UInt_t nV=var.size();
 
   // Loop over chains
@@ -517,24 +566,13 @@ Int_t analyze(Float_t lumi, TString tag, TString region1D, TString region2D,
   Float_t theScale;
   Int_t   nGen;
   //
+  cout << "- Start loop: chains" << endl;
   for(itCh = chains.begin() ; itCh!=chains.end() ; itCh++) {
 
     process = itCh->first;
     ch      = itCh->second;
 
     cout << "- " << process << endl;
-
-    theScale = 1;
-    nGen     = GetNGen(process);
-    if(!process.Contains("data")) {
-      theScale = nGen!=0 ? lumi/nGen : 1;
-    }
-    if(process.Contains("zll") || process.Contains("znn")) {
-      theScale *= 1.23;
-    }
-    if(process.Contains("wln")) {
-      theScale *= 1.21;
-    }
 
     for(UInt_t iS=0 ; iS<nS ; iS++) {
 
@@ -553,7 +591,7 @@ Int_t analyze(Float_t lumi, TString tag, TString region1D, TString region2D,
 	//
 	ch->SetEntryList(0);
 	tskim  = "skim_"+process+"_"+select;
-	if(FAST) ch->Draw(">>+"+tskim, theCut, "entrylist", NFAST); // fixme
+	if(FAST) ch->Draw(">>+"+tskim, theCut, "entrylist", NFAST);
 	else     ch->Draw(">>+"+tskim, theCut, "entrylist");
 	skim = (TEntryList*)gDirectory->Get(tskim);
 	if(skim) {
@@ -572,27 +610,39 @@ Int_t analyze(Float_t lumi, TString tag, TString region1D, TString region2D,
 	  else if(var[iV]=="incjetmetdphimin_vs_t1mumet") locVar="abs(incjetmetdphimin):t1mumet";
 	  else if(var[iV].Contains("phi")) locVar = "abs("+var[iV]+")";
 
+	  // Establish the rescaling factor to the final MC histogram
+	  theScale = 1; // lumi is applied later depending on the requested region
+	  nGen     = GetNGen(process);
+	  if(!process.Contains("data")) {
+	    theScale = nGen!=0 ? 1/nGen : 1;
+	  }
+	  if(process.Contains("zll") || process.Contains("znn")) {
+	    theScale *= 1.23;
+	  }
+	  if(process.Contains("wln")) {
+	    theScale *= 1.21;
+	  }
+
 	  // Launch calls to TTree::Draw()
 	  if(var[iV].Contains("_vs_")) { // 2D
 	    hTemp2 = histos2D[selection[iS]][process][extra[iC]][var[iV]];
 	    hname  = hTemp2->GetName();
-	    //region = "HT";
 	    region = region2D;
 	    theCut = defineCut(process, select+"_"+region); // "HT" => use HT triggers + offline HT cut
 	    cout << "------ 2D: " << theCut << endl;
 	    ch->Draw(locVar+">>"+hname, theCut*theWeight);
+	    if(!process.Contains("data")) theScale *= lumi2D;
 	    hTemp2->Scale(theScale);
 	  }
 	  else { // 1D
 	    hTemp1 = histos1D[selection[iS]][process][extra[iC]][var[iV]];
 	    hname  = hTemp1->GetName();
-	    //region = "MET_Met200"; // "MET" => use MET triggers + offline MET cut
-	    //region = "HT"; // Look at the HT region now
 	    region = region1D;
 	    if(!var[iV].Contains("phimin") && region1D.Contains("MET")) region+="_JetMet0p5";
 	    theCut = defineCut(process, select+"_"+region); 
 	    cout << "------ 1D: " << theCut << endl;
 	    ch->Draw(locVar+">>"+hname, theCut*theWeight);
+	    if(!process.Contains("data")) theScale *= lumi1D;
 	    hTemp1->Scale(theScale);
 	  }
 
@@ -812,8 +862,10 @@ Int_t defineHistos2D(M_PROC_CH chains,   M_SEL_PROC_CUT_VAR_H2D &histos2D,
   return 0;
 }
 
-Int_t defineChains(M_PROC_CH &chains)
+Int_t defineChains(M_PROC_CH &chains, TString region1D, TString region2D)
 {
+
+  cout << "- START defineChains(chains, " << region1D << ", " << region2D << ");" << endl;
 
   TString pathMC="/user/ndaci/Data/XMET/AdishTrees_29Oct2015/Spring15MC_25ns/";
   TString nameFileMC="skim.root";
@@ -833,24 +885,37 @@ Int_t defineChains(M_PROC_CH &chains)
 		      "qcdht1000to1500","qcdht100to200","qcdht1500to2000","qcdht2000toinf",
 		      "qcdht200to300","qcdht300to500","qcdht500to700","qcdht700to1000"};
 
-  const UInt_t nData=2;
-  TString nameData[nData]={"data_jetht","data_met"};
-  TString dirData[nData] ={"jetht_05Oct2015","met"};
+  // const UInt_t nData=2;
+  // TString nameData[nData]={"data_jetht","data_met"};
+  // TString dirData[nData] ={"jetht_05Oct2015","met"};
 
   // Define chains
+  cout << "- loop over MC: ";
   for(UInt_t i=0 ; i<nMC ; i++) {
-    chains[dirMC[i]] = new TChain("tree/tree");
+    cout << dirMC[i] << ":";
+    chains[dirMC[i]] = new TChain(nameTreeMC);
     chains[dirMC[i]]->Add(pathMC+"/"+dirMC[i]+"/"+nameFileMC);
+    cout << "done! ";
   }
+  cout << endl;
   //
-  for(UInt_t i=0 ; i<nData ; i++) {
-    chains[nameData[i]] = new TChain("tree/tree");
-    if(nameData[i].Contains("ht"))
-      chains[nameData[i]]->Add(pathDataHT+"/"+dirData[i]+"/skimJSON_t1mumet50.root");
-    else
-      chains[nameData[i]]->Add(pathData+"/"+dirData[i]+"/"+nameFileData);
+  if(region1D=="HT" || region2D=="HT") {
+    cout << "- data_jetht:";
+    chains["data_jetht"] = new TChain(nameTreeData);
+    chains["data_jetht"]->Add(pathDataHT+"/jetht_05Oct2015/skimJSON_t1mumet50.root");
+    cout << "done! ";
   }
+  cout << endl;
 
+  if(region1D=="MET" || region2D=="MET") {
+    cout << "- datamet:";
+    chains["data_met"] = new TChain(nameTreeData);
+    chains["data_met"]->Add(pathData+"/met/tree.root");
+    cout << "done! ";
+  }
+  cout << endl;
+
+  cout << "- END defineChains" << endl;
   return 0;
 }
 
@@ -860,7 +925,7 @@ TCut defineCut(TString sample, TString region)
   //TCut trig ="hltmet90>0 || hltmet120>0";
   TCut trig="";
   TCut noise="flaghbheloose>0 && flagcsctight>0 && flageebadsc>0";
-  TCut maxrun="run<257599";
+  TCut maxrun=""; 
   TCut metCut="";
   TCut leptons="nelectrons == 0 && ntaus == 0 && nmuons == 0";
   TCut photons="nphotons==0";
@@ -886,8 +951,11 @@ TCut defineCut(TString sample, TString region)
   }  
 
   else if(region.Contains("MET")) {
-    trig = "hltmet90>0 || hltmet120>0";
+    //trig = "hltmet90>0 || hltmet120>0";
+    trig = "hltmet90>0"; // to be sure of the lumi measurement
     if(region.Contains("Met200")) metCut="t1mumet>200";
+    maxrun="run<257599"; // stay blind only in MET region
+    noise *= "flaghbheiso>0"; // fixme: add to everybody once I get updated JetHT trees
   }
 
   // Jet ID //
@@ -897,8 +965,8 @@ TCut defineCut(TString sample, TString region)
 
   if(     region.Contains("1jet"))   {jetBin="njets==1"; jetID = jetID1;}
   else if(region.Contains("2jet"))   {jetBin="njets==2"; jetID = jetID1*jetID2;}
-  else if(region.Contains("3jet"))   {jetBin="njets==3"; jetID = jetID1*jetID2*jetID3;}
-  else if(region.Contains("4jet"))   {jetBin="njets>=4"; jetID = jetID1*jetID2*jetID3;}
+  else if(region.Contains("3jet"))   {jetBin="njets>=3"; jetID = jetID1*jetID2*jetID3;}
+  //else if(region.Contains("4jet"))   {jetBin="njets>=4"; jetID = jetID1*jetID2*jetID3;}
 
   return trig*noise*maxrun*metCut*leptons*photons*bveto*jetID*jetBin*noqcd*fwdveto;
   //return "t1mumet>200"; // FIXME: debug test
