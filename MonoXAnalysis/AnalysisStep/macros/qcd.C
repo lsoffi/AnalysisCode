@@ -122,7 +122,7 @@ Int_t qcd(TString tag, TString region1D="HT", TString region2D="HT")
 
   // Produce the 2D scatter plots and the 1D transfer plots
   if(tag.Contains("2D")) {
-    cout << "- doTransferPlots(" << tag << ", " << region2D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" endl;
+    cout << "- doTransferPlots(" << tag << ", " << region2D << ", histos1D, " << nS << ", " << nC << ", selection, extra);" << endl;
     doTransferPlots(tag, region2D, histos2D, nS, nC, selection, extra);
     cout << "=> done!" << endl;
   }
@@ -931,7 +931,7 @@ Int_t defineChains(M_PROC_CH &chains, TString region1D, TString region2D)
   }
   cout << endl;
 
-  if(region1D.Contains("MET") || region2D.COntains("MET")) {
+  if(region1D.Contains("MET") || region2D.Contains("MET")) {
     cout << "- datamet:";
     chains["data_met"] = new TChain(nameTreeData);
     chains["data_met"]->Add(pathData+"/met/tree.root");
@@ -992,8 +992,8 @@ TCut defineCut(TString sample, TString region)
   else if(region.Contains("3jet"))   {jetBin="njets>=3"; jetID = jetID1*jetID2*jetID3;}
   //else if(region.Contains("4jet"))   {jetBin="njets>=4"; jetID = jetID1*jetID2*jetID3;}
 
-  //return trig*noise*maxrun*metCut*leptons*photons*bveto*jetID*jetBin*noqcd*fwdveto;
-  return "t1mumet>200"; // FIXME: debug test
+  return trig*noise*maxrun*metCut*leptons*photons*bveto*jetID*jetBin*noqcd*fwdveto;
+  //return "t1mumet>200"; // FIXME: debug test
 
 }
 
